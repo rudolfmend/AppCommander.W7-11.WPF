@@ -5,8 +5,249 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="AppCommander - Automation Tool" 
+        Height="700" Width="1000" MinHeight="500" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        Icon="appcommander_icon.ico">
+    <Window.Resources>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="3"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF106EBE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF005A9E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#FFCCCCCC"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#FF0078D4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#FF0078D4"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="GroupBoxStyle" TargetType="GroupBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#FFDDDDDD"/>
+        </Style>
+    </Window.Resources>
+
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0" Background="#FFF0F0F0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N"/>
+                <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Window Selector" Click="WindowSelector_Click"/>
+                <MenuItem Header="_Element Inspector" Click="ElementInspector_Click"/>
+                <Separator/>
+                <MenuItem Header="_Settings" Click="Settings_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Click="About_Click"/>
+                <MenuItem Header="_User Guide" Click="UserGuide_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Control Panel -->
+        <GroupBox Grid.Row="1" Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Recording Controls -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Button Name="btnStartRecording" Content="🔴 Start Recording" 
+                            Style="{StaticResource PrimaryButtonStyle}" 
+                            Click="StartRecording_Click" Margin="0,0,10,0"/>
+                    <Button Name="btnStopRecording" Content="⏹ Stop" 
+                            Style="{StaticResource SecondaryButtonStyle}" 
+                            Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                    <Button Name="btnPauseRecording" Content="⏸ Pause" 
+                            Style="{StaticResource SecondaryButtonStyle}" 
+                            Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                </StackPanel>
+
+                <!-- Status -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Name="txtStatus" Text="Ready" FontWeight="Bold" 
+                               HorizontalAlignment="Center" Foreground="#FF0078D4"/>
+                    <TextBlock Name="txtTarget" Text="No target selected" 
+                               HorizontalAlignment="Center" FontSize="10" Foreground="Gray"/>
+                </StackPanel>
+
+                <!-- Playback Controls -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Name="btnPlay" Content="▶ Play" 
+                            Style="{StaticResource PrimaryButtonStyle}" 
+                            Click="PlaySequence_Click" Margin="0,0,10,0"/>
+                    <Button Name="btnPause" Content="⏸ Pause" 
+                            Style="{StaticResource SecondaryButtonStyle}" 
+                            Click="PausePlayback_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                    <Button Name="btnStop" Content="⏹ Stop" 
+                            Style="{StaticResource SecondaryButtonStyle}" 
+                            Click="StopPlayback_Click" IsEnabled="False"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Commands List -->
+            <GroupBox Grid.Column="0" Header="Command Sequence" Style="{StaticResource GroupBoxStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Sequence Info -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="Sequence:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBox Grid.Column="1" Name="txtSequenceName" Text="New Sequence" 
+                                 VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <Button Grid.Column="2" Name="btnSelectTarget" Content="Select Target Window" 
+                                Style="{StaticResource SecondaryButtonStyle}" Click="SelectTarget_Click"/>
+                    </Grid>
+
+                    <!-- Commands DataGrid -->
+                    <DataGrid Grid.Row="1" Name="dgCommands" AutoGenerateColumns="False" 
+                              CanUserAddRows="False" CanUserDeleteRows="True"
+                              SelectionMode="Single" GridLinesVisibility="Horizontal"
+                              AlternatingRowBackground="#FFF9F9F9">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Step" Binding="{Binding StepNumber}" Width="50" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Element" Binding="{Binding ElementName}" Width="150"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100"/>
+                            <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="60"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                            <DataGridTextColumn Header="Target" Binding="{Binding TargetWindow}" Width="120" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Edit Command" Click="EditCommand_Click"/>
+                                <MenuItem Header="Delete Command" Click="DeleteCommand_Click"/>
+                                <Separator/>
+                                <MenuItem Header="Add Wait Command" Click="AddWaitCommand_Click"/>
+                                <MenuItem Header="Add Loop Start" Click="AddLoopStart_Click"/>
+                                <MenuItem Header="Add Loop End" Click="AddLoopEnd_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
+
+                    <!-- Progress Bar -->
+                    <ProgressBar Grid.Row="2" Name="progressPlayback" Height="20" 
+                                 Margin="0,10,0,0" Visibility="Collapsed"/>
+                </Grid>
+            </GroupBox>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                          Background="#FFDDDDDD" ResizeBehavior="PreviousAndNext"/>
+
+            <!-- Side Panel -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Element Statistics -->
+                <GroupBox Grid.Row="0" Header="Element Usage" Style="{StaticResource GroupBoxStyle}">
+                    <ListBox Name="lstElementStats" DisplayMemberPath="ToString"/>
+                </GroupBox>
+
+                <!-- Log/Output -->
+                <GroupBox Grid.Row="1" Header="Activity Log" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBox Grid.Row="0" Name="txtLog" IsReadOnly="True" 
+                                 VerticalScrollBarVisibility="Auto" 
+                                 TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"
+                                 Background="#FFFAFAFA"/>
+
+                        <Button Grid.Row="1" Content="Clear Log" 
+                                Style="{StaticResource SecondaryButtonStyle}" 
+                                Click="ClearLog_Click" Margin="0,5,0,0" HorizontalAlignment="Right"/>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </Grid>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="3" Background="#FFF0F0F0">
+            <StatusBarItem>
+                <TextBlock Name="statusText" Text="Ready"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Name="statusCommands" Text="Commands: 0" Margin="0,0,20,0"/>
+                    <TextBlock Name="statusRecording" Text="Not Recording" Margin="0,0,20,0"/>
+                    <TextBlock Name="statusTarget" Text="No Target"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
