@@ -1,10 +1,15 @@
 ﻿using AppCommander.W7_11.WPF.Core;
-using Microsoft.Win32; // WPF dialógy
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32; // Pre WPF dialógy
 using CommandType = AppCommander.W7_11.WPF.Core.CommandType;
 
 namespace AppCommander.W7_11.WPF
@@ -288,6 +293,8 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                LogMessage("PlaySequence_Click started");
+
                 if (commands.Count == 0)
                 {
                     MessageBox.Show("No commands to play. Please record a sequence first.",
@@ -295,26 +302,44 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
+                LogMessage($"Found {commands.Count} commands to play");
+
                 if (player.IsPaused)
                 {
+                    LogMessage("Resuming paused playback");
                     player.ResumePlayback();
                 }
                 else
                 {
+                    LogMessage("Creating new command sequence");
                     var sequence = new CommandSequence(txtSequenceName.Text.Trim());
+
+                    LogMessage("Adding commands to sequence");
                     foreach (var cmd in commands)
                     {
                         sequence.AddCommand(cmd);
                     }
 
+                    LogMessage($"Sequence created with {sequence.Commands.Count} commands");
+                    LogMessage($"Target window handle: {targetWindowHandle}");
+
+                    LogMessage("Starting playback...");
                     await player.PlaySequenceAsync(sequence, targetWindowHandle);
+                    LogMessage("Playback completed successfully");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to play sequence: {ex.Message}", "Error",
+                LogMessage($"DETAILED ERROR: {ex.GetType().Name}: {ex.Message}");
+                LogMessage($"Stack trace: {ex.StackTrace}");
+
+                if (ex.InnerException != null)
+                {
+                    LogMessage($"Inner exception: {ex.InnerException.Message}");
+                }
+
+                MessageBox.Show($"Failed to play sequence: {ex.Message}\n\nSee Activity Log for details.", "Error",
                                MessageBoxButton.OK, MessageBoxImage.Error);
-                LogMessage($"Error playing sequence: {ex.Message}");
             }
         }
 
@@ -516,7 +541,7 @@ Features:
 • Windows 7-11 compatibility
 
 © 2025 Rudolf Mendzezof
-Licensed under Apache License 2.0";
+Licensed under MIT License";
 
             MessageBox.Show(aboutText, "About AppCommander",
                            MessageBoxButton.OK, MessageBoxImage.Information);

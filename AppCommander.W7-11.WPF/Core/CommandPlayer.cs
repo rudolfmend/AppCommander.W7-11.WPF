@@ -1,11 +1,10 @@
-﻿using AppCommander.W7_11.WPF.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Automation;
 using System.Windows.Forms;
+using System.Windows.Automation;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -46,59 +45,83 @@ namespace AppCommander.W7_11.WPF.Core
 
         public async Task PlaySequenceAsync(CommandSequence sequence, IntPtr targetWindow = default(IntPtr))
         {
+            System.Diagnostics.Debug.WriteLine("PlaySequenceAsync started");
+
             if (isPlaying)
                 throw new InvalidOperationException("Already playing a sequence");
 
             if (sequence == null || sequence.Commands.Count == 0)
                 throw new ArgumentException("Sequence is empty or null");
 
+            System.Diagnostics.Debug.WriteLine($"Sequence has {sequence.Commands.Count} commands");
+
             currentSequence = sequence;
             currentCommandIndex = 0;
             loopStack.Clear();
 
-            // Adaptívne vyhľadanie cieľového okna
-            if (sequence.AutoFindTarget && targetWindow == IntPtr.Zero)
+            try
             {
-                var searchResult = WindowFinder.SmartFindWindow(
-                    sequence.TargetProcessName,
-                    sequence.TargetWindowTitle,
-                    sequence.TargetWindowClass);
-
-                if (searchResult.IsValid)
+                // Adaptívne vyhľadanie cieľového okna
+                if (sequence.AutoFindTarget && targetWindow == IntPtr.Zero)
                 {
-                    TargetWindow = searchResult.Handle;
-                    NotifyPlaybackStateChanged(PlaybackState.Started,
-                        $"Found target window via {searchResult.MatchMethod}");
+                    System.Diagnostics.Debug.WriteLine("Attempting to find target window");
+
+                    var searchResult = WindowFinder.SmartFindWindow(
+                        sequence.TargetProcessName,
+                        sequence.TargetWindowTitle,
+                        sequence.TargetWindowClass);
+
+                    if (searchResult.IsValid)
+                    {
+                        TargetWindow = searchResult.Handle;
+                        System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
+                        NotifyPlaybackStateChanged(PlaybackState.Started,
+                            $"Found target window via {searchResult.MatchMethod}");
+                    }
+                    else
+                    {
+                        // Počkaj na spustenie aplikácie
+                        if (!string.IsNullOrEmpty(sequence.TargetProcessName))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Waiting for application: {sequence.TargetProcessName}");
+                            NotifyPlaybackStateChanged(PlaybackState.Started,
+                                $"Waiting for application: {sequence.TargetProcessName}");
+
+                            TargetWindow = WindowFinder.WaitForApplication(
+                                sequence.TargetProcessName,
+                                sequence.MaxWaitTimeSeconds);
+                        }
+
+                        if (TargetWindow == IntPtr.Zero)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Cannot find target application: {sequence.TargetProcessName}");
+                            throw new InvalidOperationException(
+                                $"Cannot find target application: {sequence.TargetProcessName}");
+                        }
+                    }
                 }
                 else
                 {
-                    // Počkaj na spustenie aplikácie
-                    if (!string.IsNullOrEmpty(sequence.TargetProcessName))
-                    {
-                        NotifyPlaybackStateChanged(PlaybackState.Started,
-                            $"Waiting for application: {sequence.TargetProcessName}");
+                    TargetWindow = targetWindow;
+                    System.Diagnostics.Debug.WriteLine($"Using provided target window: {targetWindow}");
+                }
 
-                        TargetWindow = WindowFinder.WaitForApplication(
-                            sequence.TargetProcessName,
-                            sequence.MaxWaitTimeSeconds);
-                    }
-
-                    if (TargetWindow == IntPtr.Zero)
-                    {
-                        throw new InvalidOperationException(
-                            $"Cannot find target application: {sequence.TargetProcessName}");
-                    }
+                // Aktualizuj príkazy na základe aktuálneho stavu okna
+                if (TargetWindow != IntPtr.Zero)
+                {
+                    System.Diagnostics.Debug.WriteLine("Updating commands for current window");
+                    AdaptiveElementFinder.UpdateCommandsForCurrentWindow(TargetWindow, currentSequence.Commands);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("No target window - skipping command updates");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                TargetWindow = targetWindow;
-            }
-
-            // Aktualizuj príkazy na základe aktuálneho stavu okna
-            if (TargetWindow != IntPtr.Zero)
-            {
-                AdaptiveElementFinder.UpdateCommandsForCurrentWindow(TargetWindow, currentSequence.Commands);
+                System.Diagnostics.Debug.WriteLine($"Error in window finding: {ex.Message}");
+                // Pre testovanie - pokračuj aj bez target okna
+                TargetWindow = IntPtr.Zero;
             }
 
             cancellationTokenSource = new CancellationTokenSource();
@@ -109,6 +132,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
+                System.Diagnostics.Debug.WriteLine("Starting sequence execution");
                 await ExecuteSequenceAsync(cancellationTokenSource.Token);
 
                 NotifyPlaybackCompleted(true, "Sequence completed successfully");
@@ -119,6 +143,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in sequence execution: {ex.Message}");
                 NotifyPlaybackError(ex.Message, currentCommandIndex);
 
                 if (StopOnError)
@@ -367,7 +392,7 @@ namespace AppCommander.W7_11.WPF.Core
                                 await Task.Delay(100);
 
                                 // Select all text and replace
-                                actionSimulator.SendKeyCombo(System.Windows.Forms.Keys.Control, System.Windows.Forms.Keys.A);
+                                actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
                                 await Task.Delay(50);
                                 actionSimulator.SendText(command.Value);
                                 return true;
@@ -401,7 +426,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
 
             // Clear existing text and send new text
-            actionSimulator.SendKeyCombo(System.Windows.Forms.Keys.Control, System.Windows.Forms.Keys.A);
+            actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
             await Task.Delay(50);
             actionSimulator.SendText(command.Value);
 
