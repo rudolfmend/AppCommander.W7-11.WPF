@@ -7,7 +7,6 @@ C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\De
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\MainWindow.g.cs
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\App.g.cs
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander_MarkupCompile.cache
-C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander_MarkupCompile.lref
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\MainWindow.baml
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander.g.resources
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander.W7_11.WPF.Properties.Resources.resources
@@ -17,3 +16,5 @@ C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\De
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander.exe
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander.pdb
 C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\AppCommander.exe.config
+C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\WindowSelectorDialog.baml
+C:\Users\rudol\Source\Repos\AppCommander.W7-11.WPF\AppCommander.W7-11.WPF\obj\Debug\WindowSelectorDialog.g.cs

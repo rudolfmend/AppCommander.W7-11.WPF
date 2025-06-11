@@ -1,0 +1,69 @@
+﻿<Window x:Class="AppCommander.W7_11.WPF.WindowSelectorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Target Window" Height="500" Width="650"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Instructions -->
+        <TextBlock Grid.Row="0" Text="Select the target application window for recording:" 
+                   FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+        <!-- Windows List -->
+        <DataGrid Grid.Row="1" Name="dgWindows" AutoGenerateColumns="False" 
+                  SelectionMode="Single" IsReadOnly="True"
+                  GridLinesVisibility="Horizontal" AlternatingRowBackground="#FFF9F9F9">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Application" Binding="{Binding ProcessName}" Width="120"/>
+                <DataGridTextColumn Header="Window Title" Binding="{Binding Title}" Width="*"/>
+                <DataGridTextColumn Header="Class Name" Binding="{Binding ClassName}" Width="150"/>
+                <DataGridTextColumn Header="Process ID" Binding="{Binding ProcessId}" Width="80"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Selected Window Info -->
+        <GroupBox Grid.Row="2" Header="Selected Window Information" Margin="0,10,0,10">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Process:" FontWeight="SemiBold"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Name="txtSelectedProcess" Text="-"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Title:" FontWeight="SemiBold"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Name="txtSelectedTitle" Text="-"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Class:" FontWeight="SemiBold"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Name="txtSelectedClass" Text="-"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Handle:" FontWeight="SemiBold"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Name="txtSelectedHandle" Text="-"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Name="btnRefresh" Content="🔄 Refresh" Width="80" Height="30" 
+                    Margin="0,0,10,0" Click="Refresh_Click"/>
+            <Button Name="btnOK" Content="OK" Width="80" Height="30" 
+                    Margin="0,0,10,0" Click="OK_Click" IsDefault="True"/>
+            <Button Name="btnCancel" Content="Cancel" Width="80" Height="30" 
+                    Click="Cancel_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

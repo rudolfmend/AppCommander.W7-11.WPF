@@ -357,6 +357,9 @@ namespace AppCommander.W7_11.WPF.Core
 
         public override string ToString()
         {
+            if (string.IsNullOrEmpty(ElementName))
+                return $"Unknown ({ControlType}): {TotalUsage} uses";
+
             return $"{ElementName} ({ControlType}): {TotalUsage} uses";
         }
     }

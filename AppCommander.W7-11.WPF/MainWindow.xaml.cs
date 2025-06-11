@@ -1,15 +1,13 @@
 ﻿using AppCommander.W7_11.WPF.Core;
+using Microsoft.Win32; // WPF dialógy
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data;
 using System.Data.Common;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32; // Pre WPF dialógy
+using System.Windows.Input;
 using CommandType = AppCommander.W7_11.WPF.Core.CommandType;
 
 namespace AppCommander.W7_11.WPF
@@ -230,6 +228,9 @@ namespace AppCommander.W7_11.WPF
                     ? "New Sequence"
                     : txtSequenceName.Text.Trim();
 
+                LogMessage($"Starting recording with sequence name: {sequenceName}");
+                LogMessage($"Target window handle: {targetWindowHandle}");
+
                 // Clear existing commands if starting new recording
                 if (commands.Count > 0)
                 {
@@ -369,9 +370,33 @@ namespace AppCommander.W7_11.WPF
 
         private void SelectTarget_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Implement window selector dialog
-            MessageBox.Show("Window selector will be implemented in next version.",
-                           "Feature Coming Soon", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var dialog = new WindowSelectorDialog
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
+                {
+                    var selected = dialog.SelectedWindow;
+                    targetWindowHandle = selected.Handle;
+
+                    // Update UI to show selected target
+                    txtTarget.Text = $"{selected.ProcessName}: {selected.Title}";
+                    statusTarget.Text = $"Target: {selected.ProcessName}";
+
+                    LogMessage($"Selected target: {selected.ProcessName} - {selected.Title} (Handle: 0x{selected.Handle.ToString("X8")})");
+
+                    UpdateUI();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error selecting target window: {ex.Message}", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+                LogMessage($"Error selecting target: {ex.Message}");
+            }
         }
 
         #endregion
@@ -411,7 +436,6 @@ namespace AppCommander.W7_11.WPF
                 Title = "Open Command Sequence"
             };
 
-            // Použitie WPF dialógu - vracia bool?
             bool? result = dialog.ShowDialog();
             if (result == true)
             {
@@ -468,7 +492,6 @@ namespace AppCommander.W7_11.WPF
                 FileName = txtSequenceName.Text + ".apc"
             };
 
-            // Použitie WPF dialógu - vracia bool?
             bool? result = dialog.ShowDialog();
             if (result == true)
             {
@@ -511,8 +534,7 @@ namespace AppCommander.W7_11.WPF
 
         private void WindowSelector_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Window selector dialog will be implemented.", "Coming Soon",
-                           MessageBoxButton.OK, MessageBoxImage.Information);
+            SelectTarget_Click(sender, e);
         }
 
         private void ElementInspector_Click(object sender, RoutedEventArgs e)
@@ -541,7 +563,7 @@ Features:
 • Windows 7-11 compatibility
 
 © 2025 Rudolf Mendzezof
-Licensed under MIT License";
+Licensed under Apache License 2.0";
 
             MessageBox.Show(aboutText, "About AppCommander",
                            MessageBoxButton.OK, MessageBoxImage.Information);
@@ -584,7 +606,6 @@ For detailed documentation, visit the project repository.";
             var selectedCommand = dgCommands.SelectedItem as Command;
             if (selectedCommand != null)
             {
-                // TODO: Implement command edit dialog
                 MessageBox.Show("Command editing dialog will be implemented.", "Coming Soon",
                                MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -609,7 +630,6 @@ For detailed documentation, visit the project repository.";
 
         private void AddWaitCommand_Click(object sender, RoutedEventArgs e)
         {
-            // Jednoduchý input dialóg pomocí WPF
             string input = ShowInputDialog("Enter wait time in milliseconds:", "Add Wait Command", "1000");
 
             if (!string.IsNullOrEmpty(input) && int.TryParse(input, out int waitTime))
@@ -674,7 +694,7 @@ For detailed documentation, visit the project repository.";
                 if (result == MessageBoxResult.Yes)
                 {
                     SaveSequence_Click(this, new RoutedEventArgs());
-                    if (hasUnsavedChanges) // Save was cancelled
+                    if (hasUnsavedChanges)
                     {
                         e.Cancel = true;
                         return;
@@ -687,7 +707,6 @@ For detailed documentation, visit the project repository.";
                 }
             }
 
-            // Clean up resources
             recorder?.StopRecording();
             player?.StopPlayback();
         }
@@ -698,7 +717,6 @@ For detailed documentation, visit the project repository.";
 
         private void UpdateUI()
         {
-            // Update title bar
             string title = "AppCommander - Automation Tool";
             if (!string.IsNullOrEmpty(txtSequenceName.Text))
             {
@@ -708,10 +726,7 @@ For detailed documentation, visit the project repository.";
             }
             this.Title = title;
 
-            // Update status bar
             UpdateStatusBar();
-
-            // Update control states
             btnPlay.IsEnabled = commands.Count > 0 && !player.IsPlaying;
         }
 
@@ -736,9 +751,6 @@ For detailed documentation, visit the project repository.";
             return commands.Count > 0 ? commands.Max(c => c.StepNumber) + 1 : 1;
         }
 
-        /// <summary>
-        /// Jednoduchý input dialóg pre WPF namiesto Microsoft.VisualBasic
-        /// </summary>
         private string ShowInputDialog(string question, string title, string defaultValue = "")
         {
             var inputDialog = new Window()
@@ -774,7 +786,7 @@ For detailed documentation, visit the project repository.";
             okButton.Click += (sender, e) => { result = textBox.Text; inputDialog.DialogResult = true; };
             cancelButton.Click += (sender, e) => { inputDialog.DialogResult = false; };
 
-            textBox.KeyDown += (sender, e) => { if (e.Key == System.Windows.Input.Key.Enter) { result = textBox.Text; inputDialog.DialogResult = true; } };
+            textBox.KeyDown += (sender, e) => { if (e.Key == Key.Enter) { result = textBox.Text; inputDialog.DialogResult = true; } };
 
             textBox.Focus();
             textBox.SelectAll();

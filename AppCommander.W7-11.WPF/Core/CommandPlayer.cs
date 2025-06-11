@@ -65,25 +65,26 @@ namespace AppCommander.W7_11.WPF.Core
                 if (sequence.AutoFindTarget && targetWindow == IntPtr.Zero)
                 {
                     System.Diagnostics.Debug.WriteLine("Attempting to find target window");
+                    System.Diagnostics.Debug.WriteLine($"TargetProcessName: '{sequence.TargetProcessName}'");
+                    System.Diagnostics.Debug.WriteLine($"TargetWindowTitle: '{sequence.TargetWindowTitle}'");
 
-                    var searchResult = WindowFinder.SmartFindWindow(
-                        sequence.TargetProcessName,
-                        sequence.TargetWindowTitle,
-                        sequence.TargetWindowClass);
+                    if (!string.IsNullOrEmpty(sequence.TargetProcessName))
+                    {
+                        var searchResult = WindowFinder.SmartFindWindow(
+                            sequence.TargetProcessName,
+                            sequence.TargetWindowTitle,
+                            sequence.TargetWindowClass);
 
-                    if (searchResult.IsValid)
-                    {
-                        TargetWindow = searchResult.Handle;
-                        System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
-                        NotifyPlaybackStateChanged(PlaybackState.Started,
-                            $"Found target window via {searchResult.MatchMethod}");
-                    }
-                    else
-                    {
-                        // Počkaj na spustenie aplikácie
-                        if (!string.IsNullOrEmpty(sequence.TargetProcessName))
+                        if (searchResult.IsValid)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Waiting for application: {sequence.TargetProcessName}");
+                            TargetWindow = searchResult.Handle;
+                            System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
+                            NotifyPlaybackStateChanged(PlaybackState.Started,
+                                $"Found target window via {searchResult.MatchMethod}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Window search failed, waiting for application: {sequence.TargetProcessName}");
                             NotifyPlaybackStateChanged(PlaybackState.Started,
                                 $"Waiting for application: {sequence.TargetProcessName}");
 
@@ -91,13 +92,11 @@ namespace AppCommander.W7_11.WPF.Core
                                 sequence.TargetProcessName,
                                 sequence.MaxWaitTimeSeconds);
                         }
-
-                        if (TargetWindow == IntPtr.Zero)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Cannot find target application: {sequence.TargetProcessName}");
-                            throw new InvalidOperationException(
-                                $"Cannot find target application: {sequence.TargetProcessName}");
-                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("No target process name specified - using global mode");
+                        TargetWindow = IntPtr.Zero; // Global mode
                     }
                 }
                 else
@@ -114,14 +113,15 @@ namespace AppCommander.W7_11.WPF.Core
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("No target window - skipping command updates");
+                    System.Diagnostics.Debug.WriteLine("No target window - using global coordinates");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in window finding: {ex.Message}");
-                // Pre testovanie - pokračuj aj bez target okna
+                // Pre testovanie - pokračuj aj bez target okna v global mode
                 TargetWindow = IntPtr.Zero;
+                System.Diagnostics.Debug.WriteLine("Continuing in global mode");
             }
 
             cancellationTokenSource = new CancellationTokenSource();
