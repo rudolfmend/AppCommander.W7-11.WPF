@@ -2,7 +2,6 @@
 using Microsoft.Win32; // WPF dialógy
 using System;
 using System.Collections.ObjectModel;
-using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -315,6 +314,27 @@ namespace AppCommander.W7_11.WPF
                     LogMessage("Creating new command sequence");
                     var sequence = new CommandSequence(txtSequenceName.Text.Trim());
 
+                    // Copy target info if we have it
+                    if (targetWindowHandle != IntPtr.Zero)
+                    {
+                        try
+                        {
+                            var targetInfo = ExtractWindowInfo(targetWindowHandle);
+                            sequence.TargetProcessName = targetInfo.ProcessName;
+                            sequence.TargetWindowTitle = targetInfo.WindowTitle;
+                            sequence.TargetWindowClass = targetInfo.WindowClass;
+                            sequence.TargetApplication = targetInfo.ProcessName;
+                            sequence.AutoFindTarget = true;
+                            sequence.MaxWaitTimeSeconds = 30;
+
+                            LogMessage($"Using target: {targetInfo.ProcessName} - {targetInfo.WindowTitle}");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogMessage($"Could not extract target window info: {ex.Message}");
+                        }
+                    }
+
                     LogMessage("Adding commands to sequence");
                     foreach (var cmd in commands)
                     {
@@ -323,6 +343,7 @@ namespace AppCommander.W7_11.WPF
 
                     LogMessage($"Sequence created with {sequence.Commands.Count} commands");
                     LogMessage($"Target window handle: {targetWindowHandle}");
+                    LogMessage($"Target process: '{sequence.TargetProcessName}'");
 
                     LogMessage("Starting playback...");
                     await player.PlaySequenceAsync(sequence, targetWindowHandle);
@@ -453,8 +474,44 @@ namespace AppCommander.W7_11.WPF
                         txtSequenceName.Text = sequence.Name;
                         currentFilePath = dialog.FileName;
                         hasUnsavedChanges = false;
+
+                        // Update target info display if available
+                        if (!string.IsNullOrEmpty(sequence.TargetProcessName))
+                        {
+                            txtTarget.Text = $"{sequence.TargetProcessName}: {sequence.TargetWindowTitle}";
+                            statusTarget.Text = $"Target: {sequence.TargetProcessName}";
+
+                            // Try to find the target window automatically
+                            var searchResult = WindowFinder.SmartFindWindow(
+                                sequence.TargetProcessName,
+                                sequence.TargetWindowTitle,
+                                sequence.TargetWindowClass);
+
+                            if (searchResult.IsValid)
+                            {
+                                targetWindowHandle = searchResult.Handle;
+                                txtTarget.Text += $" (Found)";
+                                statusTarget.Text += " ✓";
+                                LogMessage($"Auto-found target window: {sequence.TargetProcessName} (Handle: 0x{searchResult.Handle.ToString("X8")})");
+                            }
+                            else
+                            {
+                                targetWindowHandle = IntPtr.Zero;
+                                txtTarget.Text += $" (Not Found)";
+                                statusTarget.Text += " ✗";
+                                LogMessage($"Target application not running: {sequence.TargetProcessName}");
+                            }
+                        }
+                        else
+                        {
+                            txtTarget.Text = "No target specified";
+                            statusTarget.Text = "No Target";
+                            targetWindowHandle = IntPtr.Zero;
+                        }
+
                         UpdateUI();
                         LogMessage($"Loaded sequence: {sequence.Name} ({sequence.Commands.Count} commands)");
+                        LogMessage($"Target info: Process='{sequence.TargetProcessName}', Title='{sequence.TargetWindowTitle}'");
                     }
                     else
                     {
@@ -509,6 +566,37 @@ namespace AppCommander.W7_11.WPF
                     Description = $"Created with AppCommander on {DateTime.Now:yyyy-MM-dd HH:mm:ss}"
                 };
 
+                // Copy target information from recorder if available
+                if (recorder.CurrentSequence != null)
+                {
+                    sequence.TargetProcessName = recorder.CurrentSequence.TargetProcessName;
+                    sequence.TargetWindowTitle = recorder.CurrentSequence.TargetWindowTitle;
+                    sequence.TargetWindowClass = recorder.CurrentSequence.TargetWindowClass;
+                    sequence.TargetApplication = recorder.CurrentSequence.TargetApplication;
+                    sequence.AutoFindTarget = recorder.CurrentSequence.AutoFindTarget;
+                    sequence.MaxWaitTimeSeconds = recorder.CurrentSequence.MaxWaitTimeSeconds;
+                }
+                else if (targetWindowHandle != IntPtr.Zero)
+                {
+                    // Fallback: extract info from current target window
+                    try
+                    {
+                        var targetInfo = ExtractWindowInfo(targetWindowHandle);
+                        sequence.TargetProcessName = targetInfo.ProcessName;
+                        sequence.TargetWindowTitle = targetInfo.WindowTitle;
+                        sequence.TargetWindowClass = targetInfo.WindowClass;
+                        sequence.TargetApplication = targetInfo.ProcessName;
+                        sequence.AutoFindTarget = true;
+                        sequence.MaxWaitTimeSeconds = 30;
+
+                        LogMessage($"Extracted target info: {targetInfo.ProcessName} - {targetInfo.WindowTitle}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"Could not extract target window info: {ex.Message}");
+                    }
+                }
+
                 foreach (var cmd in commands)
                 {
                     sequence.AddCommand(cmd);
@@ -518,6 +606,7 @@ namespace AppCommander.W7_11.WPF
                 hasUnsavedChanges = false;
                 UpdateUI();
                 LogMessage($"Sequence saved: {filePath}");
+                LogMessage($"Target info saved: Process='{sequence.TargetProcessName}', Title='{sequence.TargetWindowTitle}'");
             }
             catch (Exception ex)
             {
@@ -526,6 +615,49 @@ namespace AppCommander.W7_11.WPF
                 LogMessage($"Error saving sequence: {ex.Message}");
             }
         }
+
+        private (string ProcessName, string WindowTitle, string WindowClass) ExtractWindowInfo(IntPtr handle)
+        {
+            string processName = "";
+            string windowTitle = "";
+            string windowClass = "";
+
+            try
+            {
+                // Get process name
+                GetWindowThreadProcessId(handle, out uint processId);
+                using (var process = System.Diagnostics.Process.GetProcessById((int)processId))
+                {
+                    processName = process.ProcessName;
+                }
+
+                // Get window title
+                var titleBuffer = new System.Text.StringBuilder(256);
+                GetWindowText(handle, titleBuffer, titleBuffer.Capacity);
+                windowTitle = titleBuffer.ToString();
+
+                // Get window class
+                var classBuffer = new System.Text.StringBuilder(256);
+                GetClassName(handle, classBuffer, classBuffer.Capacity);
+                windowClass = classBuffer.ToString();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error extracting window info: {ex.Message}");
+            }
+
+            return (processName, windowTitle, windowClass);
+        }
+
+        // Windows API
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {

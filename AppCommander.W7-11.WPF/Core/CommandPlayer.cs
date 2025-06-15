@@ -5,11 +5,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Automation;
+using System.Runtime.InteropServices;
 
 namespace AppCommander.W7_11.WPF.Core
 {
     public class CommandPlayer
     {
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
         private readonly ActionSimulator actionSimulator;
         private CommandSequence currentSequence;
         private bool isPlaying = false;
@@ -32,7 +36,7 @@ namespace AppCommander.W7_11.WPF.Core
         public int TotalCommands => currentSequence?.Commands.Count ?? 0;
 
         // Settings
-        public int DefaultDelayBetweenCommands { get; set; } = 100; // ms
+        public int DefaultDelayBetweenCommands { get; set; } = 200; // Zvýšené z 100ms na 200ms
         public bool StopOnError { get; set; } = true;
         public bool HighlightTargetElements { get; set; } = true;
         public IntPtr TargetWindow { get; set; } = IntPtr.Zero;
@@ -276,6 +280,8 @@ namespace AppCommander.W7_11.WPF.Core
         {
             IntPtr targetHandle = TargetWindow != IntPtr.Zero ? TargetWindow : IntPtr.Zero;
 
+            System.Diagnostics.Debug.WriteLine($"ExecuteMouseCommand: {command.ElementName} at target handle {targetHandle}");
+
             // Použij adaptívne vyhľadávanie prvkov
             var searchResult = AdaptiveElementFinder.SmartFindElement(targetHandle, command);
 
@@ -288,6 +294,8 @@ namespace AppCommander.W7_11.WPF.Core
                 x = element.X;
                 y = element.Y;
 
+                System.Diagnostics.Debug.WriteLine($"Element found via {searchResult.SearchMethod} at ({x}, {y})");
+
                 // Oznám úspešné nájdenie
                 NotifyCommandExecuted(command, true,
                     $"Element found via {searchResult.SearchMethod} (confidence: {searchResult.Confidence:P0})");
@@ -298,17 +306,31 @@ namespace AppCommander.W7_11.WPF.Core
                 x = command.ElementX;
                 y = command.ElementY;
 
+                System.Diagnostics.Debug.WriteLine($"Using stored coordinates ({x}, {y}) - search failed: {searchResult.ErrorMessage}");
+
                 if (x <= 0 || y <= 0)
                 {
-                    throw new InvalidOperationException(
-                        $"Could not find element '{command.ElementName}' and no valid coordinates stored. " +
-                        $"Search error: {searchResult.ErrorMessage}");
+                    var errorMsg = $"Could not find element '{command.ElementName}' and no valid coordinates stored. " +
+                        $"Search error: {searchResult.ErrorMessage}";
+
+                    System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
+                    throw new InvalidOperationException(errorMsg);
                 }
 
                 // Varovanie o použití starých súradníc
                 NotifyCommandExecuted(command, true,
                     $"Using stored coordinates - element search failed: {searchResult.ErrorMessage}");
             }
+
+            // Validate coordinates are on screen
+            if (!actionSimulator.IsPointOnScreen(x, y))
+            {
+                var errorMsg = $"Coordinates ({x}, {y}) are outside screen bounds";
+                System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"About to {command.Type} at ({x}, {y})");
 
             // Highlight element if enabled
             if (HighlightTargetElements && element != null)
@@ -319,6 +341,8 @@ namespace AppCommander.W7_11.WPF.Core
             // Execute mouse action based on command type
             for (int i = 0; i < command.RepeatCount; i++)
             {
+                System.Diagnostics.Debug.WriteLine($"Executing {command.Type} #{i + 1} at ({x}, {y})");
+
                 switch (command.Type)
                 {
                     case CommandType.Click:
@@ -337,19 +361,45 @@ namespace AppCommander.W7_11.WPF.Core
                     await Task.Delay(50); // Small delay between repeats
             }
 
+            System.Diagnostics.Debug.WriteLine($"Successfully executed {command.Type} at ({x}, {y})");
             return true;
         }
 
         private async Task<bool> ExecuteKeyCommand(Command command)
         {
-            for (int i = 0; i < command.RepeatCount; i++)
-            {
-                actionSimulator.SendKey(command.Key);
+            System.Diagnostics.Debug.WriteLine($"ExecuteKeyCommand: {command.Key} (Value: {command.Value})");
 
-                if (i < command.RepeatCount - 1)
-                    await Task.Delay(50); // Small delay between repeats
+            // Make sure target window is focused if we have one
+            if (TargetWindow != IntPtr.Zero)
+            {
+                try
+                {
+                    SetForegroundWindow(TargetWindow);
+                    await Task.Delay(100); // Give time for focus to take effect
+                    System.Diagnostics.Debug.WriteLine($"Focused target window: {TargetWindow}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Could not focus target window: {ex.Message}");
+                }
             }
 
+            for (int i = 0; i < command.RepeatCount; i++)
+            {
+                System.Diagnostics.Debug.WriteLine($"Sending key #{i + 1}: {command.Key}");
+
+                // Add extra delay for each key to ensure it's processed
+                await Task.Delay(50); // Small delay before key
+
+                actionSimulator.SendKey(command.Key);
+
+                await Task.Delay(100); // Delay after key to ensure processing
+
+                if (i < command.RepeatCount - 1)
+                    await Task.Delay(50); // Additional delay between repeats
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Successfully sent key: {command.Key}");
             return true;
         }
 

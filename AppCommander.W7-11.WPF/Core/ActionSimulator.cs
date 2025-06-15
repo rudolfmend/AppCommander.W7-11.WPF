@@ -79,9 +79,13 @@ namespace AppCommander.W7_11.WPF.Core
         {
             byte vkCode = (byte)key;
 
+            System.Diagnostics.Debug.WriteLine($"ActionSimulator.SendKey: {key} (VK: {vkCode})");
+
             keybd_event(vkCode, 0, 0, 0); // Key down
             Thread.Sleep(KeyDelay);
             keybd_event(vkCode, 0, KEYEVENTF_KEYUP, 0); // Key up
+
+            System.Diagnostics.Debug.WriteLine($"Key sent: {key}");
         }
 
         /// <summary>
