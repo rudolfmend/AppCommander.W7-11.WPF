@@ -228,10 +228,71 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         public bool IsPointOnScreen(int x, int y)
         {
-            int screenWidth = GetSystemMetrics(0); // SM_CXSCREEN
-            int screenHeight = GetSystemMetrics(1); // SM_CYSCREEN
+            try
+            {
+                // Get primary screen bounds
+                var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
+                int screenWidth = primaryScreen.Bounds.Width;
+                int screenHeight = primaryScreen.Bounds.Height;
 
-            return x >= 0 && x < screenWidth && y >= 0 && y < screenHeight;
+                System.Diagnostics.Debug.WriteLine($"Screen validation: Point({x}, {y}) vs Screen({screenWidth}x{screenHeight})");
+
+                // Basic bounds check with some tolerance for multi-monitor setups
+                bool isValid = x >= -100 && x <= (screenWidth + 100) && y >= -100 && y <= (screenHeight + 100);
+
+                if (!isValid)
+                {
+                    // Check if point is on any screen (multi-monitor support)
+                    foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+                    {
+                        if (screen.Bounds.Contains(x, y))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Point is valid on secondary screen: {screen.Bounds}");
+                            return true;
+                        }
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"Point ({x}, {y}) is outside all screen bounds");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking screen bounds: {ex.Message}");
+                // If we can't determine screen bounds, assume point is valid
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets current screen information for debugging
+        /// </summary>
+        public string GetScreenInfo()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Screen Information:");
+
+                var primary = System.Windows.Forms.Screen.PrimaryScreen;
+                sb.AppendLine($"Primary: {primary.Bounds.Width}x{primary.Bounds.Height} at ({primary.Bounds.X}, {primary.Bounds.Y})");
+
+                foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+                {
+                    if (!screen.Primary)
+                    {
+                        sb.AppendLine($"Secondary: {screen.Bounds.Width}x{screen.Bounds.Height} at ({screen.Bounds.X}, {screen.Bounds.Y})");
+                    }
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                return $"Error getting screen info: {ex.Message}";
+            }
         }
 
         /// <summary>

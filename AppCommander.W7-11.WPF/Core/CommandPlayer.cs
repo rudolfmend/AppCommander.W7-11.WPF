@@ -14,6 +14,12 @@ namespace AppCommander.W7_11.WPF.Core
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
         private readonly ActionSimulator actionSimulator;
         private CommandSequence currentSequence;
         private bool isPlaying = false;
@@ -35,16 +41,27 @@ namespace AppCommander.W7_11.WPF.Core
         public int CurrentCommandIndex => currentCommandIndex;
         public int TotalCommands => currentSequence?.Commands.Count ?? 0;
 
-        // Settings
-        public int DefaultDelayBetweenCommands { get; set; } = 200; // Zvýšené z 100ms na 200ms
+        public bool PreferElementIdentifiers { get; set; } = true;
+        public bool EnableAdaptiveFinding { get; set; } = true;
+        public int MaxElementSearchAttempts { get; set; } = 3;
+
+        // Settings - zvýšené delays pre vyššiu spoľahlivosť
+        public int DefaultDelayBetweenCommands { get; set; } = 300; // Zvýšené z 200ms na 300ms
         public bool StopOnError { get; set; } = true;
         public bool HighlightTargetElements { get; set; } = true;
         public IntPtr TargetWindow { get; set; } = IntPtr.Zero;
+        public int WindowFocusDelay { get; set; } = 200; // Nový delay pre focus okna
+        public int ElementSearchRetries { get; set; } = 3; // Počet pokusov pri hľadaní elementu
 
         public CommandPlayer()
         {
             actionSimulator = new ActionSimulator();
             loopStack = new Stack<LoopContext>();
+
+            // Nastavenia pre ActionSimulator pre vyššiu spoľahlivosť
+            actionSimulator.ClickDelay = 100; // Zvýšené z 50ms
+            actionSimulator.KeyDelay = 100;   // Zvýšené z 50ms  
+            actionSimulator.ActionDelay = 50; // Zvýšené z 10ms
         }
 
         public async Task PlaySequenceAsync(CommandSequence sequence, IntPtr targetWindow = default(IntPtr))
@@ -65,77 +82,15 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                // Adaptívne vyhľadanie cieľového okna
-                if (sequence.AutoFindTarget && targetWindow == IntPtr.Zero)
-                {
-                    System.Diagnostics.Debug.WriteLine("Attempting to find target window");
-                    System.Diagnostics.Debug.WriteLine($"TargetProcessName: '{sequence.TargetProcessName}'");
-                    System.Diagnostics.Debug.WriteLine($"TargetWindowTitle: '{sequence.TargetWindowTitle}'");
+                // Pokus o nájdenie cieľového okna s lepším error handlingom
+                await FindAndValidateTargetWindow(sequence, targetWindow);
 
-                    if (!string.IsNullOrEmpty(sequence.TargetProcessName))
-                    {
-                        var searchResult = WindowFinder.SmartFindWindow(
-                            sequence.TargetProcessName,
-                            sequence.TargetWindowTitle,
-                            sequence.TargetWindowClass);
+                cancellationTokenSource = new CancellationTokenSource();
+                isPlaying = true;
+                isPaused = false;
 
-                        if (searchResult.IsValid)
-                        {
-                            TargetWindow = searchResult.Handle;
-                            System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
-                            NotifyPlaybackStateChanged(PlaybackState.Started,
-                                $"Found target window via {searchResult.MatchMethod}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Window search failed, waiting for application: {sequence.TargetProcessName}");
-                            NotifyPlaybackStateChanged(PlaybackState.Started,
-                                $"Waiting for application: {sequence.TargetProcessName}");
+                NotifyPlaybackStateChanged(PlaybackState.Started);
 
-                            TargetWindow = WindowFinder.WaitForApplication(
-                                sequence.TargetProcessName,
-                                sequence.MaxWaitTimeSeconds);
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("No target process name specified - using global mode");
-                        TargetWindow = IntPtr.Zero; // Global mode
-                    }
-                }
-                else
-                {
-                    TargetWindow = targetWindow;
-                    System.Diagnostics.Debug.WriteLine($"Using provided target window: {targetWindow}");
-                }
-
-                // Aktualizuj príkazy na základe aktuálneho stavu okna
-                if (TargetWindow != IntPtr.Zero)
-                {
-                    System.Diagnostics.Debug.WriteLine("Updating commands for current window");
-                    AdaptiveElementFinder.UpdateCommandsForCurrentWindow(TargetWindow, currentSequence.Commands);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("No target window - using global coordinates");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in window finding: {ex.Message}");
-                // Pre testovanie - pokračuj aj bez target okna v global mode
-                TargetWindow = IntPtr.Zero;
-                System.Diagnostics.Debug.WriteLine("Continuing in global mode");
-            }
-
-            cancellationTokenSource = new CancellationTokenSource();
-            isPlaying = true;
-            isPaused = false;
-
-            NotifyPlaybackStateChanged(PlaybackState.Started);
-
-            try
-            {
                 System.Diagnostics.Debug.WriteLine("Starting sequence execution");
                 await ExecuteSequenceAsync(cancellationTokenSource.Token);
 
@@ -143,6 +98,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (OperationCanceledException)
             {
+                System.Diagnostics.Debug.WriteLine("Playback was cancelled");
                 NotifyPlaybackCompleted(false, "Playback was cancelled");
             }
             catch (Exception ex)
@@ -161,7 +117,146 @@ namespace AppCommander.W7_11.WPF.Core
                 isPaused = false;
                 cancellationTokenSource?.Dispose();
                 cancellationTokenSource = null;
+                NotifyPlaybackStateChanged(PlaybackState.Stopped);
             }
+        }
+
+        /// <summary>
+        /// Pre-execution analýza príkazov
+        /// </summary>
+        public void AnalyzeCommandsBeforeExecution(CommandSequence sequence)
+        {
+            if (sequence == null || TargetWindow == IntPtr.Zero) return;
+
+            System.Diagnostics.Debug.WriteLine("\n=== PRE-EXECUTION ANALYSIS ===");
+            System.Diagnostics.Debug.WriteLine($"Total commands: {sequence.Commands.Count}");
+
+            var clickCommands = sequence.Commands.Where(c =>
+                c.Type == CommandType.Click || c.Type == CommandType.DoubleClick ||
+                c.Type == CommandType.RightClick || c.Type == CommandType.SetText).ToList();
+
+            System.Diagnostics.Debug.WriteLine($"Commands requiring element finding: {clickCommands.Count}");
+
+            if (EnableAdaptiveFinding && clickCommands.Any())
+            {
+                int foundCount = 0;
+                int winui3Count = 0;
+
+                foreach (var cmd in clickCommands)
+                {
+                    try
+                    {
+                        var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, cmd);
+                        if (searchResult.IsSuccess)
+                        {
+                            foundCount++;
+                            System.Diagnostics.Debug.WriteLine($"  ✓ {cmd.ElementName} -> found via {searchResult.SearchMethod}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"  ✗ {cmd.ElementName} -> {searchResult.ErrorMessage}");
+                        }
+
+                        if (cmd.IsWinUI3Element) winui3Count++;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  ✗ {cmd.ElementName} -> Error: {ex.Message}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Elements found: {foundCount}/{clickCommands.Count}");
+                if (winui3Count > 0)
+                    System.Diagnostics.Debug.WriteLine($"WinUI3 elements: {winui3Count}");
+
+                if (foundCount < clickCommands.Count)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️  Some elements may not be found during execution - will fallback to coordinates");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===\n");
+        }
+
+        private async Task FindAndValidateTargetWindow(CommandSequence sequence, IntPtr providedTargetWindow)
+        {
+            await Task.Run(() =>
+            {
+                // Adaptívne vyhľadanie cieľového okna s retry logikou
+                if (sequence.AutoFindTarget && providedTargetWindow == IntPtr.Zero)
+                {
+                    System.Diagnostics.Debug.WriteLine("Attempting to find target window");
+                    System.Diagnostics.Debug.WriteLine($"TargetProcessName: '{sequence.TargetProcessName}'");
+                    System.Diagnostics.Debug.WriteLine($"TargetWindowTitle: '{sequence.TargetWindowTitle}'");
+
+                    if (!string.IsNullOrEmpty(sequence.TargetProcessName))
+                    {
+                        // Pokus 1: Smart search
+                        var searchResult = WindowFinder.SmartFindWindow(
+                            sequence.TargetProcessName,
+                            sequence.TargetWindowTitle,
+                            sequence.TargetWindowClass);
+
+                        if (searchResult.IsValid)
+                        {
+                            TargetWindow = searchResult.Handle;
+                            System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
+                            NotifyPlaybackStateChanged(PlaybackState.Started,
+                                $"Found target window via {searchResult.MatchMethod}");
+                        }
+                        else
+                        {
+                            // Pokus 2: Čakanie na aplikáciu
+                            System.Diagnostics.Debug.WriteLine($"Window search failed, waiting for application: {sequence.TargetProcessName}");
+                            NotifyPlaybackStateChanged(PlaybackState.Started,
+                                $"Waiting for application: {sequence.TargetProcessName}");
+
+                            TargetWindow = WindowFinder.WaitForApplication(
+                                sequence.TargetProcessName,
+                                sequence.MaxWaitTimeSeconds);
+
+                            if (TargetWindow == IntPtr.Zero)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Target application '{sequence.TargetProcessName}' not found or not responding. " +
+                                    $"Please ensure the application is running and try again.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("No target process name specified - using global mode");
+                        TargetWindow = IntPtr.Zero; // Global mode
+                    }
+                }
+                else
+                {
+                    TargetWindow = providedTargetWindow;
+                    System.Diagnostics.Debug.WriteLine($"Using provided target window: {providedTargetWindow}");
+                }
+
+                // Validácia target okna
+                if (TargetWindow != IntPtr.Zero)
+                {
+                    if (!IsWindow(TargetWindow) || !IsWindowVisible(TargetWindow))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Target window is not valid or visible, switching to global mode");
+                        TargetWindow = IntPtr.Zero;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Target window validated successfully");
+
+                        // Aktualizuj príkazy na základe aktuálneho stavu okna
+                        System.Diagnostics.Debug.WriteLine("Updating commands for current window");
+                        AdaptiveElementFinder.UpdateCommandsForCurrentWindow(TargetWindow, currentSequence.Commands);
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Operating in global mode - using stored coordinates");
+                }
+            });
         }
 
         public void StopPlayback()
@@ -170,7 +265,7 @@ namespace AppCommander.W7_11.WPF.Core
                 return;
 
             cancellationTokenSource?.Cancel();
-            NotifyPlaybackStateChanged(PlaybackState.Stopped);
+            System.Diagnostics.Debug.WriteLine("Playback stop requested");
         }
 
         public void PausePlayback()
@@ -180,6 +275,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             isPaused = true;
             NotifyPlaybackStateChanged(PlaybackState.Paused);
+            System.Diagnostics.Debug.WriteLine("Playback paused");
         }
 
         public void ResumePlayback()
@@ -189,6 +285,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             isPaused = false;
             NotifyPlaybackStateChanged(PlaybackState.Resumed);
+            System.Diagnostics.Debug.WriteLine("Playback resumed");
         }
 
         private async Task ExecuteSequenceAsync(CancellationToken cancellationToken)
@@ -207,6 +304,8 @@ namespace AppCommander.W7_11.WPF.Core
 
                 try
                 {
+                    System.Diagnostics.Debug.WriteLine($"Executing command {currentCommandIndex + 1}/{currentSequence.Commands.Count}: {command}");
+
                     await ExecuteCommandAsync(command, cancellationToken);
 
                     // Default delay between commands
@@ -217,6 +316,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
                 catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Error executing command {currentCommandIndex + 1}: {ex.Message}");
                     NotifyCommandExecuted(command, false, ex.Message);
 
                     if (StopOnError)
@@ -271,6 +371,7 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 success = false;
                 errorMessage = ex.Message;
+                System.Diagnostics.Debug.WriteLine($"Exception in ExecuteCommandAsync: {ex.Message}");
             }
 
             NotifyCommandExecuted(command, success, errorMessage);
@@ -278,59 +379,85 @@ namespace AppCommander.W7_11.WPF.Core
 
         private async Task<bool> ExecuteMouseCommand(Command command)
         {
-            IntPtr targetHandle = TargetWindow != IntPtr.Zero ? TargetWindow : IntPtr.Zero;
+            System.Diagnostics.Debug.WriteLine($"ExecuteMouseCommand: {command.ElementName} (Type: {command.Type})");
 
-            System.Diagnostics.Debug.WriteLine($"ExecuteMouseCommand: {command.ElementName} at target handle {targetHandle}");
-
-            // Použij adaptívne vyhľadávanie prvkov
-            var searchResult = AdaptiveElementFinder.SmartFindElement(targetHandle, command);
+            // Ensure target window is focused if we have one
+            await EnsureWindowFocused();
 
             UIElementInfo element = null;
-            int x, y;
+            int x = 0, y = 0;
+            string searchMethod = "None";
 
-            if (searchResult.IsSuccess && searchResult.Element != null)
+            // DÔLEŽITÉ: Najprv skús originálne súradnice, ak sú validné
+            bool useOriginalCoordinates = false;
+            if (command.ElementX > 0 && command.ElementY > 0 &&
+                actionSimulator.IsPointOnScreen(command.ElementX, command.ElementY))
             {
-                element = searchResult.Element;
-                x = element.X;
-                y = element.Y;
-
-                System.Diagnostics.Debug.WriteLine($"Element found via {searchResult.SearchMethod} at ({x}, {y})");
-
-                // Oznám úspešné nájdenie
-                NotifyCommandExecuted(command, true,
-                    $"Element found via {searchResult.SearchMethod} (confidence: {searchResult.Confidence:P0})");
-            }
-            else
-            {
-                // Fallback na uložené súradnice
                 x = command.ElementX;
                 y = command.ElementY;
+                useOriginalCoordinates = true;
+                searchMethod = "Original coordinates";
+                System.Diagnostics.Debug.WriteLine($"Using original click coordinates ({x}, {y}) - screen position valid");
+            }
 
-                System.Diagnostics.Debug.WriteLine($"Using stored coordinates ({x}, {y}) - search failed: {searchResult.ErrorMessage}");
+            // Ak originálne súradnice nie sú dobré, skús nájsť element
+            if (!useOriginalCoordinates && TargetWindow != IntPtr.Zero)
+            {
+                for (int retry = 0; retry < ElementSearchRetries; retry++)
+                {
+                    var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, command);
+
+                    if (searchResult.IsSuccess && searchResult.Element != null)
+                    {
+                        element = searchResult.Element;
+                        x = element.X;
+                        y = element.Y;
+                        searchMethod = searchResult.SearchMethod;
+
+                        System.Diagnostics.Debug.WriteLine($"Element found via {searchMethod} at ({x}, {y}) on retry {retry + 1}");
+                        break;
+                    }
+                    else if (retry < ElementSearchRetries - 1)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Element search failed on retry {retry + 1}, retrying...");
+                        await Task.Delay(100);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Element search failed after {ElementSearchRetries} retries: {searchResult.ErrorMessage}");
+                    }
+                }
+            }
+
+            // Final fallback na uložené súradnice (ak nie sú už použité)
+            if (!useOriginalCoordinates && element == null)
+            {
+                x = command.ElementX;
+                y = command.ElementY;
+                searchMethod = "Stored coordinates (fallback)";
+
+                System.Diagnostics.Debug.WriteLine($"Using stored coordinates as final fallback ({x}, {y})");
 
                 if (x <= 0 || y <= 0)
                 {
                     var errorMsg = $"Could not find element '{command.ElementName}' and no valid coordinates stored. " +
-                        $"Search error: {searchResult.ErrorMessage}";
-
+                        $"Element search failed after {ElementSearchRetries} retries.";
                     System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
                     throw new InvalidOperationException(errorMsg);
                 }
-
-                // Varovanie o použití starých súradníc
-                NotifyCommandExecuted(command, true,
-                    $"Using stored coordinates - element search failed: {searchResult.ErrorMessage}");
             }
 
             // Validate coordinates are on screen
             if (!actionSimulator.IsPointOnScreen(x, y))
             {
-                var errorMsg = $"Coordinates ({x}, {y}) are outside screen bounds";
+                var errorMsg = $"Coordinates ({x}, {y}) are outside screen bounds. " +
+                    $"Screen resolution may have changed since recording. " +
+                    $"Original recording coordinates: ({command.ElementX}, {command.ElementY})";
                 System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
                 throw new InvalidOperationException(errorMsg);
             }
 
-            System.Diagnostics.Debug.WriteLine($"About to {command.Type} at ({x}, {y})");
+            System.Diagnostics.Debug.WriteLine($"About to {command.Type} at ({x}, {y}) using {searchMethod}");
 
             // Highlight element if enabled
             if (HighlightTargetElements && element != null)
@@ -338,30 +465,39 @@ namespace AppCommander.W7_11.WPF.Core
                 HighlightElement(element);
             }
 
-            // Execute mouse action based on command type
+            // Execute mouse action based on command type with improved retry logic
             for (int i = 0; i < command.RepeatCount; i++)
             {
-                System.Diagnostics.Debug.WriteLine($"Executing {command.Type} #{i + 1} at ({x}, {y})");
+                System.Diagnostics.Debug.WriteLine($"Executing {command.Type} #{i + 1}/{command.RepeatCount} at ({x}, {y})");
 
-                switch (command.Type)
+                try
                 {
-                    case CommandType.Click:
-                    case CommandType.MouseClick:
-                        actionSimulator.ClickAt(x, y);
-                        break;
-                    case CommandType.DoubleClick:
-                        actionSimulator.DoubleClickAt(x, y);
-                        break;
-                    case CommandType.RightClick:
-                        actionSimulator.RightClickAt(x, y);
-                        break;
-                }
+                    switch (command.Type)
+                    {
+                        case CommandType.Click:
+                        case CommandType.MouseClick:
+                            actionSimulator.ClickAt(x, y);
+                            break;
+                        case CommandType.DoubleClick:
+                            actionSimulator.DoubleClickAt(x, y);
+                            break;
+                        case CommandType.RightClick:
+                            actionSimulator.RightClickAt(x, y);
+                            break;
+                    }
 
-                if (i < command.RepeatCount - 1)
-                    await Task.Delay(50); // Small delay between repeats
+                    System.Diagnostics.Debug.WriteLine($"Successfully executed {command.Type} #{i + 1} at ({x}, {y})");
+
+                    if (i < command.RepeatCount - 1)
+                        await Task.Delay(100); // Delay between repeats
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error executing {command.Type} #{i + 1}: {ex.Message}");
+                    throw;
+                }
             }
 
-            System.Diagnostics.Debug.WriteLine($"Successfully executed {command.Type} at ({x}, {y})");
             return true;
         }
 
@@ -369,34 +505,30 @@ namespace AppCommander.W7_11.WPF.Core
         {
             System.Diagnostics.Debug.WriteLine($"ExecuteKeyCommand: {command.Key} (Value: {command.Value})");
 
-            // Make sure target window is focused if we have one
-            if (TargetWindow != IntPtr.Zero)
-            {
-                try
-                {
-                    SetForegroundWindow(TargetWindow);
-                    await Task.Delay(100); // Give time for focus to take effect
-                    System.Diagnostics.Debug.WriteLine($"Focused target window: {TargetWindow}");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Could not focus target window: {ex.Message}");
-                }
-            }
+            // Ensure target window is focused if we have one
+            await EnsureWindowFocused();
 
             for (int i = 0; i < command.RepeatCount; i++)
             {
-                System.Diagnostics.Debug.WriteLine($"Sending key #{i + 1}: {command.Key}");
+                System.Diagnostics.Debug.WriteLine($"Sending key #{i + 1}/{command.RepeatCount}: {command.Key}");
 
-                // Add extra delay for each key to ensure it's processed
-                await Task.Delay(50); // Small delay before key
+                try
+                {
+                    // Add extra delay for each key to ensure it's processed
+                    await Task.Delay(50);
 
-                actionSimulator.SendKey(command.Key);
+                    actionSimulator.SendKey(command.Key);
 
-                await Task.Delay(100); // Delay after key to ensure processing
+                    await Task.Delay(150); // Increased delay after key to ensure processing
 
-                if (i < command.RepeatCount - 1)
-                    await Task.Delay(50); // Additional delay between repeats
+                    if (i < command.RepeatCount - 1)
+                        await Task.Delay(100); // Additional delay between repeats
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error sending key {command.Key}: {ex.Message}");
+                    throw;
+                }
             }
 
             System.Diagnostics.Debug.WriteLine($"Successfully sent key: {command.Key}");
@@ -405,80 +537,101 @@ namespace AppCommander.W7_11.WPF.Core
 
         private async Task<bool> ExecuteSetTextCommand(Command command)
         {
-            // Use adaptive element finder
-            IntPtr targetHandle = TargetWindow != IntPtr.Zero ? TargetWindow : IntPtr.Zero;
-            var searchResult = AdaptiveElementFinder.SmartFindElement(targetHandle, command);
+            System.Diagnostics.Debug.WriteLine($"ExecuteSetTextCommand: '{command.Value}' to element '{command.ElementName}'");
+
+            // Ensure target window is focused
+            await EnsureWindowFocused();
 
             UIElementInfo element = null;
+            string searchMethod = "None";
 
-            if (searchResult.IsSuccess && searchResult.Element != null)
+            // Use adaptive element finder with retry logic
+            if (TargetWindow != IntPtr.Zero)
             {
-                element = searchResult.Element;
-
-                // Try to use automation pattern for text input
-                if (element.AutomationElement != null)
+                for (int retry = 0; retry < ElementSearchRetries; retry++)
                 {
-                    try
+                    var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, command);
+
+                    if (searchResult.IsSuccess && searchResult.Element != null)
                     {
-                        // Try ValuePattern first (for textboxes)
-                        if (element.AutomationElement.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
-                        {
-                            var value = valuePattern as ValuePattern;
-                            if (value != null && !value.Current.IsReadOnly)
-                            {
-                                value.SetValue(command.Value);
-                                return true;
-                            }
-                        }
-
-                        // Try TextPattern as alternative
-                        if (element.AutomationElement.TryGetCurrentPattern(TextPattern.Pattern, out object textPattern))
-                        {
-                            var text = textPattern as TextPattern;
-                            if (text != null)
-                            {
-                                // Focus the element first
-                                element.AutomationElement.SetFocus();
-                                await Task.Delay(100);
-
-                                // Select all text and replace
-                                actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
-                                await Task.Delay(50);
-                                actionSimulator.SendText(command.Value);
-                                return true;
-                            }
-                        }
+                        element = searchResult.Element;
+                        searchMethod = searchResult.SearchMethod;
+                        System.Diagnostics.Debug.WriteLine($"Text element found via {searchMethod} on retry {retry + 1}");
+                        break;
                     }
-                    catch
+                    else if (retry < ElementSearchRetries - 1)
                     {
-                        // Fall back to click and type
+                        System.Diagnostics.Debug.WriteLine($"Text element search failed on retry {retry + 1}, retrying...");
+                        await Task.Delay(100);
                     }
                 }
+            }
 
-                // Click to focus the element first
+            // Try to use automation pattern for text input
+            if (element?.AutomationElement != null)
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Attempting to use UI Automation patterns for text input");
+
+                    // Try ValuePattern first (for textboxes)
+                    if (element.AutomationElement.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
+                    {
+                        var value = valuePattern as ValuePattern;
+                        if (value != null && !value.Current.IsReadOnly)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Using ValuePattern.SetValue()");
+                            value.SetValue(command.Value);
+                            await Task.Delay(100); // Give time for the value to be set
+                            return true;
+                        }
+                    }
+
+                    // Try TextPattern as alternative
+                    if (element.AutomationElement.TryGetCurrentPattern(TextPattern.Pattern, out object textPattern))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Using TextPattern with focus and keyboard input");
+                        element.AutomationElement.SetFocus();
+                        await Task.Delay(200);
+
+                        // Select all text and replace
+                        actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
+                        await Task.Delay(100);
+                        actionSimulator.SendText(command.Value);
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"UI Automation failed: {ex.Message}, falling back to click and type");
+                }
+            }
+
+            // Fallback: Click element and type text
+            if (element != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fallback: clicking element at ({element.X}, {element.Y}) and typing text");
                 actionSimulator.ClickAt(element.X, element.Y);
-                await Task.Delay(100);
+                await Task.Delay(200);
+            }
+            else if (command.ElementX > 0 && command.ElementY > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fallback: clicking stored coordinates ({command.ElementX}, {command.ElementY}) and typing text");
+                actionSimulator.ClickAt(command.ElementX, command.ElementY);
+                await Task.Delay(200);
             }
             else
             {
-                // Fallback: use stored coordinates
-                if (command.ElementX > 0 && command.ElementY > 0)
-                {
-                    actionSimulator.ClickAt(command.ElementX, command.ElementY);
-                    await Task.Delay(100);
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot find text element '{command.ElementName}' and no coordinates stored. " +
-                        $"Search error: {searchResult.ErrorMessage}");
-                }
+                throw new InvalidOperationException(
+                    $"Cannot find text element '{command.ElementName}' and no coordinates stored.");
             }
 
             // Clear existing text and send new text
+            System.Diagnostics.Debug.WriteLine("Clearing existing text and sending new text");
             actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
-            await Task.Delay(50);
+            await Task.Delay(100);
             actionSimulator.SendText(command.Value);
+            await Task.Delay(100);
 
             return true;
         }
@@ -487,6 +640,7 @@ namespace AppCommander.W7_11.WPF.Core
         {
             if (int.TryParse(command.Value, out int waitTime))
             {
+                System.Diagnostics.Debug.WriteLine($"Waiting for {waitTime}ms");
                 await Task.Delay(waitTime, cancellationToken);
                 return true;
             }
@@ -496,6 +650,8 @@ namespace AppCommander.W7_11.WPF.Core
 
         private bool ExecuteLoopStart(Command command)
         {
+            System.Diagnostics.Debug.WriteLine($"Starting loop: {command.ElementName} with {command.RepeatCount} iterations");
+
             var loopContext = new LoopContext
             {
                 StartIndex = currentCommandIndex,
@@ -516,24 +672,47 @@ namespace AppCommander.W7_11.WPF.Core
             var loopContext = loopStack.Peek();
             loopContext.CurrentIteration++;
 
+            System.Diagnostics.Debug.WriteLine($"Loop iteration {loopContext.CurrentIteration}/{loopContext.Iterations} completed");
+
             if (loopContext.CurrentIteration < loopContext.Iterations)
             {
                 // Continue loop - jump back to start
+                System.Diagnostics.Debug.WriteLine($"Jumping back to loop start at index {loopContext.StartIndex}");
                 currentCommandIndex = loopContext.StartIndex;
             }
             else
             {
                 // Loop completed - remove from stack
+                System.Diagnostics.Debug.WriteLine($"Loop '{loopContext.LoopName}' completed");
                 loopStack.Pop();
             }
 
             return true;
         }
 
+        private async Task EnsureWindowFocused()
+        {
+            if (TargetWindow != IntPtr.Zero)
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"Focusing target window: {TargetWindow}");
+                    SetForegroundWindow(TargetWindow);
+                    await Task.Delay(WindowFocusDelay); // Give time for focus to take effect
+                    System.Diagnostics.Debug.WriteLine("Window focus completed");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Could not focus target window: {ex.Message}");
+                }
+            }
+        }
+
         private void HighlightElement(UIElementInfo element)
         {
             // TODO: Implement element highlighting (e.g., draw red border around element)
             // This could use Graphics overlay or Windows API to draw a temporary border
+            System.Diagnostics.Debug.WriteLine($"Highlighting element: {element.Name} at ({element.X}, {element.Y})");
         }
 
         private void NotifyCommandExecuted(Command command, bool success, string error = "")

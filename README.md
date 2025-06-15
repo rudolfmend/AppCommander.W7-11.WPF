@@ -18,7 +18,13 @@
 - 🧭 **Smart UI detection** - finds and manipulates interface elements
 - 🕹️ **Advanced input simulation** - text input and button clicking
 - 🏪 **Microsoft Store ready** - proper DPI scaling and modern UI
-
+- ✅ **Automatic detection of WinUI3 applications**
+- ✅ **Intelligent recording with pattern recognition**
+- ✅ **Adaptive playback with element finding**
+- ✅ **Real-time debugging tools**
+- ✅ **Comprehensive validation and reporting**
+- ✅ **Bulk operations for maintenance**
+- ✅ **Live element analysis for troubleshooting**
 ---
 
 ## 💡 Use Cases

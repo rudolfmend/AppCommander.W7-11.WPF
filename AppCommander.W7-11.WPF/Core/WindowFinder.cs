@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -251,11 +250,18 @@ namespace AppCommander.W7_11.WPF.Core
 
     public class WindowInfo
     {
-        public IntPtr Handle { get; set; }
+        //public IntPtr Handle { get; set; }
         public string Title { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
-        public int ProcessId { get; set; }
-        public string ProcessName { get; set; } = string.Empty;
+        //public int ProcessId { get; set; }
+        //public string ProcessName { get; set; } = string.Empty;
+
+        public string WindowTitle { get; set; } = "";
+        public string WindowClass { get; set; } = "";
+        public string ProcessName { get; set; } = "";
+        public int ProcessId { get; set; } = 0;
+        public IntPtr Handle { get; set; } = IntPtr.Zero;
+        public string ErrorMessage { get; set; } = "";
 
         public override string ToString()
         {

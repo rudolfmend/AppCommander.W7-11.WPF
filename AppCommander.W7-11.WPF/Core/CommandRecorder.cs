@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Automation;
 using System.Windows.Forms;
 
 namespace AppCommander.W7_11.WPF.Core
@@ -12,6 +14,7 @@ namespace AppCommander.W7_11.WPF.Core
         private CommandSequence currentSequence;
         private readonly Dictionary<string, ElementUsageStats> elementStats;
         private bool isRecording = false;
+        private bool isPaused = false;
         private IntPtr targetWindow = IntPtr.Zero;
         private string targetProcessName = string.Empty;
         private int commandCounter = 1;
@@ -21,9 +24,14 @@ namespace AppCommander.W7_11.WPF.Core
         public event EventHandler<RecordingStateChangedEventArgs> RecordingStateChanged;
         public event EventHandler<ElementUsageEventArgs> ElementUsageUpdated;
 
-        public bool IsRecording => isRecording;
+        public bool IsRecording => isRecording && !isPaused;
+        public bool IsPaused => isPaused;
         public CommandSequence CurrentSequence => currentSequence;
         public Dictionary<string, ElementUsageStats> ElementStats => new Dictionary<string, ElementUsageStats>(elementStats);
+
+        // WinUI3 debugging properties
+        public bool EnableWinUI3Analysis { get; set; } = true;
+        public bool EnableDetailedLogging { get; set; } = true;
 
         public CommandRecorder()
         {
@@ -45,6 +53,7 @@ namespace AppCommander.W7_11.WPF.Core
             targetWindow = targetWindowHandle;
             commandCounter = 1;
             elementStats.Clear();
+            isPaused = false;
 
             // Get target process name and window info if window handle provided
             if (targetWindow != IntPtr.Zero)
@@ -56,6 +65,8 @@ namespace AppCommander.W7_11.WPF.Core
                 currentSequence.TargetWindowClass = GetWindowClassFromHandle(targetWindow);
                 currentSequence.AutoFindTarget = true;
                 currentSequence.MaxWaitTimeSeconds = 30;
+
+                System.Diagnostics.Debug.WriteLine($"Recording target: {targetProcessName} - {currentSequence.TargetWindowTitle}");
             }
 
             // Start global hooks
@@ -65,6 +76,7 @@ namespace AppCommander.W7_11.WPF.Core
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
                 IsRecording = true,
+                IsPaused = false,
                 SequenceName = sequenceName,
                 TargetWindow = targetWindow
             });
@@ -78,10 +90,12 @@ namespace AppCommander.W7_11.WPF.Core
             // Stop global hooks
             globalHook.StopHooking();
             isRecording = false;
+            isPaused = false;
 
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
                 IsRecording = false,
+                IsPaused = false,
                 SequenceName = currentSequence?.Name ?? string.Empty,
                 CommandCount = currentSequence?.Commands.Count ?? 0
             });
@@ -89,15 +103,14 @@ namespace AppCommander.W7_11.WPF.Core
 
         public void PauseRecording()
         {
-            if (!isRecording)
+            if (!isRecording || isPaused)
                 return;
 
-            globalHook.StopHooking();
-            isRecording = false;
+            isPaused = true;
 
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
-                IsRecording = false,
+                IsRecording = true,
                 IsPaused = true,
                 SequenceName = currentSequence?.Name ?? string.Empty
             });
@@ -105,11 +118,10 @@ namespace AppCommander.W7_11.WPF.Core
 
         public void ResumeRecording()
         {
-            if (isRecording || currentSequence == null)
+            if (!isRecording || !isPaused)
                 return;
 
-            globalHook.StartHooking();
-            isRecording = true;
+            isPaused = false;
 
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
@@ -121,7 +133,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         private void OnKeyPressed(object sender, KeyPressedEventArgs e)
         {
-            if (!isRecording)
+            if (!isRecording || isPaused)
                 return;
 
             // Filter to target window if specified
@@ -131,6 +143,8 @@ namespace AppCommander.W7_11.WPF.Core
             // Skip certain system keys
             if (ShouldSkipKey(e.Key))
                 return;
+
+            System.Diagnostics.Debug.WriteLine($"Recording key: {e.Key} in {e.ProcessName}");
 
             // Create command for key press
             var command = new Command(commandCounter++, $"Key_{e.Key}", CommandType.KeyPress)
@@ -148,239 +162,430 @@ namespace AppCommander.W7_11.WPF.Core
 
         private void OnMouseClicked(object sender, MouseClickedEventArgs e)
         {
-            if (!isRecording)
+            if (!isRecording || isPaused)
                 return;
 
-            // Filter to target window if specified
             if (targetWindow != IntPtr.Zero && e.WindowHandle != targetWindow)
                 return;
 
-            // Determine command type based on mouse button
-            CommandType commandType = e.Button == MouseButtons.Left ? CommandType.Click : CommandType.RightClick;
+            System.Diagnostics.Debug.WriteLine($"Recording mouse click at ({e.X}, {e.Y}) in {e.ProcessName}");
 
-            // Create element name
-            string elementName = "Unknown";
-            if (e.UIElement != null)
+            // **VYLEPŠENÁ DETEKCIA UI ELEMENTU**
+            var uiElement = e.UIElement ?? UIElementDetector.GetElementAtPoint(e.X, e.Y);
+
+            // **WinUI3 špecifická analýza**
+            if (EnableWinUI3Analysis && uiElement?.ClassName == "Microsoft.UI.Content.DesktopChildSiteBridge")
             {
-                elementName = !string.IsNullOrEmpty(e.UIElement.Name)
-                    ? e.UIElement.Name
-                    : e.UIElement.GetUniqueIdentifier();
-            }
+                System.Diagnostics.Debug.WriteLine("=== WinUI3 ELEMENT DETECTED ===");
+                //WinUI3DebugHelper.AnalyzePointInWinUI3(targetWindow, e.X, e.Y); // - chyba
+				AnalyzeWinUI3Point(targetWindow, e.X, e.Y);
+			}
 
-            // Create command for mouse click
-            var command = new Command(commandCounter++, elementName, commandType)
+            CommandType commandType = e.Button == System.Windows.Forms.MouseButtons.Left ? CommandType.Click : CommandType.RightClick;
+
+            // **VYLEPŠENÁ TVORBA NÁZVU ELEMENTU**
+            string elementName = CreateMeaningfulElementName(uiElement, e.X, e.Y);
+
+            // **Vytvor command s originálnymi súradnicami**
+            var command = new Command(commandCounter++, elementName, commandType, e.X, e.Y)
             {
                 MouseButton = e.Button,
-                ElementX = e.X,
-                ElementY = e.Y,
+                ElementX = e.X,  // Aktuálne súradnice
+                ElementY = e.Y,  // Aktuálne súradnice
                 TargetWindow = e.WindowTitle,
                 TargetProcess = e.ProcessName
             };
 
-            // Fill element details if available
-            if (e.UIElement != null)
+            // **Aktualizuj z UIElementInfo**
+            if (uiElement != null)
             {
-                command.ElementId = e.UIElement.AutomationId;
-                command.ElementClass = e.UIElement.ClassName;
-                command.ElementControlType = e.UIElement.ControlType;
-            }
+                command.UpdateFromElementInfo(uiElement);
 
-            AddCommand(command, e.UIElement);
-        }
-
-        private void AddCommand(Command command, UIElementInfo uiElement)
-        {
-            // Add to sequence
-            currentSequence.AddCommand(command);
-
-            // Update element statistics
-            UpdateElementStats(command, uiElement);
-
-            // Notify listeners
-            CommandRecorded?.Invoke(this, new CommandRecordedEventArgs
-            {
-                Command = command,
-                UIElement = uiElement,
-                TotalCommands = currentSequence.Commands.Count
-            });
-        }
-
-        private void UpdateElementStats(Command command, UIElementInfo uiElement)
-        {
-            string elementKey = command.ElementName;
-
-            if (!elementStats.ContainsKey(elementKey))
-            {
-                elementStats[elementKey] = new ElementUsageStats
+                if (EnableDetailedLogging)
                 {
-                    ElementName = command.ElementName,
-                    ElementType = command.ElementClass,
-                    ControlType = command.ElementControlType
-                };
-            }
-
-            var stats = elementStats[elementKey];
-            stats.IncrementUsage(command.Type);
-
-            ElementUsageUpdated?.Invoke(this, new ElementUsageEventArgs
-            {
-                ElementName = elementKey,
-                Stats = stats
-            });
-        }
-
-        private bool ShouldSkipKey(Keys key)
-        {
-            // Skip modifier keys, function keys, etc.
-            var skipKeys = new[]
-            {
-                Keys.LWin, Keys.RWin, Keys.Apps,
-                Keys.LControlKey, Keys.RControlKey, Keys.ControlKey,
-                Keys.LShiftKey, Keys.RShiftKey, Keys.ShiftKey,
-                Keys.LMenu, Keys.RMenu, Keys.Alt, // LMenu/RMenu sú správne názvy pre Alt klávesy
-                Keys.CapsLock, Keys.NumLock, Keys.Scroll,
-                Keys.PrintScreen, Keys.Pause,
-                Keys.Insert, Keys.Delete, Keys.Home, Keys.End,
-                Keys.PageUp, Keys.PageDown,
-                Keys.F1, Keys.F2, Keys.F3, Keys.F4, Keys.F5, Keys.F6,
-                Keys.F7, Keys.F8, Keys.F9, Keys.F10, Keys.F11, Keys.F12
-            };
-
-            return skipKeys.Contains(key);
-        }
-
-        private string GetProcessNameFromWindow(IntPtr hWnd)
-        {
-            try
-            {
-                GetWindowThreadProcessId(hWnd, out uint processId);
-                using (var process = System.Diagnostics.Process.GetProcessById((int)processId))
-                {
-                    return process.ProcessName;
+                    System.Diagnostics.Debug.WriteLine($"Element details: Name='{command.ElementName}', " +
+                        $"Id='{command.ElementId}', Class='{command.ElementClass}', " +
+                        $"Type='{command.ElementControlType}', Text='{command.ElementText}', " +
+                        $"WinUI3={command.IsWinUI3Element}, ClickPos=({command.ElementX}, {command.ElementY})");
                 }
             }
-            catch
+
+            AddCommand(command, uiElement);
+
+            System.Diagnostics.Debug.WriteLine($"Command recorded: Step {command.StepNumber}: {command.Type} on {command.ElementName} (x{command.RepeatCount})");
+        }
+
+        /// <summary>
+        /// **Vytvára zmysluplný názov elementu**
+        /// </summary>
+        private string CreateMeaningfulElementName(UIElementInfo uiElement, int x, int y)
+        {
+            if (uiElement == null)
+                return $"Click_at_{x}_{y}";
+
+            // Použij UIElementDetector logiku pre tvorbu názvu
+            string elementName = "Unknown";
+
+            // 1. Skutočný názov elementu
+            if (!string.IsNullOrWhiteSpace(uiElement.Name) && !IsGenericElementName(uiElement.Name))
             {
-                return string.Empty;
+                elementName = CleanElementName(uiElement.Name);
             }
-        }
-
-        private string GetWindowTitleFromHandle(IntPtr hWnd)
-        {
-            try
+            // 2. AutomationId
+            else if (!string.IsNullOrWhiteSpace(uiElement.AutomationId) && !IsGenericId(uiElement.AutomationId))
             {
-                const int nChars = 256;
-                var buffer = new System.Text.StringBuilder(nChars);
-
-                if (GetWindowText(hWnd, buffer, nChars) > 0)
-                    return buffer.ToString();
-
-                return string.Empty;
+                elementName = $"AutoId_{CleanElementName(uiElement.AutomationId)}";
             }
-            catch
+            // 3. Text obsah
+            else if (!string.IsNullOrWhiteSpace(uiElement.ElementText) && uiElement.ElementText.Length <= 20)
             {
-                return string.Empty;
+                elementName = $"{uiElement.ControlType}_{CleanElementName(uiElement.ElementText)}";
             }
-        }
-
-        private string GetWindowClassFromHandle(IntPtr hWnd)
-        {
-            try
+            // 4. Help text
+            else if (!string.IsNullOrWhiteSpace(uiElement.HelpText) && uiElement.HelpText.Length <= 20)
             {
-                var buffer = new System.Text.StringBuilder(256);
-                GetClassName(hWnd, buffer, buffer.Capacity);
-                return buffer.ToString();
+                elementName = $"{uiElement.ControlType}_{CleanElementName(uiElement.HelpText)}";
             }
-            catch
+            // 5. Fallback na typ a pozíciu
+            else
             {
-                return string.Empty;
+                string controlType = uiElement.ControlType ?? "Unknown";
+                elementName = $"{controlType}_at_{x}_{y}";
             }
+
+            return elementName;
         }
 
-        public void SaveCurrentSequence(string filePath)
+        private bool IsGenericElementName(string name)
         {
-            if (currentSequence == null)
-                throw new InvalidOperationException("No sequence to save");
-
-            currentSequence.SaveToFile(filePath);
-        }
-
-        public CommandSequence LoadSequence(string filePath)
-        {
-            return CommandSequence.LoadFromFile(filePath);
-        }
-
-        public void AddManualCommand(CommandType type, string elementName, string value = "", int repeatCount = 1)
-        {
-            if (currentSequence == null)
-                return;
-
-            var command = new Command(commandCounter++, elementName, type)
+            var genericNames = new[]
             {
-                Value = value,
-                RepeatCount = repeatCount,
-                TargetWindow = "Manual",
-                TargetProcess = "Manual"
-            };
+            "Microsoft.UI.Content.DesktopChildSiteBridge",
+            "DesktopChildSiteBridge", "ContentPresenter", "Border",
+            "Grid", "StackPanel", "Canvas", "UserControl"
+        };
 
-            AddCommand(command, null);
+            return genericNames.Any(generic => name.IndexOf(generic, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        public void StartLoop(string loopName, int iterations = 1)
+        private bool IsGenericId(string id)
         {
-            if (currentSequence == null)
-                return;
+            return string.IsNullOrEmpty(id) || id.Length > 20 || id.All(char.IsDigit) || id.Contains("-") || id.Contains("{");
+        }
 
-            var command = new Command(commandCounter++, loopName, CommandType.Loop)
+        private string CleanElementName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "";
+
+            return new string(name.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == ' ')
+                                 .ToArray())
+                                 .Replace(" ", "_")
+                                 .Trim('_');
+        }
+
+        /// <summary>
+        /// **Analyzuje nahraté WinUI3 elementy**
+        /// </summary>
+        public void AnalyzeRecordedWinUI3Elements()
+        {
+            if (currentSequence == null) return;
+
+            var winui3Commands = currentSequence.Commands.Where(c => c.IsWinUI3Element).ToList();
+
+            System.Diagnostics.Debug.WriteLine($"\n=== WINUI3 ANALYSIS ===");
+            System.Diagnostics.Debug.WriteLine($"Total commands: {currentSequence.Commands.Count}");
+            System.Diagnostics.Debug.WriteLine($"WinUI3 commands: {winui3Commands.Count}");
+
+            if (winui3Commands.Any())
             {
-                RepeatCount = iterations,
-                IsLoopStart = true,
-                Value = iterations.ToString()
-            };
+                System.Diagnostics.Debug.WriteLine("\nWinUI3 Command Details:");
+                foreach (var cmd in winui3Commands)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Step {cmd.StepNumber}: {cmd.Type} on '{cmd.ElementName}'");
+                    System.Diagnostics.Debug.WriteLine($"  Position: ({cmd.OriginalX}, {cmd.OriginalY}) -> ({cmd.ElementX}, {cmd.ElementY})");
+                    System.Diagnostics.Debug.WriteLine($"  Identifier: {cmd.GetBestElementIdentifier()}");
+                    if (!string.IsNullOrEmpty(cmd.ElementText))
+                        System.Diagnostics.Debug.WriteLine($"  Text: '{cmd.ElementText}'");
+                }
 
-            AddCommand(command, null);
+                // Identifikuj potenciálne problémy
+                var problematicCommands = winui3Commands.Where(c =>
+                    c.ElementName.Contains("Unknown") ||
+                    c.ElementName.Contains("at_") ||
+                    (string.IsNullOrEmpty(c.ElementId) && string.IsNullOrEmpty(c.ElementText))
+                ).ToList();
+
+                if (problematicCommands.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine($"\n⚠️  Potentially problematic commands: {problematicCommands.Count}");
+                    foreach (var cmd in problematicCommands)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Step {cmd.StepNumber}: {cmd.ElementName} - may be unreliable");
+                    }
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===\n");
         }
 
-        public void EndLoop()
-        {
-            if (currentSequence == null)
-                return;
+		/// <summary>
+		/// Analyzuje WinUI3 point (náhrada za WinUI3DebugHelper)
+		/// </summary>
+		private void AnalyzeWinUI3Point(IntPtr targetWindow, int x, int y)
+		{
+			try
+			{
+				System.Diagnostics.Debug.WriteLine($"WinUI3 Analysis: Point ({x}, {y}) in window {targetWindow}");
 
-            var command = new Command(commandCounter++, "LoopEnd", CommandType.LoopEnd);
-            AddCommand(command, null);
-        }
+				// Jednoduchá analýza - môžete rozšíriť neskôr
+				var element = UIElementDetector.GetElementAtPoint(x, y);
+				if (element != null && element.ClassName == "Microsoft.UI.Content.DesktopChildSiteBridge")
+				{
+					System.Diagnostics.Debug.WriteLine($"  WinUI3 Bridge Element: {element.Name}");
+					System.Diagnostics.Debug.WriteLine($"  AutomationId: {element.AutomationId}");
+					System.Diagnostics.Debug.WriteLine($"  Text: {element.ElementText}");
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"WinUI3 analysis error: {ex.Message}");
+			}
+		}
 
-        public void AddWaitCommand(int milliseconds)
-        {
-            if (currentSequence == null)
-                return;
+		/// <summary>
+		/// Pridá command do sequence a aktualizuje štatistiky
+		/// </summary>
+		private void AddCommand(Command command, UIElementInfo uiElement)
+		{
+			// Add to sequence
+			currentSequence.AddCommand(command);
 
-            var command = new Command(commandCounter++, $"Wait_{milliseconds}ms", CommandType.Wait)
-            {
-                Value = milliseconds.ToString(),
-                RepeatCount = 1
-            };
+			// Update element statistics
+			UpdateElementStats(command, uiElement);
 
-            AddCommand(command, null);
-        }
+			// Notify listeners
+			CommandRecorded?.Invoke(this, new CommandRecordedEventArgs
+			{
+				Command = command,
+				UIElement = uiElement,
+				TotalCommands = currentSequence.Commands.Count
+			});
 
-        // Windows API
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+			System.Diagnostics.Debug.WriteLine($"Command recorded: {command}");
+		}
 
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+		/// <summary>
+		/// Aktualizuje štatistiky použitia elementov
+		/// </summary>
+		private void UpdateElementStats(Command command, UIElementInfo uiElement)
+		{
+			string elementKey = command.ElementName;
 
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+			if (!elementStats.ContainsKey(elementKey))
+			{
+				elementStats[elementKey] = new ElementUsageStats
+				{
+					ElementName = command.ElementName,
+					ElementType = command.ElementClass,
+					ControlType = command.ElementControlType
+				};
+			}
 
-        ~CommandRecorder()
-        {
-            globalHook?.StopHooking();
-        }
-    }
+			var stats = elementStats[elementKey];
+			stats.IncrementUsage(command.Type);
 
-    // Event argument classes
+			ElementUsageUpdated?.Invoke(this, new ElementUsageEventArgs
+			{
+				ElementName = elementKey,
+				Stats = stats
+			});
+		}
+
+		/// <summary>
+		/// Kontroluje či má byť klávesa preskočená
+		/// </summary>
+		private bool ShouldSkipKey(Keys key)
+		{
+			// Skip modifier keys, function keys, etc.
+			var skipKeys = new[]
+			{
+		Keys.LWin, Keys.RWin, Keys.Apps,
+		Keys.LControlKey, Keys.RControlKey, Keys.ControlKey,
+		Keys.LShiftKey, Keys.RShiftKey, Keys.ShiftKey,
+		Keys.LMenu, Keys.RMenu, Keys.Alt,
+		Keys.CapsLock, Keys.NumLock, Keys.Scroll,
+		Keys.PrintScreen, Keys.Pause,
+		Keys.Insert, Keys.Delete, Keys.Home, Keys.End,
+		Keys.PageUp, Keys.PageDown,
+		Keys.F1, Keys.F2, Keys.F3, Keys.F4, Keys.F5, Keys.F6,
+		Keys.F7, Keys.F8, Keys.F9, Keys.F10, Keys.F11, Keys.F12
+	};
+
+			return skipKeys.Contains(key);
+		}
+
+		/// <summary>
+		/// Získa názov procesu z window handle
+		/// </summary>
+		private string GetProcessNameFromWindow(IntPtr hWnd)
+		{
+			try
+			{
+				GetWindowThreadProcessId(hWnd, out uint processId);
+				using (var process = System.Diagnostics.Process.GetProcessById((int)processId))
+				{
+					return process.ProcessName;
+				}
+			}
+			catch
+			{
+				return string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Získa title okna z window handle
+		/// </summary>
+		private string GetWindowTitleFromHandle(IntPtr hWnd)
+		{
+			try
+			{
+				const int nChars = 256;
+				var buffer = new System.Text.StringBuilder(nChars);
+
+				if (GetWindowText(hWnd, buffer, nChars) > 0)
+					return buffer.ToString();
+
+				return string.Empty;
+			}
+			catch
+			{
+				return string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Získa class name okna z window handle
+		/// </summary>
+		private string GetWindowClassFromHandle(IntPtr hWnd)
+		{
+			try
+			{
+				var buffer = new System.Text.StringBuilder(256);
+				GetClassName(hWnd, buffer, buffer.Capacity);
+				return buffer.ToString();
+			}
+			catch
+			{
+				return string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Uloží aktuálnu sequence do súboru
+		/// </summary>
+		public void SaveCurrentSequence(string filePath)
+		{
+			if (currentSequence == null)
+				throw new InvalidOperationException("No sequence to save");
+
+			currentSequence.SaveToFile(filePath);
+		}
+
+		/// <summary>
+		/// Načíta sequence zo súboru
+		/// </summary>
+		public CommandSequence LoadSequence(string filePath)
+		{
+			return CommandSequence.LoadFromFile(filePath);
+		}
+
+		/// <summary>
+		/// Pridá manuálny command
+		/// </summary>
+		public void AddManualCommand(CommandType type, string elementName, string value = "", int repeatCount = 1)
+		{
+			if (currentSequence == null)
+				return;
+
+			var command = new Command(commandCounter++, elementName, type)
+			{
+				Value = value,
+				RepeatCount = repeatCount,
+				TargetWindow = "Manual",
+				TargetProcess = "Manual"
+			};
+
+			AddCommand(command, null);
+		}
+
+		/// <summary>
+		/// Začne loop
+		/// </summary>
+		public void StartLoop(string loopName, int iterations = 1)
+		{
+			if (currentSequence == null)
+				return;
+
+			var command = new Command(commandCounter++, loopName, CommandType.Loop)
+			{
+				RepeatCount = iterations,
+				IsLoopStart = true,
+				Value = iterations.ToString()
+			};
+
+			AddCommand(command, null);
+		}
+
+		/// <summary>
+		/// Ukončí loop
+		/// </summary>
+		public void EndLoop()
+		{
+			if (currentSequence == null)
+				return;
+
+			var command = new Command(commandCounter++, "LoopEnd", CommandType.LoopEnd);
+			AddCommand(command, null);
+		}
+
+		/// <summary>
+		/// Pridá wait command
+		/// </summary>
+		public void AddWaitCommand(int milliseconds)
+		{
+			if (currentSequence == null)
+				return;
+
+			var command = new Command(commandCounter++, $"Wait_{milliseconds}ms", CommandType.Wait)
+			{
+				Value = milliseconds.ToString(),
+				RepeatCount = 1
+			};
+
+			AddCommand(command, null);
+		}
+
+		/// <summary>
+		/// Destruktor - zastaví hooking
+		/// </summary>
+		~CommandRecorder()
+		{
+			globalHook?.StopHooking();
+		}
+
+		// Windows API import pre GetClassName
+		[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+		private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+		[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+		private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+		[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+		private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+	}
+
     public class CommandRecordedEventArgs : EventArgs
     {
         public Command Command { get; set; }
