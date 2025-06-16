@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -246,6 +247,125 @@ namespace AppCommander.W7_11.WPF.Core
         private static extern bool IsWindowVisible(IntPtr hWnd);
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+
+        /// <summary>
+        /// Získa všetky viditeľné okná v systéme
+        /// </summary>
+        /// <returns>Zoznam všetkých okien</returns>
+        public static List<WindowInfo> GetAllWindows()
+        {
+            var windows = new List<WindowInfo>();
+
+            try
+            {
+                EnumWindows((hWnd, lParam) =>
+                {
+                    try
+                    {
+                        // Kontroluj či je okno viditeľné
+                        if (!IsWindowVisible(hWnd))
+                            return true;
+
+                        // Získaj informácie o okne
+                        string title = GetWindowTitle(hWnd);
+                        string className = GetClassName(hWnd);
+
+                        // Skip okná bez titulku a určité systémové okná
+                        if (string.IsNullOrWhiteSpace(title))
+                            return true;
+
+                        // Skip určité systémové triedy
+                        if (IsSystemWindow(className))
+                            return true;
+
+                        // Získaj informácie o procese
+                        GetWindowThreadProcessId(hWnd, out uint processId);
+                        string processName = "";
+
+                        try
+                        {
+                            using (var process = Process.GetProcessById((int)processId))
+                            {
+                                processName = process.ProcessName;
+                            }
+                        }
+                        catch
+                        {
+                            // Proces už neexistuje alebo nemáme prístup
+                            return true;
+                        }
+
+                        // Skip prázdne process names
+                        if (string.IsNullOrEmpty(processName))
+                            return true;
+
+                        // Vytvor WindowInfo objekt
+                        var windowInfo = new WindowInfo
+                        {
+                            Handle = hWnd,
+                            WindowTitle = title,
+                            Title = title, // Alias pre kompatibilitu
+                            WindowClass = className,
+                            ClassName = className, // Alias pre kompatibilitu
+                            ProcessName = processName,
+                            ProcessId = (int)processId
+                        };
+
+                        windows.Add(windowInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error processing window {hWnd}: {ex.Message}");
+                    }
+
+                    return true; // Pokračuj v enumerácii
+                }, IntPtr.Zero);
+
+                // Zoraď windows podľa procesu a titulku
+                return windows
+                    .OrderBy(w => w.ProcessName)
+                    .ThenBy(w => w.WindowTitle)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error enumerating windows: {ex.Message}");
+                return new List<WindowInfo>();
+            }
+        }
+
+        /// <summary>
+        /// Kontroluje či je okno systémové (ktoré chceme preskočiť)
+        /// </summary>
+        /// <param name="className">Class name okna</param>
+        /// <returns>True ak je systémové okno</returns>
+        private static bool IsSystemWindow(string className)
+        {
+            if (string.IsNullOrEmpty(className))
+                return false;
+
+            // Zoznam systémových tried ktoré chceme ignorovať
+            var systemClasses = new[]
+            {
+                "Shell_TrayWnd",           // Taskbar
+                "DV2ControlHost",          // Start menu
+                "MsgrIMEWindowClass",      // IME
+                "SysShadow",               // Window shadows
+                "Button",                  // Systémové buttony
+                "tooltips_class32",        // Tooltips
+                "Shell_SecondaryTrayWnd",  // Secondary taskbar
+                "WorkerW",                 // Desktop worker
+                "Progman",                 // Program manager
+                "DWMThumbnailHostWnd",     // DWM thumbnails
+                "Windows.UI.Core.CoreWindow", // UWP system windows
+                "#32769"                   // Dialog box class
+            };
+
+            return systemClasses.Any(sc => 
+                className.Equals(sc, StringComparison.OrdinalIgnoreCase) ||
+                className.StartsWith(sc, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     public class WindowInfo
