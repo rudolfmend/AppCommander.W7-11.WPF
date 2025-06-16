@@ -96,49 +96,86 @@
         </Menu>
 
         <!-- Control Panel -->
-        <GroupBox Grid.Row="1" Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+        <!-- Control Panel -->
+        <StackPanel Grid.Row="1" Margin="5">
+            <!-- Hlavný Control Panel -->
+            <GroupBox Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Recording Controls -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                    <Button Name="btnStartRecording" Content="🔴 Start Recording" 
-                            Style="{StaticResource PrimaryButtonStyle}" 
-                            Click="StartRecording_Click" Margin="0,0,10,0"/>
-                    <Button Name="btnStopRecording" Content="⏹ Stop" 
-                            Style="{StaticResource SecondaryButtonStyle}" 
-                            Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
-                    <Button Name="btnPauseRecording" Content="⏸ Pause" 
-                            Style="{StaticResource SecondaryButtonStyle}" 
-                            Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
-                </StackPanel>
+                    <!-- Recording Controls -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Name="btnStartRecording" Content="🔴 Start Recording" 
+                        Style="{StaticResource PrimaryButtonStyle}" 
+                        Click="StartRecording_Click" Margin="0,0,10,0"/>
+                        <Button Name="btnStopRecording" Content="⏹ Stop" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                        <Button Name="btnPauseRecording" Content="⏸ Pause" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                    </StackPanel>
 
-                <!-- Status -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Name="txtStatus" Text="Ready" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Foreground="#FF0078D4"/>
-                    <TextBlock Name="txtTarget" Text="No target selected" 
-                               HorizontalAlignment="Center" FontSize="10" Foreground="Gray"/>
-                </StackPanel>
+                    <!-- Repeat Logic Panel -->
+                    <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="Repeat Settings" FontWeight="Bold" HorizontalAlignment="Center" FontSize="10" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Count:" VerticalAlignment="Center" Margin="0,0,5,0" FontSize="10"/>
+                            <TextBox Name="txtRepeatCount" Text="1" Width="40" Height="20" 
+                             VerticalAlignment="Center" HorizontalContentAlignment="Center"
+                             ToolTip="Number of times to repeat the sequence (1-999)"/>
+                            <CheckBox Name="chkInfiniteLoop" Content="∞" VerticalAlignment="Center" 
+                              Margin="5,0,0,0" ToolTip="Infinite loop (Ctrl+Stop to break)"
+                              Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked"/>
+                        </StackPanel>
+                    </StackPanel>
 
-                <!-- Playback Controls -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Name="btnPlay" Content="▶ Play" 
-                            Style="{StaticResource PrimaryButtonStyle}" 
-                            Click="PlaySequence_Click" Margin="0,0,10,0"/>
-                    <Button Name="btnPause" Content="⏸ Pause" 
-                            Style="{StaticResource SecondaryButtonStyle}" 
-                            Click="PausePlayback_Click" Margin="0,0,10,0" IsEnabled="False"/>
-                    <Button Name="btnStop" Content="⏹ Stop" 
-                            Style="{StaticResource SecondaryButtonStyle}" 
-                            Click="StopPlayback_Click" IsEnabled="False"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
+                    <!-- Playback Controls -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Name="btnPlay" Content="▶ Play" 
+                        Style="{StaticResource PrimaryButtonStyle}" 
+                        Click="PlaySequence_Click" Margin="0,0,10,0"/>
+                        <Button Name="btnPause" Content="⏸ Pause" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        Click="PausePlayback_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                        <Button Name="btnStop" Content="⏹ Stop" 
+                        Style="{StaticResource SecondaryButtonStyle}" 
+                        Click="StopPlayback_Click" IsEnabled="False"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <!-- Status Panel (PRESUNUTÉ POD Control Panel) -->
+            <GroupBox Header="Status" Style="{StaticResource GroupBoxStyle}" Margin="0,0,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Status Info -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Name="txtStatus" Text="Ready" FontWeight="Bold" 
+                           HorizontalAlignment="Left" Foreground="#FF0078D4" FontSize="12"/>
+                        <TextBlock Name="txtTarget" Text="No target selected" 
+                           HorizontalAlignment="Left" FontSize="10" Foreground="Gray" 
+                           TextWrapping="Wrap" MaxWidth="300"/>
+                    </StackPanel>
+
+                    <!-- Sequence Info -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Name="txtSequenceInfo" Text="Ready to record" 
+                           HorizontalAlignment="Right" FontSize="10" Foreground="DarkBlue"/>
+                        <TextBlock Name="txtRepeatInfo" Text="Single execution" 
+                           HorizontalAlignment="Right" FontSize="10" Foreground="DarkGreen"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+        </StackPanel>
 
         <!-- Main Content -->
         <Grid Grid.Row="2">
@@ -243,6 +280,7 @@
                         <Button Grid.Row="1" Content="Clear Log" 
                                 Style="{StaticResource SecondaryButtonStyle}" 
                                 Click="ClearLog_Click" Margin="0,5,0,0" HorizontalAlignment="Right"/>
+                        
                     </Grid>
                 </GroupBox>
             </Grid>

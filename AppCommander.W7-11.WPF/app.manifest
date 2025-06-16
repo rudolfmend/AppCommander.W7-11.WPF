@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
 	<assemblyIdentity version="1.0.0.0" name="AppCommander.W7-11.WPF"/>
-
 	<!-- Application security and compatibility settings -->
 	<trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
 		<security>
@@ -20,7 +19,6 @@
 			</requestedPrivileges>
 		</security>
 	</trustInfo>
-
 	<!-- Windows compatibility settings -->
 	<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
 		<application>
@@ -36,7 +34,6 @@
 			<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
 		</application>
 	</compatibility>
-
 	<!-- DPI Awareness settings for proper scaling on high-DPI displays -->
 	<application xmlns="urn:schemas-microsoft-com:asm.v3">
 		<windowsSettings>
@@ -50,19 +47,8 @@
 			<disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
 		</windowsSettings>
 	</application>
-
-	<!-- Assembly dependencies -->
-	<dependency>
-		<dependentAssembly>
-			<assemblyIdentity
-				type="win32"
-				name="Microsoft.Windows.Common-Controls"
-				version="6.0.0.0"
-				processorArchitecture="*"
-				publicKeyToken="6595b64144ccf1df"
-				language="*"
-        />
-		</dependentAssembly>
-	</dependency>
-
+	<!-- 
+	Assembly dependencies REMOVED - čo spôsobovalo ClickOnce chyby
+	Common Controls budú načítané automaticky systémom
+	-->
 </assembly>

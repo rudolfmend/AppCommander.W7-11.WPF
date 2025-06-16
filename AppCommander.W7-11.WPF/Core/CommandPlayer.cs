@@ -759,6 +759,226 @@ namespace AppCommander.W7_11.WPF.Core
                 TotalCommands = TotalCommands
             });
         }
+
+        /// <summary>
+        /// Spustí sequence s opakovaním alebo nekonečnou slučkou
+        /// </summary>
+        /// <param name="sequence">Command sequence na spustenie</param>
+        /// <param name="targetWindow">Target window handle</param>
+        /// <param name="repeatCount">Počet opakovaní (-1 = infinite loop)</param>
+        /// <returns>Task</returns>
+        public async Task PlaySequenceWithRepeatAsync(CommandSequence sequence, IntPtr targetWindow, int repeatCount)
+        {
+            System.Diagnostics.Debug.WriteLine("PlaySequenceWithRepeatAsync started");
+
+            if (isPlaying)
+                throw new InvalidOperationException("Already playing a sequence");
+
+            if (sequence == null || sequence.Commands.Count == 0)
+                throw new ArgumentException("Sequence is empty or null");
+
+            bool isInfiniteLoop = repeatCount == -1;
+            int actualRepeatCount = isInfiniteLoop ? int.MaxValue : Math.Max(1, repeatCount);
+
+            System.Diagnostics.Debug.WriteLine($"Repeat playback: {(isInfiniteLoop ? "infinite loop" : $"{actualRepeatCount} iterations")}");
+            System.Diagnostics.Debug.WriteLine($"Sequence has {sequence.Commands.Count} commands");
+
+            currentSequence = sequence;
+            int globalCommandIndex = 0;
+            int executedIterations = 0;
+
+            try
+            {
+                // Pokus o nájdenie cieľového okna
+                await FindAndValidateTargetWindow(sequence, targetWindow);
+
+                cancellationTokenSource = new CancellationTokenSource();
+                isPlaying = true;
+                isPaused = false;
+
+                NotifyPlaybackStateChanged(PlaybackState.Started,
+                    isInfiniteLoop ? "Starting infinite loop" : $"Starting {actualRepeatCount} iterations");
+
+                // Hlavná slučka opakovaní
+                for (int iteration = 0; iteration < actualRepeatCount && !cancellationTokenSource.Token.IsCancellationRequested; iteration++)
+                {
+                    executedIterations = iteration + 1;
+
+                    System.Diagnostics.Debug.WriteLine($"=== ITERATION {executedIterations} {(isInfiniteLoop ? "(infinite)" : $"of {actualRepeatCount}")} ===");
+
+                    try
+                    {
+                        // Reset command index pre každú iteráciu
+                        currentCommandIndex = 0;
+                        loopStack.Clear();
+
+                        // Validácia target window pred každou iteráciou
+                        if (TargetWindow != IntPtr.Zero && (!IsWindow(TargetWindow) || !IsWindowVisible(TargetWindow)))
+                        {
+                            System.Diagnostics.Debug.WriteLine("Target window lost, attempting to re-find...");
+                            await FindAndValidateTargetWindow(sequence, IntPtr.Zero);
+
+                            if (TargetWindow == IntPtr.Zero)
+                            {
+                                throw new InvalidOperationException($"Target window lost after iteration {executedIterations - 1}");
+                            }
+                        }
+
+                        // Spustenie jednej iterácie
+                        await ExecuteSequenceIterationAsync(cancellationTokenSource.Token, executedIterations, actualRepeatCount);
+
+                        // Progress notification
+                        NotifyPlaybackStateChanged(PlaybackState.Started,
+                            isInfiniteLoop ? $"Completed iteration {executedIterations}" : $"Completed iteration {executedIterations}/{actualRepeatCount}");
+
+                        // Pauza medzi iteráciami (okrem poslednej)
+                        if (!isInfiniteLoop && iteration < actualRepeatCount - 1)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Pausing between iterations...");
+                            await Task.Delay(500, cancellationTokenSource.Token); // 500ms pauza medzi iteráciami
+                        }
+                        else if (isInfiniteLoop)
+                        {
+                            await Task.Delay(200, cancellationTokenSource.Token); // Kratšia pauza pre infinite loop
+                        }
+
+                        // Handle pause during inter-iteration delay
+                        while (isPaused && !cancellationTokenSource.Token.IsCancellationRequested)
+                        {
+                            await Task.Delay(100, cancellationTokenSource.Token);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Iteration {executedIterations} was cancelled");
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in iteration {executedIterations}: {ex.Message}");
+
+                        // Pre infinite loop, loguj chybu ale pokračuj
+                        if (isInfiniteLoop)
+                        {
+                            NotifyPlaybackError($"Error in iteration {executedIterations}: {ex.Message}", currentCommandIndex);
+
+                            // Krátka pauza pred ďalšou iteráciou
+                            await Task.Delay(1000, cancellationTokenSource.Token);
+                            continue;
+                        }
+                        else
+                        {
+                            // Pre limited repeats, opýtaj sa užívateľa
+                            NotifyPlaybackError($"Error in iteration {executedIterations}/{actualRepeatCount}: {ex.Message}", currentCommandIndex);
+
+                            if (StopOnError)
+                            {
+                                throw new InvalidOperationException($"Stopped due to error in iteration {executedIterations}: {ex.Message}");
+                            }
+
+                            // Continue s ďalšou iteráciou ak StopOnError = false
+                            await Task.Delay(500, cancellationTokenSource.Token);
+                        }
+                    }
+                }
+
+                string completionMessage = cancellationTokenSource.Token.IsCancellationRequested
+                    ? $"Repeat playback stopped after {executedIterations} iterations"
+                    : isInfiniteLoop
+                        ? $"Infinite loop stopped after {executedIterations} iterations"
+                        : $"Repeat playback completed: {executedIterations} iterations executed";
+
+                NotifyPlaybackCompleted(true, completionMessage);
+                System.Diagnostics.Debug.WriteLine(completionMessage);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine($"Repeat playback was cancelled after {executedIterations} iterations");
+                NotifyPlaybackCompleted(false, $"Playback was cancelled after {executedIterations} iterations");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in repeat playback: {ex.Message}");
+                NotifyPlaybackError(ex.Message, currentCommandIndex);
+                NotifyPlaybackCompleted(false, $"Repeat playback failed after {executedIterations} iterations: {ex.Message}");
+            }
+            finally
+            {
+                isPlaying = false;
+                isPaused = false;
+                cancellationTokenSource?.Dispose();
+                cancellationTokenSource = null;
+                NotifyPlaybackStateChanged(PlaybackState.Stopped);
+
+                System.Diagnostics.Debug.WriteLine($"=== REPEAT PLAYBACK FINISHED ===");
+                System.Diagnostics.Debug.WriteLine($"Total iterations executed: {executedIterations}");
+            }
+        }
+
+        /// <summary>
+        /// Vykonáva jednu iteráciu sequence (pomocná metóda pre repeat logic)
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="iterationNumber">Číslo aktuálnej iterácie</param>
+        /// <param name="totalIterations">Celkový počet iterácií (int.MaxValue pre infinite)</param>
+        /// <returns>Task</returns>
+        private async Task ExecuteSequenceIterationAsync(CancellationToken cancellationToken, int iterationNumber, int totalIterations)
+        {
+            System.Diagnostics.Debug.WriteLine($"Starting sequence iteration {iterationNumber}");
+
+            while (currentCommandIndex < currentSequence.Commands.Count)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Handle pause
+                while (isPaused)
+                {
+                    await Task.Delay(50, cancellationToken);
+                }
+
+                var command = currentSequence.Commands[currentCommandIndex];
+
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Iter {iterationNumber}] Executing command {currentCommandIndex + 1}/{currentSequence.Commands.Count}: {command}");
+
+                    await ExecuteCommandAsync(command, cancellationToken);
+
+                    // Default delay between commands
+                    if (DefaultDelayBetweenCommands > 0)
+                    {
+                        await Task.Delay(DefaultDelayBetweenCommands, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Iter {iterationNumber}] Error executing command {currentCommandIndex + 1}: {ex.Message}");
+                    NotifyCommandExecuted(command, false, $"Iteration {iterationNumber}: {ex.Message}");
+
+                    if (StopOnError)
+                        throw;
+                }
+
+                currentCommandIndex++;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Sequence iteration {iterationNumber} completed successfully");
+        }
+
+        /// <summary>
+        /// Aktualizuje progress information pre repeat playback
+        /// </summary>
+        /// <param name="currentIteration">Aktuálna iterácia</param>
+        /// <param name="totalIterations">Celkový počet iterácií</param>
+        /// <param name="isInfinite">Či je to infinite loop</param>
+        public void UpdateRepeatProgress(int currentIteration, int totalIterations, bool isInfinite)
+        {
+            string progressInfo = isInfinite
+                ? $"Infinite loop - iteration {currentIteration}"
+                : $"Progress: {currentIteration}/{totalIterations} iterations";
+
+            NotifyPlaybackStateChanged(PlaybackState.Started, progressInfo);
+        }
     }
 
     // Helper classes
