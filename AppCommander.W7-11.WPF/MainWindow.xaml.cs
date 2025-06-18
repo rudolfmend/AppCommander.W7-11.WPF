@@ -425,136 +425,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        //private async void PlaySequence_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        System.Diagnostics.Debug.WriteLine("=== STARTING PLAYBACK ===");
-
-        //        if (commands.Count == 0)
-        //        {
-        //            MessageBox.Show("No commands to play. Please record a sequence first.",
-        //                           "No Commands", MessageBoxButton.OK, MessageBoxImage.Information);
-        //            return;
-        //        }
-
-        //        System.Diagnostics.Debug.WriteLine($"Found {commands.Count} commands to play");
-
-        //        if (player.IsPaused)
-        //        {
-        //            System.Diagnostics.Debug.WriteLine("Resuming paused playback");
-        //            player.ResumePlayback();
-        //        }
-        //        else
-        //        {
-        //            System.Diagnostics.Debug.WriteLine("Creating new command sequence for playback");
-        //            var sequence = new CommandSequence(txtSequenceName.Text.Trim());
-
-        //            // **Pre-execution analýza**
-        //            if (targetWindowHandle != IntPtr.Zero)
-        //            {
-        //                player.AnalyzeCommandsBeforeExecution(sequence);
-
-        //                var validation = DebugTestHelper.ValidateSequenceWithWinUI3(sequence, targetWindowHandle);
-        //                if (!validation.IsValid)
-        //                {
-        //                    var result = MessageBox.Show(
-        //                        $"Validation found {validation.Errors.Count} errors and {validation.Warnings.Count} warnings.\n\n" +
-        //                        "Continue with playback anyway?",
-        //                        "Validation Issues",
-        //                        MessageBoxButton.YesNo,
-        //                        MessageBoxImage.Warning);
-
-        //                    if (result == MessageBoxResult.No)
-        //                    {
-        //                        System.Diagnostics.Debug.WriteLine("Playback cancelled by user due to validation issues");
-        //                        return;
-        //                    }
-        //                }
-        //            }
-
-        //            // Detailné logovanie target info
-        //            if (targetWindowHandle != IntPtr.Zero)
-        //            {
-        //                try
-        //                {
-        //                    var targetInfo = ExtractWindowInfo(targetWindowHandle);
-        //                    sequence.TargetProcessName = targetInfo.ProcessName;
-        //                    sequence.TargetWindowTitle = targetInfo.WindowTitle;
-        //                    sequence.TargetWindowClass = targetInfo.WindowClass;
-        //                    sequence.TargetApplication = targetInfo.ProcessName;
-        //                    sequence.AutoFindTarget = true;
-        //                    sequence.MaxWaitTimeSeconds = 30;
-
-        //                    System.Diagnostics.Debug.WriteLine($"Target window info extracted:");
-        //                    System.Diagnostics.Debug.WriteLine($"  Process: '{targetInfo.ProcessName}'");
-        //                    System.Diagnostics.Debug.WriteLine($"  Title: '{targetInfo.WindowTitle}'");
-        //                    System.Diagnostics.Debug.WriteLine($"  Class: '{targetInfo.WindowClass}'");
-        //                    System.Diagnostics.Debug.WriteLine($"  WinUI3 Application: {isWinUI3Application}");
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    System.Diagnostics.Debug.WriteLine($"WARNING: Could not extract target window info: {ex.Message}");
-        //                }
-        //            }
-
-        //            // Validate and log commands
-        //            System.Diagnostics.Debug.WriteLine("Command sequence details:");
-        //            for (int i = 0; i < commands.Count; i++)
-        //            {
-        //                var cmd = commands[i];
-        //                string cmdInfo = $"  {i + 1}. {cmd.Type} - '{cmd.ElementName}' at ({cmd.ElementX}, {cmd.ElementY})";
-
-        //                // **Pridaj WinUI3 info**
-        //                if (cmd.IsWinUI3Element)
-        //                {
-        //                    cmdInfo += " [WinUI3]";
-        //                    cmdInfo += $" ID:{cmd.GetBestElementIdentifier()}";
-        //                }
-
-        //                System.Diagnostics.Debug.WriteLine(cmdInfo);
-
-        //                // Validate command
-        //                if (cmd.Type == CommandType.Click || cmd.Type == CommandType.DoubleClick || cmd.Type == CommandType.RightClick)
-        //                {
-        //                    if (cmd.ElementX <= 0 || cmd.ElementY <= 0)
-        //                    {
-        //                        System.Diagnostics.Debug.WriteLine($"    WARNING: Command {i + 1} has invalid coordinates");
-        //                    }
-        //                }
-
-        //                sequence.AddCommand(cmd);
-        //            }
-
-        //            System.Diagnostics.Debug.WriteLine($"Sequence created successfully with {sequence.Commands.Count} commands");
-        //            System.Diagnostics.Debug.WriteLine("Starting playback...");
-        //            await player.PlaySequenceAsync(sequence, targetWindowHandle);
-        //            System.Diagnostics.Debug.WriteLine("Playback method completed");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"=== PLAYBACK ERROR ===");
-        //        System.Diagnostics.Debug.WriteLine($"Error Type: {ex.GetType().Name}");
-        //        System.Diagnostics.Debug.WriteLine($"Error Message: {ex.Message}");
-
-        //        string userMessage = "Failed to play sequence.\n\n";
-        //        userMessage += $"Error: {ex.Message}\n\n";
-        //        userMessage += "Common solutions:\n";
-        //        userMessage += "• Ensure target application is running\n";
-        //        userMessage += "• Check that UI elements haven't changed\n";
-        //        if (isWinUI3Application)
-        //        {
-        //            userMessage += "• WinUI3 apps may need element re-identification\n";
-        //        }
-        //        userMessage += "• Try recording the sequence again\n";
-        //        userMessage += "• Check Activity Log for detailed information";
-
-        //        MessageBox.Show(userMessage, "Playback Error",
-        //                       MessageBoxButton.OK, MessageBoxImage.Error);
-        //    }
-        //}
-
         private void PausePlayback_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -2250,30 +2120,7 @@ namespace AppCommander.W7_11.WPF
                     System.Diagnostics.Debug.WriteLine("Creating new command sequence for playback");
                     var sequence = new CommandSequence(txtSequenceName.Text.Trim());
 
-                    // **Pre-execution analýza**
-                    if (targetWindowHandle != IntPtr.Zero)
-                    {
-                        player.AnalyzeCommandsBeforeExecution(sequence);
-
-                        var validation = DebugTestHelper.ValidateSequenceWithWinUI3(sequence, targetWindowHandle);
-                        if (!validation.IsValid)
-                        {
-                            var result = MessageBox.Show(
-                                $"Validation found {validation.Errors.Count} errors and {validation.Warnings.Count} warnings.\n\n" +
-                                "Continue with playback anyway?",
-                                "Validation Issues",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Warning);
-
-                            if (result == MessageBoxResult.No)
-                            {
-                                System.Diagnostics.Debug.WriteLine("Playback cancelled by user due to validation issues");
-                                return;
-                            }
-                        }
-                    }
-
-                    // Detailné logovanie target info
+                    // Detailné logovanie target info PRED pridaním príkazov
                     if (targetWindowHandle != IntPtr.Zero)
                     {
                         try
@@ -2298,8 +2145,8 @@ namespace AppCommander.W7_11.WPF
                         }
                     }
 
-                    // Validate and log commands
-                    System.Diagnostics.Debug.WriteLine("Command sequence details:");
+                    // NAJPRV PRIDAJ VŠETKY PRÍKAZY DO SEKVENCIE
+                    System.Diagnostics.Debug.WriteLine("Adding commands to sequence:");
                     for (int i = 0; i < commands.Count; i++)
                     {
                         var cmd = commands[i];
@@ -2327,6 +2174,44 @@ namespace AppCommander.W7_11.WPF
                     }
 
                     System.Diagnostics.Debug.WriteLine($"Sequence created successfully with {sequence.Commands.Count} commands");
+
+                    // **TERAZ SPUSTI ANALÝZU A VALIDÁCIU (po pridaní príkazov!)**
+                    if (targetWindowHandle != IntPtr.Zero)
+                    {
+                        // Pre-execution analýza
+                        player.AnalyzeCommandsBeforeExecution(sequence);
+
+                        // Validácia - teraz má sequence všetky príkazy
+                        var validation = DebugTestHelper.ValidateSequenceWithWinUI3(sequence, targetWindowHandle);
+
+                        System.Diagnostics.Debug.WriteLine($"Validation results: {validation.Errors.Count} errors, {validation.Warnings.Count} warnings");
+
+                        // Log validation details
+                        foreach (var error in validation.Errors)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"VALIDATION ERROR: {error}");
+                        }
+                        foreach (var warning in validation.Warnings)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"VALIDATION WARNING: {warning}");
+                        }
+
+                        if (!validation.IsValid)
+                        {
+                            var result = MessageBox.Show(
+                                $"Validation found {validation.Errors.Count} errors and {validation.Warnings.Count} warnings.\n\n" +
+                                "Continue with playback anyway?",
+                                "Validation Issues",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Warning);
+
+                            if (result == MessageBoxResult.No)
+                            {
+                                System.Diagnostics.Debug.WriteLine("Playback cancelled by user due to validation issues");
+                                return;
+                            }
+                        }
+                    }
 
                     // POUŽITIE REPEAT LOGIC
                     if (isInfiniteLoop || repeatCount > 1)
