@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*"
+			 Name="AppCommander"
+			 Language="1033"
+			 Version="1.0.0.0"
+			 Manufacturer="Rudolf Mendzezof"
+			 UpgradeCode="12345678-1234-1234-1234-123456789012">
+
+		<Package InstallerVersion="200"
+				 Compressed="yes"
+				 InstallScope="perMachine"
+				 Description="AppCommander - Automation tool for Windows applications" />
+
+		<Media Id="1" Cabinet="AppCommander.cab" EmbedCab="yes" />
+		<MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+
+		<!-- Hlavná feature -->
+		<Feature Id="ProductFeature" Title="AppCommander" Level="1">
+			<ComponentGroupRef Id="ProductComponents" />
+		</Feature>
+	</Product>
+
+	<!-- Adresáre -->
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="AppCommander" />
+			</Directory>
+		</Directory>
+	</Fragment>
+
+	<!-- Komponenty -->
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+			<!-- Hlavný executable -->
+			<Component Id="MainExecutable" Guid="*">
+				<File Id="AppCommanderExe"
+					  Source="$(var.AppCommander.W7-11.WPF.TargetPath)"
+					  KeyPath="yes" />
+			</Component>
+
+			<!-- Newtonsoft.Json DLL -->
+			<Component Id="NewtonsoftJson" Guid="*">
+				<File Id="NewtonsoftJsonDll"
+					  Source="$(var.AppCommander.W7-11.WPF.TargetDir)Newtonsoft.Json.dll"
+					  KeyPath="yes" />
+			</Component>
+		</ComponentGroup>
+	</Fragment>
+</Wix>
