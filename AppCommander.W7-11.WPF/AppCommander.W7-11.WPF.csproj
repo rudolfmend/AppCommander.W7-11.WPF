@@ -119,6 +119,7 @@
     <Compile Include="Core\CommandRecorder.cs" />
     <Compile Include="Core\DebugTestHelper.cs" />
     <Compile Include="Core\GlobalHook.cs" />
+    <Compile Include="Core\TableCellDetector.cs" />
     <Compile Include="Core\UIElementDetector.cs" />
     <Compile Include="Core\WindowFinder.cs" />
     <Compile Include="MainWindow.xaml.cs">

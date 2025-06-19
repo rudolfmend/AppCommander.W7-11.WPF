@@ -1073,6 +1073,589 @@ namespace AppCommander.W7_11.WPF.Core
 
             return matrix[s1.Length, s2.Length];
         }
+
+        // PRIDAJTE TIETO METÓDY DO AdaptiveElementFinder TRIEDY
+
+        /// <summary>
+        /// **Rozšírená verzia SmartFindElement s podporou tabuľkových buniek**
+        /// </summary>
+        public static ElementSearchResult SmartFindElementEnhanced(IntPtr windowHandle, Command command)
+        {
+            var result = new ElementSearchResult();
+
+            if (windowHandle == IntPtr.Zero)
+            {
+                result.ErrorMessage = "Invalid window handle";
+                return result;
+            }
+
+            try
+            {
+                // **ŠPECIALIZOVANÉ SPRACOVANIE PRE TABUĽKOVÉ PRÍKAZY**
+                if (command.IsTableCommand && !string.IsNullOrEmpty(command.TableCellIdentifier))
+                {
+                    System.Diagnostics.Debug.WriteLine($"=== TABLE CELL SEARCH ===");
+                    System.Diagnostics.Debug.WriteLine($"Looking for table cell: {command.TableCellIdentifier}");
+
+                    var tableCellResult = FindTableCellByIdentifier(windowHandle, command);
+                    if (tableCellResult.IsSuccess)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✓ Table cell found via identifier: {tableCellResult.SearchMethod}");
+                        return tableCellResult;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✗ Table cell search failed: {tableCellResult.ErrorMessage}");
+                        // Continue with fallback methods
+                    }
+                }
+
+                // Fallback na štandardnú metódu
+                return SmartFindElement(windowHandle, command);
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Enhanced search failed: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Enhanced search exception: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// **Nájde tabuľkovú bunku podľa identifikátora**
+        /// </summary>
+        private static ElementSearchResult FindTableCellByIdentifier(IntPtr windowHandle, Command command)
+        {
+            var result = new ElementSearchResult();
+
+            try
+            {
+                // Pokus 1: Priama identifikácia cez TableCellDetector
+                var cellElement = TableCellDetector.FindCellByIdentifier(windowHandle, command.TableCellIdentifier);
+                if (cellElement != null && ValidateElement(cellElement))
+                {
+                    var uiInfo = UIElementDetector.ConvertToUIElementInfo(cellElement);
+                    if (uiInfo != null)
+                    {
+                        result = CreateSuccessResult(cellElement, "TableCellIdentifier", 0.95);
+                        System.Diagnostics.Debug.WriteLine($"Found via TableCellIdentifier: {command.TableCellIdentifier}");
+                        return result;
+                    }
+                }
+
+                // Pokus 2: Hľadanie podľa názvu tabuľky a pozície
+                if (!string.IsNullOrEmpty(command.TableName) && command.TableRow >= 0 && command.TableColumn >= 0)
+                {
+                    var tableResult = FindCellByTableNameAndPosition(windowHandle, command.TableName, command.TableRow, command.TableColumn);
+                    if (tableResult.IsSuccess)
+                    {
+                        result = tableResult;
+                        result.SearchMethod = "TableName + Position";
+                        result.Confidence = 0.90;
+                        System.Diagnostics.Debug.WriteLine($"Found via TableName + Position: {command.TableName}[{command.TableRow},{command.TableColumn}]");
+                        return result;
+                    }
+                }
+
+                // Pokus 3: Hľadanie podľa názvu stĺpca a čísla riadka
+                if (!string.IsNullOrEmpty(command.TableColumnName) && command.TableRow >= 0)
+                {
+                    var columnResult = FindCellByColumnNameAndRow(windowHandle, command.TableColumnName, command.TableRow);
+                    if (columnResult.IsSuccess)
+                    {
+                        result = columnResult;
+                        result.SearchMethod = "ColumnName + Row";
+                        result.Confidence = 0.85;
+                        System.Diagnostics.Debug.WriteLine($"Found via ColumnName + Row: {command.TableColumnName}, Row {command.TableRow}");
+                        return result;
+                    }
+                }
+
+                // Pokus 4: Fuzzy search v tabuľkách podľa obsahu bunky
+                if (!string.IsNullOrEmpty(command.TableCellContent))
+                {
+                    var contentResult = FindCellByContent(windowHandle, command.TableCellContent, command.TableRow, command.TableColumn);
+                    if (contentResult.IsSuccess)
+                    {
+                        result = contentResult;
+                        result.SearchMethod = "CellContent";
+                        result.Confidence = 0.75;
+                        System.Diagnostics.Debug.WriteLine($"Found via CellContent: '{command.TableCellContent}'");
+                        return result;
+                    }
+                }
+
+                // Pokus 5: Pozičný fallback - nájdi tabuľku a spočítaj pozíciu
+                var positionResult = FindCellByEstimatedPosition(windowHandle, command);
+                if (positionResult.IsSuccess)
+                {
+                    result = positionResult;
+                    result.SearchMethod = "EstimatedPosition";
+                    result.Confidence = 0.60;
+                    System.Diagnostics.Debug.WriteLine($"Found via EstimatedPosition at ({command.ElementX}, {command.ElementY})");
+                    return result;
+                }
+
+                result.ErrorMessage = "Table cell not found with any method";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Table cell search failed: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Table cell search error: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Nájde bunku podľa názvu tabuľky a pozície
+        /// </summary>
+        private static ElementSearchResult FindCellByTableNameAndPosition(IntPtr windowHandle, string tableName, int row, int column)
+        {
+            var result = new ElementSearchResult();
+
+            try
+            {
+                AutomationElement window = AutomationElement.FromHandle(windowHandle);
+                if (window == null)
+                {
+                    result.ErrorMessage = "Cannot access window automation";
+                    return result;
+                }
+
+                // Nájdi tabuľku podľa názvu
+                var tableElement = FindTableByName(window, tableName);
+                if (tableElement == null)
+                {
+                    result.ErrorMessage = $"Table '{tableName}' not found";
+                    return result;
+                }
+
+                // Nájdi bunku v tabuľke
+                var cellElement = GetCellFromTable(tableElement, row, column);
+                if (cellElement != null && ValidateElement(cellElement))
+                {
+                    return CreateSuccessResult(cellElement, "TableName + Position", 0.90);
+                }
+
+                result.ErrorMessage = $"Cell at position [{row},{column}] not found in table '{tableName}'";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Error finding cell by table name and position: {ex.Message}";
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Nájde bunku podľa názvu stĺpca a čísla riadka
+        /// </summary>
+        private static ElementSearchResult FindCellByColumnNameAndRow(IntPtr windowHandle, string columnName, int row)
+        {
+            var result = new ElementSearchResult();
+
+            try
+            {
+                AutomationElement window = AutomationElement.FromHandle(windowHandle);
+                if (window == null)
+                {
+                    result.ErrorMessage = "Cannot access window automation";
+                    return result;
+                }
+
+                // Nájdi všetky tabuľky v okne
+                var tables = GetAllTablesInWindow(window);
+
+                foreach (var table in tables)
+                {
+                    try
+                    {
+                        // Nájdi index stĺpca podľa názvu
+                        int columnIndex = FindColumnIndexByName(table, columnName);
+                        if (columnIndex >= 0)
+                        {
+                            var cellElement = GetCellFromTable(table, row, columnIndex);
+                            if (cellElement != null && ValidateElement(cellElement))
+                            {
+                                return CreateSuccessResult(cellElement, "ColumnName + Row", 0.85);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error checking table for column '{columnName}': {ex.Message}");
+                        continue;
+                    }
+                }
+
+                result.ErrorMessage = $"Cell in column '{columnName}' at row {row} not found";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Error finding cell by column name and row: {ex.Message}";
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Nájde bunku podľa obsahu
+        /// </summary>
+        private static ElementSearchResult FindCellByContent(IntPtr windowHandle, string content, int preferredRow = -1, int preferredColumn = -1)
+        {
+            var result = new ElementSearchResult();
+
+            try
+            {
+                AutomationElement window = AutomationElement.FromHandle(windowHandle);
+                if (window == null)
+                {
+                    result.ErrorMessage = "Cannot access window automation";
+                    return result;
+                }
+
+                var tables = GetAllTablesInWindow(window);
+                var candidates = new List<(AutomationElement cell, double score, int row, int col)>();
+
+                foreach (var table in tables)
+                {
+                    try
+                    {
+                        var cells = GetAllCellsFromTable(table);
+
+                        for (int row = 0; row < cells.GetLength(0); row++)
+                        {
+                            for (int col = 0; col < cells.GetLength(1); col++)
+                            {
+                                var cell = cells[row, col];
+                                if (cell != null)
+                                {
+                                    // OPRAVENÉ: použitie TableCellDetector.GetCellContent
+                                    string cellContent = TableCellDetector.GetCellContent(cell);
+                                    double similarity = CalculateContentSimilarity(content, cellContent);
+
+                                    if (similarity > 0.7) // 70% podobnosť
+                                    {
+                                        // Bonus ak sa pozícia zhoduje s preferovanou
+                                        if (row == preferredRow || col == preferredColumn)
+                                            similarity += 0.2;
+
+                                        candidates.Add((cell, similarity, row, col));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error searching table for content: {ex.Message}");
+                        continue;
+                    }
+                }
+
+                // Vyber najlepšieho kandidáta
+                if (candidates.Any())
+                {
+                    var best = candidates.OrderByDescending(c => c.score).First();
+                    System.Diagnostics.Debug.WriteLine($"Found cell with content similarity {best.score:F2} at [{best.row},{best.col}]");
+                    return CreateSuccessResult(best.cell, "CellContent", Math.Min(0.95, best.score));
+                }
+
+                result.ErrorMessage = $"No cell found with content similar to '{content}'";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Error finding cell by content: {ex.Message}";
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Nájde bunku podľa odhadovanej pozície na základe súradníc
+        /// </summary>
+        private static ElementSearchResult FindCellByEstimatedPosition(IntPtr windowHandle, Command command)
+        {
+            var result = new ElementSearchResult();
+
+            try
+            {
+                AutomationElement window = AutomationElement.FromHandle(windowHandle);
+                if (window == null)
+                {
+                    result.ErrorMessage = "Cannot access window automation";
+                    return result;
+                }
+
+                // Nájdi všetky tabuľky
+                var tables = GetAllTablesInWindow(window);
+
+                foreach (var table in tables)
+                {
+                    try
+                    {
+                        var tableRect = table.Current.BoundingRectangle;
+
+                        // Kontroluj či sú súradnice v rámci tabuľky
+                        if (command.ElementX >= tableRect.X && command.ElementX <= tableRect.X + tableRect.Width &&
+                            command.ElementY >= tableRect.Y && command.ElementY <= tableRect.Y + tableRect.Height)
+                        {
+                            // Nájdi najbližšiu bunku k daným súradniciam
+                            var cellElement = FindNearestCellInTable(table, command.ElementX, command.ElementY);
+                            if (cellElement != null && ValidateElement(cellElement))
+                            {
+                                return CreateSuccessResult(cellElement, "EstimatedPosition", 0.60);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error checking table for estimated position: {ex.Message}");
+                        continue;
+                    }
+                }
+
+                result.ErrorMessage = "No table cell found at estimated position";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"Error finding cell by estimated position: {ex.Message}";
+                return result;
+            }
+        }
+
+        // Helper methods
+
+        private static AutomationElement FindTableByName(AutomationElement window, string tableName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(tableName))
+                    return null;
+
+                var nameCondition = new PropertyCondition(AutomationElement.NameProperty, tableName);
+                var tableByName = window.FindFirst(TreeScope.Descendants, nameCondition);
+
+                if (tableByName != null)
+                    return tableByName;
+
+                // Skús aj AutomationId
+                var idCondition = new PropertyCondition(AutomationElement.AutomationIdProperty, tableName);
+                return window.FindFirst(TreeScope.Descendants, idCondition);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding table by name: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static List<AutomationElement> GetAllTablesInWindow(AutomationElement window)
+        {
+            var tables = new List<AutomationElement>();
+
+            try
+            {
+                var tableConditions = new OrCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Table),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataGrid),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.List)
+                );
+
+                var tableElements = window.FindAll(TreeScope.Descendants, tableConditions);
+
+                foreach (AutomationElement table in tableElements)
+                {
+                    tables.Add(table);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting tables: {ex.Message}");
+            }
+
+            return tables;
+        }
+
+        private static AutomationElement GetCellFromTable(AutomationElement table, int row, int column)
+        {
+            try
+            {
+                // Metóda 1: GridPattern
+                if (table.TryGetCurrentPattern(GridPattern.Pattern, out object gridPattern))
+                {
+                    var grid = (GridPattern)gridPattern;
+                    return grid.GetItem(row, column);
+                }
+
+                // Metóda 2: Manuálne navigovanie
+                var rows = table.FindAll(TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataItem));
+
+                if (row < rows.Count)
+                {
+                    var targetRow = rows[row] as AutomationElement;
+                    var cells = targetRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+
+                    if (column < cells.Count)
+                    {
+                        return cells[column] as AutomationElement;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting cell from table: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static int FindColumnIndexByName(AutomationElement table, string columnName)
+        {
+            try
+            {
+                // Skús TablePattern pre headers
+                if (table.TryGetCurrentPattern(TablePattern.Pattern, out object tablePattern))
+                {
+                    var tableObj = (TablePattern)tablePattern;
+                    var headers = tableObj.Current.GetColumnHeaders();
+
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        string headerText = GetProperty(headers[i], AutomationElement.NameProperty);
+                        if (string.Equals(headerText, columnName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return i;
+                        }
+                    }
+                }
+
+                // Fallback - skús prvý riadok ako headers
+                var firstRow = table.FindFirst(TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataItem));
+
+                if (firstRow != null)
+                {
+                    var cells = firstRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+                    for (int i = 0; i < cells.Count; i++)
+                    {
+                        var cell = cells[i] as AutomationElement;
+                        string cellText = GetProperty(cell, AutomationElement.NameProperty);
+                        if (string.Equals(cellText, columnName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return i;
+                        }
+                    }
+                }
+
+                return -1;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding column index: {ex.Message}");
+                return -1;
+            }
+        }
+
+        private static AutomationElement[,] GetAllCellsFromTable(AutomationElement table)
+        {
+            try
+            {
+                var rows = table.FindAll(TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataItem));
+
+                if (rows.Count == 0)
+                    return new AutomationElement[0, 0];
+
+                // Zisti počet stĺpcov z prvého riadka
+                var firstRow = rows[0] as AutomationElement;
+                var firstRowCells = firstRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+                int columnCount = firstRowCells.Count;
+
+                var cells = new AutomationElement[rows.Count, columnCount];
+
+                for (int row = 0; row < rows.Count; row++)
+                {
+                    var rowElement = rows[row] as AutomationElement;
+                    var rowCells = rowElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+
+                    for (int col = 0; col < Math.Min(columnCount, rowCells.Count); col++)
+                    {
+                        cells[row, col] = rowCells[col] as AutomationElement;
+                    }
+                }
+
+                return cells;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting all cells from table: {ex.Message}");
+                return new AutomationElement[0, 0];
+            }
+        }
+
+        private static AutomationElement FindNearestCellInTable(AutomationElement table, int x, int y)
+        {
+            try
+            {
+                var cells = GetAllCellsFromTable(table);
+                AutomationElement nearestCell = null;
+                double nearestDistance = double.MaxValue;
+
+                for (int row = 0; row < cells.GetLength(0); row++)
+                {
+                    for (int col = 0; col < cells.GetLength(1); col++)
+                    {
+                        var cell = cells[row, col];
+                        if (cell != null)
+                        {
+                            var rect = cell.Current.BoundingRectangle;
+                            double centerX = rect.X + rect.Width / 2;
+                            double centerY = rect.Y + rect.Height / 2;
+                            double distance = Math.Sqrt(Math.Pow(centerX - x, 2) + Math.Pow(centerY - y, 2));
+
+                            if (distance < nearestDistance)
+                            {
+                                nearestDistance = distance;
+                                nearestCell = cell;
+                            }
+                        }
+                    }
+                }
+
+                return nearestCell;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding nearest cell: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static double CalculateContentSimilarity(string expected, string actual)
+        {
+            if (string.IsNullOrEmpty(expected) && string.IsNullOrEmpty(actual))
+                return 1.0;
+
+            if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(actual))
+                return 0.0;
+
+            // Presná zhoda
+            if (string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
+                return 1.0;
+
+            // Obsahuje text
+            if (actual.IndexOf(expected, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                expected.IndexOf(actual, StringComparison.OrdinalIgnoreCase) >= 0)
+                return 0.8;
+
+            // Levenshtein distance similarity
+            return CalculateSimilarity(expected, actual);
+        }
     }
 
     // **Pomocné triedy pre WinUI3 analýzu**

@@ -170,21 +170,30 @@ namespace AppCommander.W7_11.WPF.Core
 
             System.Diagnostics.Debug.WriteLine($"Recording mouse click at ({e.X}, {e.Y}) in {e.ProcessName}");
 
-            // **VYLEPŠENÁ DETEKCIA UI ELEMENTU**
-            var uiElement = e.UIElement ?? UIElementDetector.GetElementAtPoint(e.X, e.Y);
+            // **POUŽITIE ROZŠÍRENEJ DETEKCIE S PODPOROU TABULIEK**
+            var uiElement = UIElementDetector.GetElementAtPointEnhanced(e.X, e.Y);
+
+            if (uiElement?.IsTableCell == true)
+            {
+                System.Diagnostics.Debug.WriteLine("=== TABLE CELL DETECTED DURING RECORDING ===");
+                System.Diagnostics.Debug.WriteLine($"Table: {uiElement.TableName}");
+                System.Diagnostics.Debug.WriteLine($"Cell: {uiElement.GetTableCellDisplayName()}");
+                System.Diagnostics.Debug.WriteLine($"Position: Row {uiElement.TableRow}, Column {uiElement.TableColumn}");
+                System.Diagnostics.Debug.WriteLine($"Identifier: {uiElement.TableCellIdentifier}");
+                System.Diagnostics.Debug.WriteLine($"Content: '{uiElement.TableCellContent}'");
+            }
 
             // **WinUI3 špecifická analýza**
             if (EnableWinUI3Analysis && uiElement?.ClassName == "Microsoft.UI.Content.DesktopChildSiteBridge")
             {
                 System.Diagnostics.Debug.WriteLine("=== WinUI3 ELEMENT DETECTED ===");
-                //WinUI3DebugHelper.AnalyzePointInWinUI3(targetWindow, e.X, e.Y); // - chyba
-				AnalyzeWinUI3Point(targetWindow, e.X, e.Y);
-			}
+                AnalyzeWinUI3Point(targetWindow, e.X, e.Y);
+            }
 
             CommandType commandType = e.Button == System.Windows.Forms.MouseButtons.Left ? CommandType.Click : CommandType.RightClick;
 
-            // **VYLEPŠENÁ TVORBA NÁZVU ELEMENTU**
-            string elementName = CreateMeaningfulElementName(uiElement, e.X, e.Y);
+            // **VYLEPŠENÁ TVORBA NÁZVU ELEMENTU S PODPOROU TABULIEK**
+            string elementName = CreateMeaningfulElementNameEnhanced(uiElement, e.X, e.Y);
 
             // **Vytvor command s originálnymi súradnicami**
             var command = new Command(commandCounter++, elementName, commandType, e.X, e.Y)
@@ -196,23 +205,50 @@ namespace AppCommander.W7_11.WPF.Core
                 TargetProcess = e.ProcessName
             };
 
-            // **Aktualizuj z UIElementInfo**
+            // **Aktualizuj z UIElementInfo s podporou tabuliek**
             if (uiElement != null)
             {
-                command.UpdateFromElementInfo(uiElement);
+                command.UpdateFromElementInfoEnhanced(uiElement);
 
                 if (EnableDetailedLogging)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Element details: Name='{command.ElementName}', " +
+                    string logMessage = $"Element details: Name='{command.ElementName}', " +
                         $"Id='{command.ElementId}', Class='{command.ElementClass}', " +
                         $"Type='{command.ElementControlType}', Text='{command.ElementText}', " +
-                        $"WinUI3={command.IsWinUI3Element}, ClickPos=({command.ElementX}, {command.ElementY})");
+                        $"WinUI3={command.IsWinUI3Element}, ClickPos=({command.ElementX}, {command.ElementY})";
+
+                    // Pridaj tabuľkové informácie do logu
+                    if (uiElement.IsTableCell)
+                    {
+                        logMessage += $", TABLE: {uiElement.TableName}, Row: {uiElement.TableRow}, " +
+                            $"Col: {uiElement.TableColumn}, CellId: '{uiElement.TableCellIdentifier}'";
+                    }
+
+                    System.Diagnostics.Debug.WriteLine(logMessage);
                 }
             }
 
             AddCommand(command, uiElement);
 
             System.Diagnostics.Debug.WriteLine($"Command recorded: Step {command.StepNumber}: {command.Type} on {command.ElementName} (x{command.RepeatCount})");
+        }
+
+        /// <summary>
+        /// Rozšírená metóda pre tvorbu názvu elementu s podporou tabuliek
+        /// </summary>
+        private string CreateMeaningfulElementNameEnhanced(UIElementInfo uiElement, int x, int y)
+        {
+            if (uiElement == null)
+                return $"Click_at_{x}_{y}";
+
+            // **ŠPECIALIZOVANÉ SPRACOVANIE PRE TABUĽKOVÉ BUNKY**
+            if (uiElement.IsTableCell)
+            {
+                return uiElement.GetTableCellDisplayName();
+            }
+
+            // Fallback na štandardnú metódu
+            return CreateMeaningfulElementName(uiElement, x, y);
         }
 
         /// <summary>

@@ -9,13 +9,13 @@ using System.Windows;
 // associated with an assembly.
 [assembly: AssemblyTitle("AppCommander")]
 [assembly: AssemblyDescription("Automation tool for interacting with text fields and buttons in other applications. " +
-    "Allows you to calculate values, insert them into text fields, and confirm them using a button in the controlled application. " +
+    " Allows you to enter values ​​in text fields and confirm them with a button in the controlled application. " +
     "The program can identify and manipulate user interface elements of external applications. " +
-    "Allows you to define, save, and load automation step configurations. " +
+    "Allows you to define, save and load configurations of automation steps. " +
     "Allows you to perform repeated actions (repeat in a loop). " +
-    "For automating repetitive tasks in various applications without the need for programming. " +
-    "Detection of all installed applications, including hidden system applications. " +
-    "Supports Windows 7, 8, 8.1, 10 and 11 with proper DPI scaling.")]
+    "For automating repetitive tasks in different applications without the need for programming. " +
+    "It is possible to create, save and reuse a file with commands. Detection of running applications. " +
+    "Supports Windows 7, 8, 8.1, 10 and 11.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Rudolf Mendzezof")]
 [assembly: AssemblyProduct("AppCommander")]

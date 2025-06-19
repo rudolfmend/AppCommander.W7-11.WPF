@@ -37,6 +37,190 @@ namespace AppCommander.W7_11.WPF.Core
             return GetBasicWindowInfo(x, y);
         }
 
+        /// <summary>
+        /// HLAVNÁ METÓDA - rozšírená verzia GetElementAtPoint s podporou tabuliek
+        /// </summary>
+        public static UIElementInfo GetElementAtPointEnhanced(int x, int y)
+        {
+            try
+            {
+                // Najprv skús detekovať tabuľkovú bunku
+                var tableCellInfo = TableCellDetector.DetectTableCell(x, y);
+                if (tableCellInfo != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"=== TABLE CELL DETECTED ===");
+                    System.Diagnostics.Debug.WriteLine($"Cell: {tableCellInfo.DisplayName}");
+                    System.Diagnostics.Debug.WriteLine($"Position: Row {tableCellInfo.Row}, Column {tableCellInfo.Column}");
+                    System.Diagnostics.Debug.WriteLine($"Table: {tableCellInfo.TableInfo.TableName} ({tableCellInfo.TableInfo.RowCount}x{tableCellInfo.TableInfo.ColumnCount})");
+                    System.Diagnostics.Debug.WriteLine($"Identifier: {tableCellInfo.CellIdentifier}");
+
+                    // Vytvor UIElementInfo pre tabuľkovú bunku
+                    return CreateTableCellUIElementInfo(tableCellInfo, x, y);
+                }
+
+                // Fallback na štandardnú detekciu
+                return GetElementAtPoint(x, y);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in enhanced element detection: {ex.Message}");
+                return GetElementAtPoint(x, y);
+            }
+        }
+
+        /// <summary>
+        /// Vytvorí UIElementInfo pre tabuľkovú bunku
+        /// </summary>
+        private static UIElementInfo CreateTableCellUIElementInfo(TableCellInfo tableCellInfo, int x, int y)
+        {
+            try
+            {
+                var cellElement = tableCellInfo.CellElement;
+                var tableInfo = tableCellInfo.TableInfo;
+
+                var uiInfo = new UIElementInfo
+                {
+                    // Základné informácie
+                    Name = tableCellInfo.DisplayName,
+                    AutomationId = GetProperty(cellElement, AutomationElement.AutomationIdProperty),
+                    ClassName = GetProperty(cellElement, AutomationElement.ClassNameProperty),
+                    ControlType = "TableCell",
+                    X = x,
+                    Y = y,
+                    BoundingRectangle = cellElement.Current.BoundingRectangle,
+                    IsEnabled = cellElement.Current.IsEnabled,
+                    IsVisible = !cellElement.Current.IsOffscreen,
+                    AutomationElement = cellElement,
+
+                    // Tabuľkové špecifické informácie
+                    ElementText = tableCellInfo.CellContent,
+                    TableCellIdentifier = tableCellInfo.CellIdentifier,
+                    TableRow = tableCellInfo.Row,
+                    TableColumn = tableCellInfo.Column,
+                    TableName = tableInfo.TableName,
+                    IsTableCell = true,
+
+                    // Dodatočné informácie pre lepšiu identifikáciu
+                    HelpText = $"Table: {tableInfo.TableName}, Row: {tableCellInfo.Row}, Column: {tableCellInfo.Column}",
+                    PlaceholderText = tableCellInfo.Column < tableInfo.Headers.Count ? tableInfo.Headers[tableCellInfo.Column] : $"Col{tableCellInfo.Column}"
+                };
+
+                return uiInfo;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating table cell UI info: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Nájde tabuľkovú bunku na základe identifikátora
+        /// </summary>
+        public static UIElementInfo FindTableCellByIdentifier(IntPtr windowHandle, string cellIdentifier)
+        {
+            try
+            {
+                var cellElement = TableCellDetector.FindCellByIdentifier(windowHandle, cellIdentifier);
+                if (cellElement != null)
+                {
+                    var rect = cellElement.Current.BoundingRectangle;
+                    int centerX = (int)(rect.X + rect.Width / 2);
+                    int centerY = (int)(rect.Y + rect.Height / 2);
+
+                    // Použij enhanced detection na tej pozícii
+                    return GetElementAtPointEnhanced(centerX, centerY);
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding table cell by identifier: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Skontroluje či element je tabuľková bunka
+        /// </summary>
+        public static bool IsTableCellElement(AutomationElement element)
+        {
+            try
+            {
+                if (element == null) return false;
+
+                // Kontrola patterns pre table cells
+                var patterns = element.GetSupportedPatterns();
+                if (patterns.Contains(GridItemPattern.Pattern) || patterns.Contains(TableItemPattern.Pattern))
+                    return true;
+
+                // Kontrola parent elementov
+                var parent = TreeWalker.ControlViewWalker.GetParent(element);
+                while (parent != null)
+                {
+                    var controlType = parent.Current.ControlType;
+                    if (controlType == ControlType.Table || controlType == ControlType.DataGrid || controlType == ControlType.List)
+                        return true;
+
+                    parent = TreeWalker.ControlViewWalker.GetParent(parent);
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Získa všetky tabuľky v okne
+        /// </summary>
+        public static List<TableStructureInfo> GetAllTablesInWindow(IntPtr windowHandle)
+        {
+            var tables = new List<TableStructureInfo>();
+
+            try
+            {
+                var window = AutomationElement.FromHandle(windowHandle);
+                if (window == null) return tables;
+
+                var tableConditions = new OrCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Table),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataGrid),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.List)
+                );
+
+                var tableElements = window.FindAll(TreeScope.Descendants, tableConditions);
+
+                foreach (AutomationElement tableElement in tableElements)
+                {
+                    try
+                    {
+                        // OPRAVENÉ: priame volanie public metódy
+                        var tableInfo = TableCellDetector.AnalyzeTableStructurePublic(tableElement);
+                        if (tableInfo != null && tableInfo.IsValid)
+                        {
+                            tables.Add(tableInfo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error analyzing table: {ex.Message}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Found {tables.Count} tables in window");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting tables in window: {ex.Message}");
+            }
+
+            return tables;
+        }
+
         private static UIElementInfo ExtractElementInfo(AutomationElement element, int x, int y)
         {
             try
@@ -789,6 +973,139 @@ namespace AppCommander.W7_11.WPF.Core
         public string HelpText { get; set; } = "";
         public string AccessKey { get; set; } = "";
 
+        /// <summary>
+        /// Označuje či je element tabuľková bunka
+        /// </summary>
+        public bool IsTableCell { get; set; } = false;
+
+        /// <summary>
+        /// Identifikátor tabuľkovej bunky (Table:TableName_Col:ColumnName_Row:RowNumber)
+        /// </summary>
+        public string TableCellIdentifier { get; set; } = "";
+
+        /// <summary>
+        /// Názov tabuľky v ktorej sa bunka nachádza
+        /// </summary>
+        public string TableName { get; set; } = "";
+
+        /// <summary>
+        /// Číslo riadka bunky (0-based)
+        /// </summary>
+        public int TableRow { get; set; } = -1;
+
+        /// <summary>
+        /// Číslo stĺpca bunky (0-based)  
+        /// </summary>
+        public int TableColumn { get; set; } = -1;
+
+        /// <summary>
+        /// Názov stĺpca bunky
+        /// </summary>
+        public string TableColumnName { get; set; } = "";
+
+        /// <summary>
+        /// Obsah bunky
+        /// </summary>
+        public string TableCellContent { get; set; } = "";
+
+        /// <summary>
+        /// Typ tabuľky (DataGrid, List, Table, atď.)
+        /// </summary>
+        public string TableType { get; set; } = "";
+
+        /// <summary>
+        /// Dodatočné informácie o tabuľke
+        /// </summary>
+        public string TableInfo { get; set; } = "";
+
+        /// <summary>
+        /// Získa najlepší identifikátor pre tabuľkovú bunku
+        /// </summary>
+        public string GetTableCellBestIdentifier()
+        {
+            if (!IsTableCell)
+                return GetUniqueIdentifier();
+
+            // Pre tabuľkové bunky uprednostni TableCellIdentifier
+            if (!string.IsNullOrEmpty(TableCellIdentifier))
+                return TableCellIdentifier;
+
+            // Fallback - vytvor identifikátor z dostupných informácií
+            var parts = new List<string>();
+
+            if (!string.IsNullOrEmpty(TableName))
+                parts.Add($"Table:{CleanIdentifierText(TableName)}");
+
+            if (!string.IsNullOrEmpty(TableColumnName))
+                parts.Add($"Col:{CleanIdentifierText(TableColumnName)}");
+            else if (TableColumn >= 0)
+                parts.Add($"Col:{TableColumn}");
+
+            if (TableRow >= 0)
+                parts.Add($"Row:{TableRow}");
+
+            return parts.Count > 0 ? string.Join("_", parts) : GetUniqueIdentifier();
+        }
+
+        /// <summary>
+        /// Vytvorí display name pre tabuľkovú bunku
+        /// </summary>
+        public string GetTableCellDisplayName()
+        {
+            if (!IsTableCell)
+                return Name;
+
+            var parts = new List<string>();
+
+            if (!string.IsNullOrEmpty(TableName))
+                parts.Add(TableName);
+
+            string columnPart = !string.IsNullOrEmpty(TableColumnName) ? TableColumnName : $"Col{TableColumn}";
+            parts.Add(columnPart);
+
+            if (TableRow >= 0)
+                parts.Add($"R{TableRow}");
+
+            if (!string.IsNullOrEmpty(TableCellContent) && TableCellContent.Length <= 15)
+                parts.Add(CleanIdentifierText(TableCellContent));
+
+            return string.Join("_", parts);
+        }
+
+        /// <summary>
+        /// Skontroluje či je tabuľková bunka validná
+        /// </summary>
+        public bool IsValidTableCell()
+        {
+            return IsTableCell &&
+                   TableRow >= 0 &&
+                   TableColumn >= 0 &&
+                   !string.IsNullOrEmpty(TableCellIdentifier);
+        }
+
+        /// <summary>
+        /// Čistí text pre použitie v identifikátore
+        /// </summary>
+        private string CleanIdentifierText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return "";
+
+            return System.Text.RegularExpressions.Regex.Replace(text, @"[^\w\d]", "_").Trim('_');
+        }
+
+        /// <summary>
+        /// Rozšírená ToString metóda s podporou tabuliek
+        /// </summary>
+        public override string ToString()
+        {
+            if (IsTableCell)
+            {
+                return $"TableCell: {GetTableCellDisplayName()} at ({X}, {Y}) in {TableName}";
+            }
+
+            return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
+        }
         public string GetUniqueIdentifier()
         {
             // Priorita identifikátorov
@@ -804,9 +1121,9 @@ namespace AppCommander.W7_11.WPF.Core
             return $"Class_{ClassName}_Pos_{X}_{Y}";
         }
 
-        public override string ToString()
-        {
-            return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
-        }
+        //public override string ToString()
+        //{
+        //    return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
+        //}
     }
 }

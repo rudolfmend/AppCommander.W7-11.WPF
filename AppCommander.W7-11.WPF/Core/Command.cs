@@ -39,6 +39,41 @@ namespace AppCommander.W7_11.WPF.Core
         public int ElementX { get; set; }
         public int ElementY { get; set; }
 
+        /// <summary>
+        /// Označuje či je command pre tabuľkovú bunku
+        /// </summary>
+        public bool IsTableCommand { get; set; } = false;
+
+        /// <summary>
+        /// Identifikátor tabuľkovej bunky
+        /// </summary>
+        public string TableCellIdentifier { get; set; } = "";
+
+        /// <summary>
+        /// Názov tabuľky
+        /// </summary>
+        public string TableName { get; set; } = "";
+
+        /// <summary>
+        /// Číslo riadka (0-based)
+        /// </summary>
+        public int TableRow { get; set; } = -1;
+
+        /// <summary>
+        /// Číslo stĺpca (0-based)
+        /// </summary>
+        public int TableColumn { get; set; } = -1;
+
+        /// <summary>
+        /// Názov stĺpca
+        /// </summary>
+        public string TableColumnName { get; set; } = "";
+
+        /// <summary>
+        /// Obsah bunky
+        /// </summary>
+        public string TableCellContent { get; set; } = "";
+
         // Key-specific data - OPRAVENÉ: pridaná serializácia
         private Keys _key = Keys.None;
         public Keys Key
@@ -364,13 +399,242 @@ namespace AppCommander.W7_11.WPF.Core
             return text;
         }
 
+        //public override string ToString()
+        //{
+        //    if (Type == CommandType.KeyPress)
+        //        return $"Step {StepNumber}: {Type} {Key} (x{RepeatCount})";
+        //    else
+        //        return $"Step {StepNumber}: {Type} on {ElementName} (x{RepeatCount})";
+        //}
+
+        //u*u*u*u*u*u*u*u*u*
+        // === ROZŠÍRENÉ METÓDY ===
+
+        /// <summary>
+        /// **Rozšírená metóda UpdateFromElementInfo s podporou tabuliek**
+        /// </summary>
+        public void UpdateFromElementInfoEnhanced(UIElementInfo elementInfo)
+        {
+            if (elementInfo == null) return;
+
+            // Štandardná aktualizácia
+            UpdateFromElementInfo(elementInfo);
+
+            // TABUĽKOVÁ ŠPECIFICKÁ AKTUALIZÁCIA
+            if (elementInfo.IsTableCell)
+            {
+                IsTableCommand = true;
+                TableCellIdentifier = elementInfo.TableCellIdentifier;
+                TableName = elementInfo.TableName;
+                TableRow = elementInfo.TableRow;
+                TableColumn = elementInfo.TableColumn;
+                TableColumnName = elementInfo.TableColumnName;
+                TableCellContent = elementInfo.TableCellContent;
+
+                // Pre tabuľkové bunky preferuj TableCellIdentifier ako ElementId
+                if (string.IsNullOrEmpty(ElementId) && !string.IsNullOrEmpty(TableCellIdentifier))
+                {
+                    ElementId = TableCellIdentifier;
+                }
+
+                // Aktualizuj element name na table-specific
+                if (string.IsNullOrEmpty(ElementName) || IsGenericName(ElementName))
+                {
+                    ElementName = elementInfo.GetTableCellDisplayName();
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Updated command as table cell: {ElementName} -> {TableCellIdentifier}");
+            }
+
+            // Prepočítaj confidence
+            CalculateElementConfidence();
+        }
+
+        /// <summary>
+        /// **Rozšírená metóda GetBestElementIdentifier s podporou tabuliek**
+        /// </summary>
+        public string GetBestElementIdentifierEnhanced()
+        {
+            // Pre tabuľkové príkazy má TableCellIdentifier najvyššiu prioritu
+            if (IsTableCommand && !string.IsNullOrEmpty(TableCellIdentifier))
+            {
+                return $"TableCell:{TableCellIdentifier}";
+            }
+
+            // Fallback na štandardnú metódu
+            return GetBestElementIdentifier();
+        }
+
+        /// <summary>
+        /// **Rozšírená metóda ToFileFormat s podporou tabuliek**
+        /// </summary>
+        public string ToFileFormatEnhanced()
+        {
+            string prefix = IsLoopCommand ? "-" : "";
+            string suffix = IsLoopStart ? ":" : "";
+
+            // Kompletný formát s tabuľkovými údajmi
+            var parts = new List<string>
+    {
+        $"{prefix}{StepNumber}",
+        $"\"{ElementName}\"",
+        Type.ToString(),
+        RepeatCount.ToString(),
+        $"\"{Value}\"",
+        $"\"{ElementId}\"",
+        $"\"{ElementClass}\"",
+        $"\"{ElementControlType}\"",
+        ElementX.ToString(),
+        ElementY.ToString(),
+        OriginalX.ToString(),
+        OriginalY.ToString(),
+        $"\"{ElementText}\"",
+        $"\"{ElementHelpText}\"",
+        $"\"{ElementAccessKey}\"",
+        IsWinUI3Element.ToString(),
+        ElementConfidence.ToString("F2"),
+        $"\"{LastFoundMethod}\"",
+        KeyCode.ToString(),
+        MouseButton.ToString(),
+        $"\"{TargetWindow}\"",
+        $"\"{TargetProcess}\"",
+        
+        // **NOVÉ TABUĽKOVÉ FIELDS**
+        IsTableCommand.ToString(),
+        $"\"{TableCellIdentifier}\"",
+        $"\"{TableName}\"",
+        TableRow.ToString(),
+        TableColumn.ToString(),
+        $"\"{TableColumnName}\"",
+        $"\"{TableCellContent}\""
+    };
+
+            return string.Join(",", parts) + suffix;
+        }
+
+        /// <summary>
+        /// **Rozšírená metóda FromFileFormat s podporou tabuliek**
+        /// </summary>
+        public static Command FromFileFormatEnhanced(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                return null;
+
+            try
+            {
+                var command = new Command();
+
+                // Parse loop indicators
+                if (line.TrimStart().StartsWith("-"))
+                {
+                    command.IsLoopCommand = true;
+                    line = line.TrimStart().Substring(1);
+                }
+
+                if (line.TrimEnd().EndsWith(":"))
+                {
+                    command.IsLoopStart = true;
+                    line = line.TrimEnd().TrimEnd(':');
+                }
+
+                var parts = SplitCsvLine(line);
+                if (parts.Count < 5) return null;
+
+                // Parse základné údaje (rovnako ako predtým)
+                if (!int.TryParse(parts[0].Trim(), out int stepNumber)) return null;
+                command.StepNumber = stepNumber;
+
+                command.ElementName = Unquote(parts[1]);
+
+                if (!Enum.TryParse<CommandType>(parts[2].Trim(), out CommandType type)) return null;
+                command.Type = type;
+
+                if (parts.Count > 3 && int.TryParse(parts[3].Trim(), out int repeatCount))
+                    command.RepeatCount = repeatCount;
+
+                if (parts.Count > 4)
+                    command.Value = Unquote(parts[4]);
+
+                // Parse UI Element údaje (rovnako ako predtým)
+                if (parts.Count > 5) command.ElementId = Unquote(parts[5]);
+                if (parts.Count > 6) command.ElementClass = Unquote(parts[6]);
+                if (parts.Count > 7) command.ElementControlType = Unquote(parts[7]);
+
+                if (parts.Count > 8 && int.TryParse(parts[8].Trim(), out int x))
+                    command.ElementX = x;
+                if (parts.Count > 9 && int.TryParse(parts[9].Trim(), out int y))
+                    command.ElementY = y;
+
+                // Parse WinUI3 špecifické údaje (rovnako ako predtým)
+                if (parts.Count > 10 && int.TryParse(parts[10].Trim(), out int origX))
+                    command.OriginalX = origX;
+                if (parts.Count > 11 && int.TryParse(parts[11].Trim(), out int origY))
+                    command.OriginalY = origY;
+                if (parts.Count > 12) command.ElementText = Unquote(parts[12]);
+                if (parts.Count > 13) command.ElementHelpText = Unquote(parts[13]);
+                if (parts.Count > 14) command.ElementAccessKey = Unquote(parts[14]);
+                if (parts.Count > 15 && bool.TryParse(parts[15].Trim(), out bool isWinUI3))
+                    command.IsWinUI3Element = isWinUI3;
+                if (parts.Count > 16 && double.TryParse(parts[16].Trim(), out double confidence))
+                    command.ElementConfidence = confidence;
+                if (parts.Count > 17) command.LastFoundMethod = Unquote(parts[17]);
+
+                // Parse ostatné údaje (rovnako ako predtým)
+                if (parts.Count > 18 && int.TryParse(parts[18].Trim(), out int keyCode))
+                {
+                    command.KeyCode = keyCode;
+                    command._key = (Keys)keyCode;
+                }
+
+                if (parts.Count > 19 && Enum.TryParse<MouseButtons>(parts[19].Trim(), out var mouseButton))
+                    command.MouseButton = mouseButton;
+
+                if (parts.Count > 20) command.TargetWindow = Unquote(parts[20]);
+                if (parts.Count > 21) command.TargetProcess = Unquote(parts[21]);
+
+                // **PARSE NOVÝCH TABUĽKOVÝCH FIELDS**
+                if (parts.Count > 22 && bool.TryParse(parts[22].Trim(), out bool isTableCommand))
+                    command.IsTableCommand = isTableCommand;
+                if (parts.Count > 23) command.TableCellIdentifier = Unquote(parts[23]);
+                if (parts.Count > 24) command.TableName = Unquote(parts[24]);
+                if (parts.Count > 25 && int.TryParse(parts[25].Trim(), out int tableRow))
+                    command.TableRow = tableRow;
+                if (parts.Count > 26 && int.TryParse(parts[26].Trim(), out int tableColumn))
+                    command.TableColumn = tableColumn;
+                if (parts.Count > 27) command.TableColumnName = Unquote(parts[27]);
+                if (parts.Count > 28) command.TableCellContent = Unquote(parts[28]);
+
+                return command;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing enhanced command: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// **Rozšírený ToString s podporou tabuliek**
+        /// </summary>
         public override string ToString()
         {
+            if (IsTableCommand)
+            {
+                string tableInfo = $"Table:{TableName}, Row:{TableRow}, Col:{TableColumn}";
+                if (Type == CommandType.KeyPress)
+                    return $"Step {StepNumber}: {Type} {Key} in {tableInfo} (x{RepeatCount})";
+                else
+                    return $"Step {StepNumber}: {Type} on {ElementName} in {tableInfo} (x{RepeatCount})";
+            }
+
+            // Štandardný toString
             if (Type == CommandType.KeyPress)
                 return $"Step {StepNumber}: {Type} {Key} (x{RepeatCount})";
             else
                 return $"Step {StepNumber}: {Type} on {ElementName} (x{RepeatCount})";
         }
+        //u*u*u*u*u*u*u*u*u*
+
     }
 
     public class CommandSequence
