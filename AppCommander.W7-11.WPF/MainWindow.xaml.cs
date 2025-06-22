@@ -737,15 +737,15 @@ namespace AppCommander.W7_11.WPF
             {
                 Dispatcher.InvokeAsync(() =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"🗑️ Tracked window closed: {e.WindowState.Title}");
+                    System.Diagnostics.Debug.WriteLine($"🗑️ Tracked window closed: {e.WindowTrackingInfo.Title}");
 
                     // Ak sa zatvoril target window, pokús sa nájsť náhradu
                     if (e.WindowHandle == targetWindowHandle)
                     {
-                        LogToUI($"Target window closed: {e.WindowState.Title}");
+                        LogToUI($"Target window closed: {e.WindowTrackingInfo.Title}");
 
                         // Hľadaj náhradné okno
-                        var replacementWindow = FindReplacementWindow(e.WindowState.ProcessName);
+                        var replacementWindow = FindReplacementWindow(e.WindowTrackingInfo.ProcessName);
                         if (replacementWindow != IntPtr.Zero)
                         {
                             targetWindowHandle = replacementWindow;
@@ -759,7 +759,7 @@ namespace AppCommander.W7_11.WPF
                     }
                     else
                     {
-                        LogToUI($"Window closed: {e.WindowState.Title}");
+                        LogToUI($"Window closed: {e.WindowTrackingInfo.Title}");
                     }
                 });
             }
@@ -1542,10 +1542,10 @@ namespace AppCommander.W7_11.WPF
         /// <summary>
         /// Placeholder pre existujúcu metódu
         /// </summary>
-        private WindowInfo ExtractWindowInfo(IntPtr windowHandle)
+        private WindowTrackingInfo ExtractWindowInfo(IntPtr windowHandle)
         {
             // Implementácia existujúcej metódy
-            return new WindowInfo { WindowTitle = "Placeholder" };
+            return new WindowTrackingInfo { Title = "Placeholder" };
         }
 
         #endregion

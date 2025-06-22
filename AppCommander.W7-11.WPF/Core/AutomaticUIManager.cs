@@ -71,51 +71,6 @@ namespace AppCommander.W7_11.WPF.Core
 
         #endregion
 
-        //private void OnWindowActivated(object sender, object eventArgs)
-        //{
-        //    try
-        //    {
-        //        // Dynamicky zistíme typ a získame hodnoty
-        //        var eventArgsType = eventArgs.GetType();
-
-        //        var windowHandleProperty = eventArgsType.GetProperty("WindowHandle");
-        //        var windowInfoProperty = eventArgsType.GetProperty("WindowInfo");
-
-        //        if (windowHandleProperty != null)
-        //        {
-        //            var windowHandle = (IntPtr)windowHandleProperty.GetValue(eventArgs);
-
-        //            if (trackedWindows.ContainsKey(windowHandle))
-        //            {
-        //                var windowState = trackedWindows[windowHandle];
-        //                windowState.LastActivated = DateTime.Now;
-
-        //                // Ak existuje WindowInfo, použijeme ho
-        //                string title = windowState.Title ?? "Unknown";
-        //                if (windowInfoProperty != null)
-        //                {
-        //                    var windowInfo = windowInfoProperty.GetValue(eventArgs);
-        //                    if (windowInfo != null)
-        //                    {
-        //                        var titleProperty = windowInfo.GetType().GetProperty("Title");
-        //                        if (titleProperty != null)
-        //                        {
-        //                            title = titleProperty.GetValue(windowInfo)?.ToString() ?? title;
-        //                        }
-        //                    }
-        //                }
-
-        //                System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {title}");
-        //                windowState.ActivationCount++;
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window activation: {ex.Message}");
-        //    }
-        //}
-
         #region Public Methods
 
 
@@ -390,6 +345,23 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
+        /// Konvertuje WindowTrackingInfo na WindowDetectionInfo
+        /// </summary>
+        private WindowDetectionInfo ConvertToWindowDetectionInfo(WindowTrackingInfo trackingInfo)
+        {
+            return new WindowDetectionInfo
+            {
+                WindowHandle = trackingInfo.WindowHandle,
+                Title = trackingInfo.Title,
+                ProcessName = trackingInfo.ProcessName,
+                WindowType = trackingInfo.WindowType,
+                IsModal = trackingInfo.IsModal,
+                DetectedAt = trackingInfo.DetectedAt,
+                ClassName = trackingInfo.ClassName ?? ""
+            };
+        }
+
+        /// <summary>
         /// Porovná dva UI snapshots
         /// </summary>
         private UIChangeSet CompareUISnapshots(UISnapshot previous, UISnapshot current)
@@ -545,21 +517,33 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         // Používa existujúci WindowActivatedEventArgs z WindowTracker.cs
+        /// <summary>
+        /// Handler pre aktivované okno
+        /// </summary>
         private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {e.WindowInfo?.Title ?? "Unknown"}");
+
+                // Ak je to tracked window, aktualizuj jeho stav
                 if (trackedWindows.ContainsKey(e.WindowHandle))
                 {
-                    var windowState = trackedWindows[e.WindowHandle];
-                    windowState.LastActivated = DateTime.Now;
+                    // Aktualizuj kontext ak existuje
+                    if (windowContexts.ContainsKey(e.WindowHandle))
+                    {
+                        var context = windowContexts[e.WindowHandle];
+                        context.IsActive = true;
+                        context.LastActivated = DateTime.Now;
 
-                    // OPRAVENÉ: Použije WindowInfo z existujúceho event args
-                    var windowInfo = e.WindowInfo;
-                    var title = windowInfo?.Title ?? windowState.Title ?? "Unknown";
-
-                    System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {title}");
-                    windowState.ActivationCount++;
+                        // Trigger event
+                        WindowContextChanged?.Invoke(this, new WindowContextChangedEventArgs
+                        {
+                            WindowHandle = e.WindowHandle,
+                            Context = context,
+                            ChangeType = ContextChangeType.Activated
+                        });
+                    }
                 }
             }
             catch (Exception ex)

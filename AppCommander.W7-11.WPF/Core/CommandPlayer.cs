@@ -192,7 +192,7 @@ namespace AppCommander.W7_11.WPF.Core
                     if (!string.IsNullOrEmpty(sequence.TargetProcessName))
                     {
                         // Pokus 1: Smart search
-                        var searchResult = WindowFinder.SmartFindWindow(
+                        var searchResult = WindowTrackingInfo.SmartFindWindow(
                             sequence.TargetProcessName,
                             sequence.TargetWindowTitle,
                             sequence.TargetWindowClass);
@@ -211,7 +211,7 @@ namespace AppCommander.W7_11.WPF.Core
                             NotifyPlaybackStateChanged(PlaybackState.Started,
                                 $"Waiting for application: {sequence.TargetProcessName}");
 
-                            TargetWindow = WindowFinder.WaitForApplication(
+                            TargetWindow = WindowTrackingInfo.WaitForApplication(
                                 sequence.TargetProcessName,
                                 sequence.MaxWaitTimeSeconds);
 

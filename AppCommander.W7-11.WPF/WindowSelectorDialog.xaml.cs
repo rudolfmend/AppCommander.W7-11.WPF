@@ -10,7 +10,6 @@ namespace AppCommander.W7_11.WPF
 {
     public partial class WindowSelectorDialog : Window
     {
-        // OPRAVENÉ: Používa WindowTrackingInfo z WindowTracker namiesto WindowFinder
         public WindowTrackingInfo SelectedWindow { get; private set; }
 
         private readonly ObservableCollection<WindowTrackingInfo> windows;
@@ -32,8 +31,7 @@ namespace AppCommander.W7_11.WPF
 
             try
             {
-                // OPRAVENÉ: Používa WindowTracker.GetAllWindows() namiesto WindowFinder.GetAllWindows()
-                var allWindows = WindowTracker.GetAllWindows();
+                var allWindows = WindowTrackingInfo.GetAllWindows();
 
                 foreach (var window in allWindows)
                 {

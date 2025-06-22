@@ -14,7 +14,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         // Basic properties
         protected readonly GlobalHook globalHook;
-        protected readonly WindowTracker windowTracker;
+        protected readonly WindowTrackingInfo windowTracker;
         protected CommandSequence currentSequence;
         protected readonly Dictionary<string, ElementUsageStats> elementStats;
         protected readonly Dictionary<IntPtr, string> trackedWindows;
@@ -73,7 +73,7 @@ namespace AppCommander.W7_11.WPF.Core
         public CommandRecorder()
         {
             globalHook = new GlobalHook();
-            windowTracker = new WindowTracker();
+            windowTracker = new WindowTrackingInfo();
             elementStats = new Dictionary<string, ElementUsageStats>();
             trackedWindows = new Dictionary<IntPtr, string>();
 
@@ -380,6 +380,14 @@ namespace AppCommander.W7_11.WPF.Core
         #region Event Handlers
 
         /// <summary>
+        /// Overload pre WindowTrackingInfo
+        /// </summary>
+        private bool ShouldAutoSwitchToWindow(WindowTrackingInfo windowInfo)
+        {
+            return ShouldAutoSwitchToWindow(ConvertToWindowDetectionInfo(windowInfo));
+        }
+
+        /// <summary>
         /// Handler pre nové okno detekované window trackerom
         /// </summary>
         private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
@@ -389,9 +397,10 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"🔍 Window tracker detected: {e.Description}");
 
                 // Ak je automatické prepínanie zapnuté
-                if (AutoSwitchToNewWindows && ShouldAutoSwitchToWindow(e.WindowInfo))
-                {
-                    AutoSwitchToNewWindow(e.WindowInfo);
+                if(AutoSwitchToNewWindows && ShouldAutoSwitchToWindow(e.WindowInfo))
+{
+                    // Konvertuj WindowTrackingInfo na WindowDetectionInfo pred volaním
+                    AutoSwitchToNewWindow(ConvertToWindowDetectionInfo(e.WindowInfo));
                 }
 
                 // Pridaj do sledovaných okien
@@ -413,29 +422,6 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"❌ Error handling new window detected: {ex.Message}");
             }
         }
-
-        /// <summary>
-        /// Handler pre aktivované okno sa nachádza v AutomaticUIManager.cs
-        /// </summary>
-        //private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
-        //{
-        //    try
-            //{
-            //    if (trackedWindows.ContainsKey(e.WindowHandle))
-            //    {
-            //        var windowState = trackedWindows[e.WindowHandle];
-            //    windowState.LastActivated = DateTime.Now;
-            
-            //        // Použite buď e.WindowInfo alebo vytvorte info z existujúcich dát
-            //        var title = e.WindowInfo?.Title ?? windowState.WindowTitle ?? "Unknown";
-            //    System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {title}");
-        //        System.Diagnostics.Debug.WriteLine($"Window activated: {e.WindowHandle}");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window activated: {ex.Message}");
-        //    }
-        //}
 
         /// <summary>
         /// Handler pre zatvorené okno
@@ -567,17 +553,25 @@ namespace AppCommander.W7_11.WPF.Core
                     elementStats[elementKey] = new ElementUsageStats
                     {
                         ElementName = command.ElementName,
-                        UsageCount = 0,
+                        // UsageCount -> TotalUsage (podľa definície v Command.cs)
+                        TotalUsage = 0,
+                        FirstUsed = DateTime.Now,
                         LastUsed = DateTime.Now,
-                        Reliability = 1.0f
+                        // Reliability vlastnosť neexistuje v ElementUsageStats
+                        ElementType = command.Type.ToString(),
+                        ControlType = command.ElementControlType ?? ""
                     };
                 }
 
                 var stats = elementStats[elementKey];
-                stats.UsageCount++;
+                // UsageCount -> TotalUsage
+                stats.TotalUsage++;
                 stats.LastUsed = DateTime.Now;
 
-                // Trigger event
+                // Použij IncrementUsage metódu z ElementUsageStats
+                stats.IncrementUsage(command.Type);
+
+                // Trigger event ostáva rovnaký
                 ElementUsageUpdated?.Invoke(this, new ElementUsageEventArgs
                 {
                     ElementName = elementKey,
@@ -1708,30 +1702,6 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Event args pre stlačenie klávesu
-    /// </summary>
-    public class KeyPressedEventArgs : EventArgs
-    {
-        public ConsoleKey Key { get; set; }
-        public bool IsShiftPressed { get; set; }
-        public bool IsCtrlPressed { get; set; }
-        public bool IsAltPressed { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-    }
-
-    /// <summary>
-    /// Event args pre klik myšou
-    /// </summary>
-    public class MouseClickedEventArgs : EventArgs
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
-        public MouseButton Button { get; set; }
-        public bool IsDoubleClick { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-    }
-
-    /// <summary>
     /// Typ tlačidla myši
     /// </summary>
     public enum MouseButton
@@ -1740,20 +1710,5 @@ namespace AppCommander.W7_11.WPF.Core
         Right,
         Middle
     }
-
-
-
-    ///// <summary>
-    ///// Placeholder pre GlobalHook je definovaný inde - GlobalHook.cs
-    ///// </summary>
-    //public class GlobalHook{}
-
-
-
-    ///// <summary>
-    ///// Placeholder pre WindowTracker je definovaný inde - WindowTracker.cs
-    ///// </summary>
-    //public class WindowTracker{}
-
     #endregion
 }

@@ -142,7 +142,6 @@
     <Compile Include="Core\TableCellDetector.cs" />
     <Compile Include="Core\UIElementDetector.cs" />
     <Compile Include="Core\WindowDetectionTester.cs" />
-    <Compile Include="Core\WindowFinder.cs" />
     <Compile Include="Core\WindowTracker.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

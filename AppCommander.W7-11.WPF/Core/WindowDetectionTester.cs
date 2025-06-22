@@ -23,7 +23,7 @@ namespace AppCommander.W7_11.WPF.Core
             Console.WriteLine($"Start Time: {DateTime.Now}");
             Console.WriteLine();
 
-            var tracker = new WindowTracker();
+            var tracker = new WindowTrackingInfo();
             var detectedWindows = new List<WindowTrackingInfo>();
 
             // Subscribe to events
@@ -180,9 +180,9 @@ namespace AppCommander.W7_11.WPF.Core
         {
             var windows = new List<IntPtr>();
 
-            WindowFinder.EnumWindows((hWnd, lParam) =>
+            WindowTrackingInfo.EnumWindows((hWnd, lParam) =>
             {
-                if (WindowFinder.IsWindowVisible(hWnd))
+                if (WindowTrackingInfo.IsWindowVisible(hWnd))
                 {
                     string title = GetWindowTitle(hWnd);
                     if (!string.IsNullOrEmpty(title) && title.Length > 3)
@@ -291,7 +291,7 @@ namespace AppCommander.W7_11.WPF.Core
             IntPtr targetWindow = IntPtr.Zero;
             if (!string.IsNullOrEmpty(processName))
             {
-                var result = WindowFinder.SmartFindWindow(processName);
+                var result = WindowTrackingInfo.SmartFindWindow(processName);
                 if (result.IsValid)
                 {
                     targetWindow = result.Handle;
