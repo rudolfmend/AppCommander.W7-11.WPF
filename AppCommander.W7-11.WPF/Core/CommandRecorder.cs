@@ -97,6 +97,11 @@ namespace AppCommander.W7_11.WPF.Core
             System.Diagnostics.Debug.WriteLine("🚀 CommandRecorder initialized with automatic detection");
         }
 
+        private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
 
         #region Configuration
@@ -387,6 +392,11 @@ namespace AppCommander.W7_11.WPF.Core
             return ShouldAutoSwitchToWindow(ConvertToWindowDetectionInfo(windowInfo));
         }
 
+        private WindowTrackingInfo ConvertToWindowDetectionInfo(WindowTrackingInfo windowInfo)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Handler pre nové okno detekované window trackerom
         /// </summary>
@@ -421,6 +431,16 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error handling new window detected: {ex.Message}");
             }
+        }
+
+        private void AutoSwitchToNewWindow(WindowTrackingInfo windowTrackingInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        private WindowTrackingInfo ConvertToWindowTrackingInfo(WindowTrackingInfo windowInfo)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

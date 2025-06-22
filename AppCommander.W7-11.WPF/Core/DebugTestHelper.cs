@@ -742,11 +742,11 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Extrahuje informácie o okne
         /// </summary>
-        public static WindowInfo ExtractWindowInfo(IntPtr windowHandle)
+        public static WindowTrackingInfo ExtractWindowInfo(IntPtr windowHandle)
         {
             try
             {
-                var info = new WindowInfo();
+                var info = new WindowTrackingInfo();
 
                 // Get window title
                 int titleLength = GetWindowTextLength(windowHandle);
@@ -754,13 +754,13 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     System.Text.StringBuilder title = new System.Text.StringBuilder(titleLength + 1);
                     GetWindowText(windowHandle, title, title.Capacity);
-                    info.WindowTitle = title.ToString();
+                    info.Title = title.ToString();
                 }
 
                 // Get window class
                 System.Text.StringBuilder className = new System.Text.StringBuilder(256);
                 GetClassName(windowHandle, className, className.Capacity);
-                info.WindowClass = className.ToString();
+                info.ClassName = className.ToString();
 
                 // Get process info
                 GetWindowThreadProcessId(windowHandle, out uint processId);
@@ -776,18 +776,18 @@ namespace AppCommander.W7_11.WPF.Core
                     info.ProcessId = (int)processId;
                 }
 
-                info.Handle = windowHandle;
+                info.WindowHandle = windowHandle;
                 return info;
             }
             catch (Exception ex)
             {
-                return new WindowInfo
+                return new WindowTrackingInfo
                 {
-                    WindowTitle = "Error",
+                    Title = "Error",
                     ProcessName = "Unknown",
-                    WindowClass = "Unknown",
-                    Handle = windowHandle,
-                    ErrorMessage = ex.Message
+                    ClassName = "Unknown",
+                    WindowHandle = windowHandle,
+                    //ErrorMessage = ex.Message
                 };
             }
         }

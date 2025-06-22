@@ -176,7 +176,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Získa zoznam okien pre testovanie
         /// </summary>
-        private static List<IntPtr> GetTestWindows()
+        public static List<IntPtr> GetTestWindows()
         {
             var windows = new List<IntPtr>();
 
