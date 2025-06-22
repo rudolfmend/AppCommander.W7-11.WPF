@@ -1,270 +1,802 @@
-﻿using AppCommander.W7_11.WPF.Core;
+﻿// CommandRecorder.cs -  recording commands and managing UI interactions with automatic detection features
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows.Automation;
-using System.Windows.Forms;
 
 namespace AppCommander.W7_11.WPF.Core
 {
     public class CommandRecorder
     {
-        private readonly GlobalHook globalHook;
-        private readonly WindowTracker windowTracker; // NOVÉ
-        private CommandSequence currentSequence;
-        private readonly Dictionary<string, ElementUsageStats> elementStats;
-        private readonly Dictionary<IntPtr, string> trackedWindows; // Sledované okná a ich názvy
-        private bool isRecording = false;
-        private bool isPaused = false;
-        private IntPtr targetWindow = IntPtr.Zero;
-        private string targetProcessName = string.Empty;
-        private int commandCounter = 1;
+        #region Properties
 
-        // Events
-        public event EventHandler<CommandRecordedEventArgs> CommandRecorded;
-        public event EventHandler<RecordingStateChangedEventArgs> RecordingStateChanged;
-        public event EventHandler<ElementUsageEventArgs> ElementUsageUpdated;
-        public event EventHandler<WindowAutoDetectedEventArgs> WindowAutoDetected; // NOVÉ
+        // Basic properties
+        protected readonly GlobalHook globalHook;
+        protected readonly WindowTracker windowTracker;
+        protected CommandSequence currentSequence;
+        protected readonly Dictionary<string, ElementUsageStats> elementStats;
+        protected readonly Dictionary<IntPtr, string> trackedWindows;
+        protected bool isRecording = false;
+        protected bool isPaused = false;
+        protected IntPtr targetWindow = IntPtr.Zero;
+        protected string targetProcessName = string.Empty;
+        protected int commandCounter = 1;
 
-        public bool IsRecording => isRecording && !isPaused;
-        public bool IsPaused => isPaused;
-        public CommandSequence CurrentSequence => currentSequence;
-        public Dictionary<string, ElementUsageStats> ElementStats => new Dictionary<string, ElementUsageStats>(elementStats);
+        // Advanced properties for automatic detection
+        private readonly AutoWindowDetector autoWindowDetector;
+        private readonly UIElementScanner uiElementScanner;
+        private readonly Dictionary<IntPtr, WindowContext> windowContexts;
 
-        // Nastavenia pre automatickú detekciu okien
+        // Configration of automatic detection
+        public bool EnableRealTimeElementScanning { get; set; } = true;
+        public bool AutoUpdateExistingCommands { get; set; } = true;
+        public int ElementScanInterval { get; set; } = 750; // ms
+        public bool EnablePredictiveDetection { get; set; } = true;
+
+        // Settings for window management - automatic detection and switching
         public bool AutoDetectNewWindows { get; set; } = true;
-        public bool AutoSwitchToNewWindows { get; set; } = true; // Automaticky prepnúť na nové okno
+        public bool AutoSwitchToNewWindows { get; set; } = true;
         public bool LogWindowChanges { get; set; } = true;
 
         // WinUI3 debugging properties
         public bool EnableWinUI3Analysis { get; set; } = true;
         public bool EnableDetailedLogging { get; set; } = true;
 
+        #endregion
+
+        #region Events
+
+        public event EventHandler<CommandRecordedEventArgs> CommandRecorded;
+        public event EventHandler<RecordingStateChangedEventArgs> RecordingStateChanged;
+        public event EventHandler<ElementUsageEventArgs> ElementUsageUpdated;
+        public event EventHandler<WindowAutoDetectedEventArgs> WindowAutoDetected;
+
+        // **Rozšírené eventy**
+        public event EventHandler<WindowContextChangedEventArgs> WindowContextChanged;
+        public event EventHandler<UIElementsUpdatedEventArgs> UIElementsUpdated;
+
+        #endregion
+
+        #region Public Properties
+
+        public bool IsRecording => isRecording && !isPaused;
+        public bool IsPaused => isPaused;
+        public CommandSequence CurrentSequence => currentSequence;
+        public Dictionary<string, ElementUsageStats> ElementStats => new Dictionary<string, ElementUsageStats>(elementStats);
+
+        #endregion
+
+        #region Constructor
+
         public CommandRecorder()
         {
             globalHook = new GlobalHook();
-            windowTracker = new WindowTracker(); // NOVÉ
+            windowTracker = new WindowTracker();
             elementStats = new Dictionary<string, ElementUsageStats>();
-            trackedWindows = new Dictionary<IntPtr, string>(); // NOVÉ
+            trackedWindows = new Dictionary<IntPtr, string>();
+
+            // **Inicializácia rozšírených komponentov**
+            autoWindowDetector = new AutoWindowDetector();
+            uiElementScanner = new UIElementScanner();
+            windowContexts = new Dictionary<IntPtr, WindowContext>();
 
             // Subscribe to hook events
             globalHook.KeyPressed += OnKeyPressed;
             globalHook.MouseClicked += OnMouseClicked;
 
-            // Subscribe to window tracker events - NOVÉ
+            // Subscribe to window tracker events
             windowTracker.NewWindowDetected += OnNewWindowDetected;
             windowTracker.WindowActivated += OnWindowActivated;
             windowTracker.WindowClosed += OnWindowClosed;
+
+            // **Konfigurácia automatickej detekcie**
+            ConfigureAutomaticDetection();
+
+            System.Diagnostics.Debug.WriteLine("🚀 CommandRecorder initialized with automatic detection");
         }
 
-        public void StartRecording(string sequenceName, IntPtr targetWindowHandle = default(IntPtr))
+        #endregion
+
+        #region Configuration
+
+        /// <summary>
+        /// Konfiguruje automatickú detekciu
+        /// </summary>
+        private void ConfigureAutomaticDetection()
+        {
+            // Konfigurácia auto window detector
+            autoWindowDetector.EnableDialogDetection = true;
+            autoWindowDetector.EnableMessageBoxDetection = true;
+            autoWindowDetector.EnableChildWindowDetection = true;
+            autoWindowDetector.EnableWinUI3Detection = true;
+            autoWindowDetector.DetectionSensitivity = DetectionSensitivity.High;
+
+            // Konfigurácia UI element scanner
+            uiElementScanner.ScanInterval = ElementScanInterval;
+            uiElementScanner.EnableDeepScanning = true;
+            uiElementScanner.EnableWinUI3ElementDetection = true;
+            uiElementScanner.MaxElementsPerScan = 100;
+
+            // Pripojenie eventov
+            autoWindowDetector.NewWindowDetected += OnAutoWindowDetected;
+            autoWindowDetector.WindowActivated += OnAutoWindowActivated;
+            autoWindowDetector.WindowClosed += OnAutoWindowClosed;
+
+            uiElementScanner.ElementsChanged += OnUIElementsChanged;
+            uiElementScanner.NewElementDetected += OnNewElementDetected;
+            uiElementScanner.ElementDisappeared += OnElementDisappeared;
+        }
+
+        #endregion
+
+        #region Recording Methods
+
+        /// <summary>
+        /// Spustí nahrávanie s automatickou detekciou
+        /// </summary>
+        public virtual void StartRecording(string sequenceName, IntPtr targetWindowHandle = default(IntPtr))
         {
             if (isRecording)
                 return;
 
-            // Initialize new sequence
-            currentSequence = new CommandSequence(sequenceName);
-            targetWindow = targetWindowHandle;
-            commandCounter = 1;
-            elementStats.Clear();
-            trackedWindows.Clear(); // NOVÉ
-            isPaused = false;
-
-            // Get target process name and window info if window handle provided
-            if (targetWindow != IntPtr.Zero)
+            try
             {
-                targetProcessName = GetProcessNameFromWindow(targetWindow);
-                currentSequence.TargetApplication = targetProcessName;
-                currentSequence.TargetProcessName = targetProcessName;
-                currentSequence.TargetWindowTitle = GetWindowTitleFromHandle(targetWindow);
-                currentSequence.TargetWindowClass = GetWindowClassFromHandle(targetWindow);
-                currentSequence.AutoFindTarget = true;
-                currentSequence.MaxWaitTimeSeconds = 30;
+                System.Diagnostics.Debug.WriteLine($"🎬 Starting recording: {sequenceName}");
 
-                // Pridaj primary target do sledovaných okien
-                trackedWindows[targetWindow] = $"{targetProcessName} - {currentSequence.TargetWindowTitle}";
+                // Initialize new sequence
+                currentSequence = new CommandSequence(sequenceName);
+                targetWindow = targetWindowHandle;
+                commandCounter = 1;
+                elementStats.Clear();
+                trackedWindows.Clear();
+                isPaused = false;
 
-                System.Diagnostics.Debug.WriteLine($"Recording target: {targetProcessName} - {currentSequence.TargetWindowTitle}");
+                // Get target process name and window info if window handle provided
+                if (targetWindow != IntPtr.Zero)
+                {
+                    targetProcessName = GetProcessNameFromWindow(targetWindow);
+                    currentSequence.TargetApplication = targetProcessName;
+                    currentSequence.TargetProcessName = targetProcessName;
+                    currentSequence.TargetWindowTitle = GetWindowTitleFromHandle(targetWindow);
+                    currentSequence.TargetWindowClass = GetWindowClassFromHandle(targetWindow);
+                    currentSequence.AutoFindTarget = true;
+                    currentSequence.MaxWaitTimeSeconds = 30;
+
+                    // Pridaj primary target do sledovaných okien
+                    trackedWindows[targetWindow] = $"{targetProcessName} - {currentSequence.TargetWindowTitle}";
+
+                    System.Diagnostics.Debug.WriteLine($"Recording target: {targetProcessName} - {currentSequence.TargetWindowTitle}");
+                }
+
+                // **Spusti automatické služby**
+                StartAutomaticServices(targetWindowHandle);
+
+                // **Vytvor počiatočný kontext okna**
+                CreateInitialWindowContext(targetWindowHandle);
+
+                // Start global hooks
+                globalHook.StartHooking();
+                isRecording = true;
+
+                RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
+                {
+                    IsRecording = true,
+                    IsPaused = false,
+                    SequenceName = sequenceName
+                });
+
+                System.Diagnostics.Debug.WriteLine("✅ Recording started successfully");
             }
-
-            // NOVÉ - Spusti window tracking ak je povolené
-            if (AutoDetectNewWindows)
+            catch (Exception ex)
             {
-                windowTracker.TrackOnlyTargetProcess = !string.IsNullOrEmpty(targetProcessName);
-                windowTracker.StartTracking(targetWindow, targetProcessName);
-                System.Diagnostics.Debug.WriteLine("Window tracking started for automatic detection");
+                System.Diagnostics.Debug.WriteLine($"❌ Error starting recording: {ex.Message}");
+                throw;
             }
-
-            // Start global hooks
-            globalHook.StartHooking();
-            isRecording = true;
-
-            RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
-            {
-                IsRecording = true,
-                IsPaused = false,
-                SequenceName = sequenceName,
-                TargetWindow = targetWindow
-            });
         }
 
-        public void StopRecording()
+        /// <summary>
+        /// Spustí automatické služby
+        /// </summary>
+        private void StartAutomaticServices(IntPtr primaryTarget)
+        {
+            try
+            {
+                // Spusti automatickú detekciu okien
+                if (AutoDetectNewWindows)
+                {
+                    windowTracker.TrackOnlyTargetProcess = !string.IsNullOrEmpty(targetProcessName);
+                    windowTracker.StartTracking(primaryTarget, targetProcessName);
+                    autoWindowDetector.StartDetection(primaryTarget, targetProcessName);
+                    System.Diagnostics.Debug.WriteLine("Window tracking started for automatic detection");
+                }
+
+                // Spusti skenovanie UI elementov ak je povolené
+                if (EnableRealTimeElementScanning)
+                {
+                    uiElementScanner.StartScanning(primaryTarget);
+                }
+
+                // Spusti prediktívnu detekciu
+                if (EnablePredictiveDetection)
+                {
+                    StartPredictiveDetection();
+                }
+
+                System.Diagnostics.Debug.WriteLine("🔍 Automatic services started");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error starting automatic services: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Vytvorí počiatočný kontext okna
+        /// </summary>
+        private void CreateInitialWindowContext(IntPtr windowHandle)
+        {
+            if (windowHandle == IntPtr.Zero) return;
+
+            try
+            {
+                var context = new WindowContext
+                {
+                    WindowHandle = windowHandle,
+                    WindowTitle = GetWindowTitle(windowHandle),
+                    ProcessName = GetProcessName(windowHandle),
+                    WindowType = DetermineWindowType(windowHandle),
+                    CreatedAt = DateTime.Now,
+                    UIElements = ScanUIElements(windowHandle),
+                    IsActive = true
+                };
+
+                windowContexts[windowHandle] = context;
+
+                System.Diagnostics.Debug.WriteLine($"📋 Created window context: {context.WindowTitle}");
+                System.Diagnostics.Debug.WriteLine($"   UI Elements: {context.UIElements.Count}");
+
+                // Trigger event
+                WindowContextChanged?.Invoke(this, new WindowContextChangedEventArgs
+                {
+                    WindowHandle = windowHandle,
+                    Context = context,
+                    ChangeType = ContextChangeType.Created
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error creating window context: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Zastaví nahrávanie
+        /// </summary>
+        public virtual void StopRecording()
         {
             if (!isRecording)
                 return;
 
-            // Stop global hooks
-            globalHook.StopHooking();
-
-            // NOVÉ - Zastaví window tracking
-            if (AutoDetectNewWindows)
+            try
             {
+                // Zastaví automatické služby
+                StopAutomaticServices();
+
+                // Stop hooks
+                globalHook.StopHooking();
                 windowTracker.StopTracking();
-                System.Diagnostics.Debug.WriteLine("Window tracking stopped");
-            }
 
-            isRecording = false;
-            isPaused = false;
+                isRecording = false;
+                isPaused = false;
 
-            // NOVÉ - Log sledovaných okien
-            if (LogWindowChanges && trackedWindows.Count > 1)
-            {
-                System.Diagnostics.Debug.WriteLine($"=== RECORDING SESSION SUMMARY ===");
-                System.Diagnostics.Debug.WriteLine($"Primary target: {trackedWindows.FirstOrDefault().Value}");
-                System.Diagnostics.Debug.WriteLine($"Additional windows detected: {trackedWindows.Count - 1}");
-                foreach (var window in trackedWindows.Skip(1))
+                RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - {window.Value}");
-                }
-            }
+                    IsRecording = false,
+                    IsPaused = false,
+                    SequenceName = currentSequence?.Name ?? ""
+                });
 
-            RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
+                // **Analyzuj nahraté elementy**
+                if (currentSequence != null && EnableWinUI3Analysis)
+                {
+                    AnalyzeRecordedElements();
+                }
+
+                System.Diagnostics.Debug.WriteLine("🛑 Recording stopped");
+            }
+            catch (Exception ex)
             {
-                IsRecording = false,
-                IsPaused = false,
-                SequenceName = currentSequence?.Name ?? string.Empty,
-                CommandCount = currentSequence?.Commands.Count ?? 0
-            });
+                System.Diagnostics.Debug.WriteLine($"❌ Error stopping recording: {ex.Message}");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Zastaví automatické služby
+        /// </summary>
+        private void StopAutomaticServices()
+        {
+            try
+            {
+                autoWindowDetector?.StopDetection();
+                uiElementScanner?.StopScanning();
+
+                // Vyčisti contexts
+                foreach (var context in windowContexts.Values)
+                {
+                    context.IsActive = false;
+                }
+
+                System.Diagnostics.Debug.WriteLine("🧹 Automatic services stopped and cleaned up");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error stopping automatic services: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pozastaví nahrávanie
+        /// </summary>
         public void PauseRecording()
         {
             if (!isRecording || isPaused)
                 return;
 
             isPaused = true;
-
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
                 IsRecording = true,
                 IsPaused = true,
-                SequenceName = currentSequence?.Name ?? string.Empty
+                SequenceName = currentSequence?.Name ?? ""
             });
+
+            System.Diagnostics.Debug.WriteLine("⏸ Recording paused");
         }
 
+        /// <summary>
+        /// Obnoví nahrávanie
+        /// </summary>
         public void ResumeRecording()
         {
             if (!isRecording || !isPaused)
                 return;
 
             isPaused = false;
-
             RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs
             {
                 IsRecording = true,
                 IsPaused = false,
-                SequenceName = currentSequence.Name
+                SequenceName = currentSequence?.Name ?? ""
             });
+
+            System.Diagnostics.Debug.WriteLine("▶ Recording resumed");
         }
 
-        // NOVÉ - Event handlers pre WindowTracker
+        #endregion
+
+        #region Event Handlers
+
+        /// <summary>
+        /// Handler pre nové okno detekované window trackerom
+        /// </summary>
         private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
         {
-            if (!isRecording || isPaused) return;
-
             try
             {
-                var windowInfo = e.WindowInfo;
-                string windowDescription = $"{windowInfo.ProcessName} - {windowInfo.Title}";
+                System.Diagnostics.Debug.WriteLine($"🔍 Window tracker detected: {e.Description}");
 
-                // Pridaj do sledovaných okien
-                if (!trackedWindows.ContainsKey(e.WindowHandle))
+                // Ak je automatické prepínanie zapnuté
+                if (AutoSwitchToNewWindows && ShouldAutoSwitchToWindow(e.WindowInfo))
                 {
-                    trackedWindows[e.WindowHandle] = windowDescription;
+                    AutoSwitchToNewWindow(e.WindowInfo);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"=== NEW WINDOW AUTO-DETECTED ===");
-                System.Diagnostics.Debug.WriteLine($"Window: {windowDescription}");
-                System.Diagnostics.Debug.WriteLine($"Type: {windowInfo.WindowType}");
-                System.Diagnostics.Debug.WriteLine($"Method: {e.DetectionMethod}");
-
-                // Automaticky prepni na nové okno ak je to povolené
-                if (AutoSwitchToNewWindows && ShouldSwitchToWindow(windowInfo))
+                // Pridaj do sledovaných okien
+                if (!trackedWindows.ContainsKey(e.WindowInfo.WindowHandle))
                 {
-                    SwitchToNewWindow(e.WindowHandle, windowDescription);
+                    trackedWindows[e.WindowInfo.WindowHandle] = e.Description;
                 }
 
                 // Trigger event pre UI
                 WindowAutoDetected?.Invoke(this, new WindowAutoDetectedEventArgs
                 {
-                    WindowHandle = e.WindowHandle,
-                    WindowInfo = windowInfo,
-                    Description = windowDescription,
-                    AutoSwitched = AutoSwitchToNewWindows && ShouldSwitchToWindow(windowInfo)
+                    WindowHandle = e.WindowInfo.WindowHandle,
+                    Description = e.Description,
+                    WindowInfo = ConvertToWindowTrackingInfo(e.WindowInfo)
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error handling new window detection: {ex.Message}");
-            }
-        }
-
-        private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
-        {
-            if (!isRecording || isPaused) return;
-
-            // Log aktivácie okna ak je sledované
-            if (trackedWindows.ContainsKey(e.WindowHandle))
-            {
-                System.Diagnostics.Debug.WriteLine($"Window activated: {trackedWindows[e.WindowHandle]}");
-
-                // Automaticky prepni target ak je to povolené
-                if (AutoSwitchToNewWindows && e.WindowHandle != targetWindow)
-                {
-                    SwitchToNewWindow(e.WindowHandle, trackedWindows[e.WindowHandle]);
-                }
-            }
-        }
-
-        private void OnWindowClosed(object sender, WindowClosedEventArgs e)
-        {
-            if (!isRecording) return;
-
-            if (trackedWindows.ContainsKey(e.WindowHandle))
-            {
-                string windowDescription = trackedWindows[e.WindowHandle];
-                System.Diagnostics.Debug.WriteLine($"Tracked window closed: {windowDescription}");
-
-                // Odstráň zo sledovaných okien
-                trackedWindows.Remove(e.WindowHandle);
-
-                // Ak sa zatvoril target window, prepni na primary target
-                if (e.WindowHandle == targetWindow && trackedWindows.Any())
-                {
-                    var primaryTarget = trackedWindows.First();
-                    SwitchToNewWindow(primaryTarget.Key, primaryTarget.Value);
-                    System.Diagnostics.Debug.WriteLine($"Target window closed, switched back to: {primaryTarget.Value}");
-                }
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling new window detected: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Rozhodne či prepnúť na nové okno automaticky
+        /// Handler pre aktivované okno sa nachádza v AutomaticUIManager.cs
         /// </summary>
-        private bool ShouldSwitchToWindow(WindowTrackingInfo windowInfo)
+        //private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
+        //{
+        //    try
+            //{
+            //    if (trackedWindows.ContainsKey(e.WindowHandle))
+            //    {
+            //        var windowState = trackedWindows[e.WindowHandle];
+            //    windowState.LastActivated = DateTime.Now;
+            
+            //        // Použite buď e.WindowInfo alebo vytvorte info z existujúcich dát
+            //        var title = e.WindowInfo?.Title ?? windowState.WindowTitle ?? "Unknown";
+            //    System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {title}");
+        //        System.Diagnostics.Debug.WriteLine($"Window activated: {e.WindowHandle}");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window activated: {ex.Message}");
+        //    }
+        //}
+
+        /// <summary>
+        /// Handler pre zatvorené okno
+        /// </summary>
+        private void OnWindowClosed(object sender, WindowClosedEventArgs e)
         {
+            try
+            {
+                // Odstráň zo sledovaných okien
+                if (trackedWindows.ContainsKey(e.WindowHandle))
+                {
+                    var description = trackedWindows[e.WindowHandle];
+                    trackedWindows.Remove(e.WindowHandle);
+                    System.Diagnostics.Debug.WriteLine($"Window closed and removed from tracking: {description}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling window closed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre stlačenie klávesy
+        /// </summary>
+        private void OnKeyPressed(object sender, KeyPressedEventArgs e)
+        {
+            if (!IsRecording) return;
+
+            try
+            {
+                var command = new Command(commandCounter++, "Key_Press", CommandType.KeyPress, 0, 0)
+                {
+                    Value = e.Key.ToString(),
+                    TargetWindow = GetWindowTitle(targetWindow),
+                    TargetProcess = targetProcessName,
+                    Timestamp = DateTime.Now
+                };
+
+                AddCommand(command);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error recording key press: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre klik myšou
+        /// </summary>
+        private void OnMouseClicked(object sender, MouseClickedEventArgs e)
+        {
+            if (!IsRecording) return;
+
+            try
+            {
+                // Zisti UI element na pozícii kliknutia
+                var elementInfo = UIElementDetector.GetElementAtPoint(e.X, e.Y);
+
+                var command = new Command(commandCounter++,
+                    elementInfo?.Name ?? $"Click_at_{e.X}_{e.Y}",
+                    CommandType.Click, e.X, e.Y)
+                {
+                    TargetWindow = GetWindowTitle(targetWindow),
+                    TargetProcess = targetProcessName,
+                    Timestamp = DateTime.Now
+                };
+
+                // Aktualizuj command s element info ak je dostupný
+                if (elementInfo != null)
+                {
+                    command.UpdateFromElementInfo(elementInfo);
+                }
+
+                AddCommand(command);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error recording mouse click: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Command Management
+
+        /// <summary>
+        /// Pridá command do sekvencie
+        /// </summary>
+        protected void AddCommand(Command command)
+        {
+            try
+            {
+                currentSequence?.AddCommand(command);
+
+                // Update element statistics
+                UpdateElementUsage(command);
+
+                // Trigger event
+                CommandRecorded?.Invoke(this, new CommandRecordedEventArgs
+                {
+                    Command = command,
+                    SequenceName = currentSequence?.Name ?? ""
+                });
+
+                System.Diagnostics.Debug.WriteLine($"📝 Recorded: {command.Type} - {command.ElementName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error adding command: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje štatistiky použitia elementu
+        /// </summary>
+        private void UpdateElementUsage(Command command)
+        {
+            try
+            {
+                string elementKey = !string.IsNullOrEmpty(command.ElementId)
+                    ? command.ElementId
+                    : command.ElementName;
+
+                if (string.IsNullOrEmpty(elementKey)) return;
+
+                if (!elementStats.ContainsKey(elementKey))
+                {
+                    elementStats[elementKey] = new ElementUsageStats
+                    {
+                        ElementName = command.ElementName,
+                        UsageCount = 0,
+                        LastUsed = DateTime.Now,
+                        Reliability = 1.0f
+                    };
+                }
+
+                var stats = elementStats[elementKey];
+                stats.UsageCount++;
+                stats.LastUsed = DateTime.Now;
+
+                // Trigger event
+                ElementUsageUpdated?.Invoke(this, new ElementUsageEventArgs
+                {
+                    ElementName = elementKey,
+                    Stats = stats
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error updating element usage: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Auto Window Detection Event Handlers
+
+        /// <summary>
+        /// Handler pre automaticky detekované nové okno
+        /// </summary>
+        private void OnAutoWindowDetected(object sender, AutoWindowDetectedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🪟 Auto-detected new window: {e.WindowInfo.Title}");
+                System.Diagnostics.Debug.WriteLine($"   Type: {e.WindowInfo.WindowType}");
+                System.Diagnostics.Debug.WriteLine($"   Process: {e.WindowInfo.ProcessName}");
+
+                // Rozhodnie či automaticky prepnúť na toto okno
+                if (ShouldAutoSwitchToWindow(e.WindowInfo))
+                {
+                    AutoSwitchToNewWindow(e.WindowInfo);
+                }
+                else
+                {
+                    // Len pridaj do kontextu bez prepnutia
+                    AddWindowToContext(e.WindowInfo);
+                }
+
+                // Trigger rozšírený event
+                WindowAutoDetected?.Invoke(this, new WindowAutoDetectedEventArgs
+                {
+                    WindowHandle = e.WindowInfo.WindowHandle,
+                    Description = $"Auto-detected {e.WindowInfo.WindowType}: {e.WindowInfo.Title}",
+                    WindowInfo = ConvertToWindowTrackingInfo(e.WindowInfo),
+                    AutoSwitched = ShouldAutoSwitchToWindow(e.WindowInfo)
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling auto window detection: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre aktivované okno
+        /// </summary>
+        private void OnAutoWindowActivated(object sender, WindowActivatedEventArgs e)
+        {
+            try
+            {
+                if (windowContexts.ContainsKey(e.WindowHandle))
+                {
+                    var context = windowContexts[e.WindowHandle];
+                    context.IsActive = true;
+                    context.LastActivated = DateTime.Now;
+
+                    System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {context.WindowTitle}");
+
+                    // Ak je nahrávanie aktívne a toto nie je target window, možno prepni
+                    if (IsRecording && e.WindowHandle != targetWindow)
+                    {
+                        HandleWindowActivationDuringRecording(context);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling window activation: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre zatvorené okno
+        /// </summary>
+        private void OnAutoWindowClosed(object sender, WindowClosedEventArgs e)
+        {
+            try
+            {
+                if (windowContexts.ContainsKey(e.WindowHandle))
+                {
+                    var context = windowContexts[e.WindowHandle];
+                    context.IsActive = false;
+                    context.ClosedAt = DateTime.Now;
+
+                    System.Diagnostics.Debug.WriteLine($"🗑️ Window closed: {context.WindowTitle}");
+
+                    // Ak sa zatvoril target window, pokús sa nájsť náhradu
+                    if (e.WindowHandle == targetWindow && IsRecording)
+                    {
+                        HandleTargetWindowClosed();
+                    }
+
+                    // Odstráň z aktívnych kontextov po určitom čase
+                    ScheduleContextCleanup(e.WindowHandle);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling window close: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre zmenu UI elementov
+        /// </summary>
+        private void OnUIElementsChanged(object sender, UIElementsChangedEventArgs e)
+        {
+            try
+            {
+                if (windowContexts.ContainsKey(e.WindowHandle))
+                {
+                    var context = windowContexts[e.WindowHandle];
+                    var previousCount = context.UIElements.Count;
+                    context.UIElements = e.NewElements;
+                    context.LastUIUpdate = DateTime.Now;
+
+                    System.Diagnostics.Debug.WriteLine($"🔄 UI elements changed in: {context.WindowTitle}");
+                    System.Diagnostics.Debug.WriteLine($"   Previous: {previousCount}, New: {e.NewElements.Count}");
+
+                    // Ak je povolené auto-update, aktualizuj existujúce príkazy
+                    if (AutoUpdateExistingCommands && e.WindowHandle == targetWindow)
+                    {
+                        UpdateExistingCommandsWithNewElements(e.NewElements);
+                    }
+
+                    // Trigger event
+                    UIElementsUpdated?.Invoke(this, new UIElementsUpdatedEventArgs
+                    {
+                        WindowHandle = e.WindowHandle,
+                        PreviousElements = e.PreviousElements,
+                        NewElements = e.NewElements,
+                        Context = context
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling UI elements change: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre nový UI element
+        /// </summary>
+        private void OnNewElementDetected(object sender, NewElementDetectedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"➕ New UI element detected: {e.Element.Name}");
+                System.Diagnostics.Debug.WriteLine($"   Type: {e.Element.ControlType}");
+                System.Diagnostics.Debug.WriteLine($"   Window: {GetWindowTitle(e.WindowHandle)}");
+
+                // Aktualizuj kontext okna
+                if (windowContexts.ContainsKey(e.WindowHandle))
+                {
+                    var context = windowContexts[e.WindowHandle];
+                    if (!context.UIElements.Any(el => el.AutomationId == e.Element.AutomationId &&
+                                                      el.Name == e.Element.Name))
+                    {
+                        context.UIElements.Add(e.Element);
+                        context.LastUIUpdate = DateTime.Now;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling new element: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre zmiznutý UI element
+        /// </summary>
+        private void OnElementDisappeared(object sender, ElementDisappearedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"➖ UI element disappeared: {e.ElementIdentifier}");
+
+                // Aktualizuj kontext okna
+                if (windowContexts.ContainsKey(e.WindowHandle))
+                {
+                    var context = windowContexts[e.WindowHandle];
+                    context.UIElements.RemoveAll(el =>
+                        el.AutomationId == e.ElementIdentifier ||
+                        el.Name == e.ElementIdentifier);
+                    context.LastUIUpdate = DateTime.Now;
+                }
+
+                // Označuje príkazy ktoré používajú tento element ako potenciálne problematické
+                MarkCommandsWithMissingElement(e.ElementIdentifier);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling element disappearance: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Window Management Logic
+
+        /// <summary>
+        /// Rozhodne či automaticky prepnúť na nové okno
+        /// </summary>
+        private bool ShouldAutoSwitchToWindow(WindowDetectionInfo windowInfo)
+        {
+            if (!AutoSwitchToNewWindows) return false;
+
             // Vždy prepni na dialógy a message boxy
             if (windowInfo.WindowType == WindowType.Dialog ||
                 windowInfo.WindowType == WindowType.MessageBox)
@@ -274,96 +806,443 @@ namespace AppCommander.W7_11.WPF.Core
             if (windowInfo.IsModal)
                 return true;
 
-            // Prepni ak je to okno z target procesu
+            // Prepni ak je to okno z target procesu a je to významné okno
             if (!string.IsNullOrEmpty(targetProcessName) &&
                 windowInfo.ProcessName.Equals(targetProcessName, StringComparison.OrdinalIgnoreCase))
-                return true;
+            {
+                // Prepni len ak nie je to hlavné okno (aby sa nepreskakoval medzi hlávnymi oknami)
+                return windowInfo.WindowType != WindowType.MainWindow;
+            }
 
             return false;
         }
 
         /// <summary>
-        /// Prepne na nové okno ako target
+        /// Automaticky prepne na nové okno
         /// </summary>
-        private void SwitchToNewWindow(IntPtr newWindowHandle, string description)
+        private void AutoSwitchToNewWindow(WindowDetectionInfo windowInfo)
         {
             try
             {
-                var oldTarget = targetWindow;
-                targetWindow = newWindowHandle;
+                var previousTarget = targetWindow;
+                targetWindow = windowInfo.WindowHandle;
 
-                System.Diagnostics.Debug.WriteLine($"Auto-switched target window from {GetWindowTitleFromHandle(oldTarget)} to {description}");
+                System.Diagnostics.Debug.WriteLine($"🔄 Auto-switched from {GetWindowTitle(previousTarget)} to {windowInfo.Title}");
 
-                // Pridaj comment command do sekvencie
-                AddWindowSwitchCommand(description);
+                // Vytvor kontext pre nové okno
+                CreateInitialWindowContext(windowInfo.WindowHandle);
+
+                // Pridaj command pre switch ak je potrebný
+                if (IsRecording)
+                {
+                    AddAutoSwitchCommand(windowInfo, previousTarget);
+                }
+
+                // Spusti skenovanie pre nové okno
+                if (EnableRealTimeElementScanning)
+                {
+                    uiElementScanner.AddWindowToScan(windowInfo.WindowHandle);
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error switching to new window: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error auto-switching window: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Pridá comment command o prepnutí okna
+        /// Pridá okno do kontextu bez prepnutia
         /// </summary>
-        private void AddWindowSwitchCommand(string windowDescription)
+        private void AddWindowToContext(WindowDetectionInfo windowInfo)
         {
             try
             {
-                var switchCommand = new Command(commandCounter++, $"Window_Switch", CommandType.Wait)
+                if (!windowContexts.ContainsKey(windowInfo.WindowHandle))
                 {
-                    Value = "0", // 0ms wait, len marker
-                    TargetWindow = windowDescription,
-                    TargetProcess = targetProcessName,
+                    CreateInitialWindowContext(windowInfo.WindowHandle);
+
+                    // Pridaj do skeneru ak je povolené
+                    if (EnableRealTimeElementScanning)
+                    {
+                        uiElementScanner.AddWindowToScan(windowInfo.WindowHandle);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"📝 Added window to context: {windowInfo.Title}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error adding window to context: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Spracuje aktiváciu okna počas nahrávania
+        /// </summary>
+        private void HandleWindowActivationDuringRecording(WindowContext context)
+        {
+            // Ak je to dialog alebo message box, automaticky prepni
+            if (context.WindowType == WindowType.Dialog ||
+                context.WindowType == WindowType.MessageBox)
+            {
+                var previousTarget = targetWindow;
+                targetWindow = context.WindowHandle;
+
+                System.Diagnostics.Debug.WriteLine($"🎯 Auto-switched to activated {context.WindowType}: {context.WindowTitle}");
+
+                if (IsRecording)
+                {
+                    AddAutoSwitchCommand(new WindowDetectionInfo
+                    {
+                        WindowHandle = context.WindowHandle,
+                        Title = context.WindowTitle,
+                        WindowType = context.WindowType,
+                        ProcessName = context.ProcessName
+                    }, previousTarget);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Spracuje zatvorenie target okna
+        /// </summary>
+        private void HandleTargetWindowClosed()
+        {
+            try
+            {
+                // Nájdi náhradné okno z rovnakého procesu
+                var replacementWindow = windowContexts.Values
+                    .Where(ctx => ctx.IsActive &&
+                                  ctx.ProcessName.Equals(targetProcessName, StringComparison.OrdinalIgnoreCase) &&
+                                  ctx.WindowType == WindowType.MainWindow)
+                    .OrderByDescending(ctx => ctx.LastActivated)
+                    .FirstOrDefault();
+
+                if (replacementWindow != null)
+                {
+                    targetWindow = replacementWindow.WindowHandle;
+                    System.Diagnostics.Debug.WriteLine($"🔄 Target window replaced with: {replacementWindow.WindowTitle}");
+
+                    if (IsRecording)
+                    {
+                        AddWindowSwitchCommand($"Returned to {replacementWindow.WindowTitle}",
+                                             replacementWindow.WindowHandle);
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ No replacement window found for closed target");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error handling target window close: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Command Enhancement Methods
+
+        /// <summary>
+        /// Pridá automatický switch command
+        /// </summary>
+        private void AddAutoSwitchCommand(WindowDetectionInfo windowInfo, IntPtr previousWindow)
+        {
+            try
+            {
+                var switchCommand = new Command
+                {
+                    StepNumber = commandCounter++,
+                    ElementName = $"AutoSwitch_To_{windowInfo.WindowType}",
+                    Type = CommandType.Wait,
+                    Value = "300", // 300ms čakanie na stabilizáciu okna
+                    TargetWindow = windowInfo.Title,
+                    TargetProcess = windowInfo.ProcessName,
+                    ElementClass = "AutoWindowSwitch",
+                    ElementControlType = windowInfo.WindowType.ToString(),
+                    Timestamp = DateTime.Now,
                     ElementX = -1,
                     ElementY = -1
                 };
 
-                // Špeciálne označenie pre window switch
-                switchCommand.ElementClass = "WindowSwitch";
-                switchCommand.ElementControlType = "AutoDetected";
+                AddCommand(switchCommand);
 
-                AddCommand(switchCommand, null);
-
-                System.Diagnostics.Debug.WriteLine($"Added window switch marker: {windowDescription}");
+                System.Diagnostics.Debug.WriteLine($"➕ Added auto-switch command: {switchCommand.ElementName}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error adding window switch command: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error adding auto-switch command: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Manuálne pridanie okna do trackingu
+        /// Aktualizuje existujúce príkazy s novými elementami
         /// </summary>
-        public void AddWindowToTracking(IntPtr windowHandle, string description = "")
+        private void UpdateExistingCommandsWithNewElements(List<UIElementInfo> newElements)
         {
-            if (windowHandle == IntPtr.Zero) return;
-
             try
             {
-                if (string.IsNullOrEmpty(description))
+                var commandsToUpdate = currentSequence?.Commands?.Where(cmd =>
+                    cmd.Type == CommandType.Click ||
+                    cmd.Type == CommandType.SetText ||
+                    cmd.Type == CommandType.DoubleClick ||
+                    cmd.Type == CommandType.RightClick).ToList();
+
+                if (commandsToUpdate?.Any() == true)
                 {
-                    description = $"{GetProcessNameFromWindow(windowHandle)} - {GetWindowTitleFromHandle(windowHandle)}";
+                    int updatedCount = 0;
+
+                    foreach (var command in commandsToUpdate)
+                    {
+                        var betterElement = FindBetterElementMatch(command, newElements);
+                        if (betterElement != null)
+                        {
+                            UpdateCommandWithBetterElement(command, betterElement);
+                            updatedCount++;
+                        }
+                    }
+
+                    if (updatedCount > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔄 Updated {updatedCount} commands with better element matches");
+                    }
                 }
-
-                trackedWindows[windowHandle] = description;
-
-                if (isRecording && AutoDetectNewWindows)
-                {
-                    windowTracker.AddWindow(windowHandle, description);
-                }
-
-                System.Diagnostics.Debug.WriteLine($"Manually added window to tracking: {description}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error adding window to tracking: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error updating existing commands: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Získa zoznam sledovaných okien
+        /// Nájde lepší element match pre príkaz
+        /// </summary>
+        private UIElementInfo FindBetterElementMatch(Command command, List<UIElementInfo> availableElements)
+        {
+            try
+            {
+                // Ak príkaz už má dobrý AutomationId, netreba aktualizovať
+                if (!string.IsNullOrEmpty(command.ElementId) && command.ElementId.Length > 3)
+                    return null;
+
+                // Hľadaj element na rovnakej pozícii alebo s podobným názvom
+                var candidates = availableElements.Where(el =>
+                    Math.Abs(el.X - command.ElementX) < 10 &&
+                    Math.Abs(el.Y - command.ElementY) < 10).ToList();
+
+                if (!candidates.Any())
+                {
+                    // Rozšír hľadanie na väčšiu oblasť
+                    candidates = availableElements.Where(el =>
+                        Math.Abs(el.X - command.ElementX) < 50 &&
+                        Math.Abs(el.Y - command.ElementY) < 50).ToList();
+                }
+
+                // Vráť najlepší kandidát s AutomationId
+                return candidates.FirstOrDefault(el => !string.IsNullOrEmpty(el.AutomationId));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error finding better element match: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje príkaz s lepším elementom
+        /// </summary>
+        private void UpdateCommandWithBetterElement(Command command, UIElementInfo betterElement)
+        {
+            try
+            {
+                var oldElementId = command.ElementId;
+
+                command.ElementId = betterElement.AutomationId;
+                command.ElementName = betterElement.Name;
+                command.ElementClass = betterElement.ClassName;
+                command.ElementControlType = betterElement.ControlType;
+                command.ElementX = betterElement.X;
+                command.ElementY = betterElement.Y;
+
+                System.Diagnostics.Debug.WriteLine($"🔄 Updated command element: '{oldElementId}' -> '{betterElement.AutomationId}'");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error updating command with better element: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Označuje príkazy s chýbajúcim elementom
+        /// </summary>
+        private void MarkCommandsWithMissingElement(string elementIdentifier)
+        {
+            try
+            {
+                var affectedCommands = currentSequence?.Commands?.Where(cmd =>
+                    cmd.ElementId == elementIdentifier ||
+                    cmd.ElementName == elementIdentifier).ToList();
+
+                if (affectedCommands?.Any() == true)
+                {
+                    foreach (var command in affectedCommands)
+                    {
+                        // Pridaj warning flag
+                        command.ElementClass += "_MISSING";
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Marked {affectedCommands.Count} commands with missing element: {elementIdentifier}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error marking commands with missing element: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pridá window switch command
+        /// </summary>
+        protected void AddWindowSwitchCommand(string description, IntPtr windowHandle)
+        {
+            try
+            {
+                var switchCommand = new Command(commandCounter++,
+                    "Window_Switch", CommandType.Wait, -1, -1)
+                {
+                    Value = "500", // 500ms wait
+                    TargetWindow = description,
+                    TargetProcess = GetProcessNameFromWindow(windowHandle),
+                    ElementClass = "WindowSwitch",
+                    ElementControlType = "AutoDetected",
+                    Timestamp = DateTime.Now
+                };
+
+                AddCommand(switchCommand);
+                System.Diagnostics.Debug.WriteLine($"➕ Added window switch command: {description}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error adding window switch command: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Predictive Detection
+
+        /// <summary>
+        /// Spustí prediktívnu detekciu
+        /// </summary>
+        private void StartPredictiveDetection()
+        {
+            try
+            {
+                // Implementácia prediktívnej detekcie založenej na patterns
+                System.Diagnostics.Debug.WriteLine("🔮 Predictive detection started");
+
+                // Analyzuj existujúce príkazy pre patterns
+                AnalyzeCommandPatterns();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error starting predictive detection: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Analyzuje patterns v príkazoch
+        /// </summary>
+        private void AnalyzeCommandPatterns()
+        {
+            // Implementácia analýzy patterns
+            // Napríklad: detekcia opakujúcich sa sekvencií, common UI flows, atď.
+        }
+
+        #endregion
+
+        #region Analysis Methods
+
+        /// <summary>
+        /// Analyzuje nahraté elementy
+        /// </summary>
+        public void AnalyzeRecordedElements()
+        {
+            try
+            {
+                if (currentSequence?.Commands == null || !currentSequence.Commands.Any())
+                    return;
+
+                System.Diagnostics.Debug.WriteLine("=== ANALYZING RECORDED ELEMENTS ===");
+
+                var elementCommands = currentSequence.Commands.Where(c =>
+                    c.Type == CommandType.Click ||
+                    c.Type == CommandType.SetText ||
+                    c.Type == CommandType.DoubleClick ||
+                    c.Type == CommandType.RightClick).ToList();
+
+                System.Diagnostics.Debug.WriteLine($"Found {elementCommands.Count} element-based commands");
+
+                // Analyzuj WinUI3 elementy
+                var winui3Commands = elementCommands.Where(c => c.ElementClass?.Contains("Microsoft.UI") == true).ToList();
+                if (winui3Commands.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine($"WinUI3 commands: {winui3Commands.Count}");
+                }
+
+                // Analyzuj spoľahlivosť identifikátorov
+                var commandsWithStrongIds = elementCommands.Where(c => HasStrongIdentifier(c)).ToList();
+                System.Diagnostics.Debug.WriteLine($"Commands with strong identifiers: {commandsWithStrongIds.Count}/{elementCommands.Count}");
+
+                System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error analyzing recorded elements: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Kontroluje či má príkaz silný identifikátor
+        /// </summary>
+        private bool HasStrongIdentifier(Command command)
+        {
+            return !string.IsNullOrEmpty(command.ElementId) &&
+                   command.ElementId.Length > 3 &&
+                   !command.ElementId.Contains("Unknown");
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Aktualizuje target window
+        /// </summary>
+        public void UpdateTargetWindow(IntPtr newTargetWindow)
+        {
+            try
+            {
+                var previousTarget = targetWindow;
+                targetWindow = newTargetWindow;
+
+                // Aktualizuj skener
+                if (EnableRealTimeElementScanning)
+                {
+                    uiElementScanner.SwitchPrimaryWindow(newTargetWindow);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🔄 Target window updated: {GetWindowTitle(newTargetWindow)}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error updating target window: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Získa sledované okná
         /// </summary>
         public Dictionary<IntPtr, string> GetTrackedWindows()
         {
@@ -371,626 +1250,510 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Prepne target window manuálne
+        /// Pridá okno do sledovania
+        /// </summary>
+        public void AddWindowToTracking(IntPtr windowHandle, string description)
+        {
+            try
+            {
+                if (!trackedWindows.ContainsKey(windowHandle))
+                {
+                    trackedWindows[windowHandle] = description;
+                    System.Diagnostics.Debug.WriteLine($"➕ Added window to tracking: {description}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error adding window to tracking: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Prepne target window
         /// </summary>
         public void SwitchTargetWindow(IntPtr newTargetWindow)
         {
-            if (newTargetWindow == IntPtr.Zero || newTargetWindow == targetWindow)
-                return;
-
             try
             {
-                var oldTarget = targetWindow;
-                targetWindow = newTargetWindow;
-
-                string newDescription = trackedWindows.ContainsKey(newTargetWindow)
-                    ? trackedWindows[newTargetWindow]
-                    : $"{GetProcessNameFromWindow(newTargetWindow)} - {GetWindowTitleFromHandle(newTargetWindow)}";
-
-                // Pridaj do trackingu ak tam nie je
-                if (!trackedWindows.ContainsKey(newTargetWindow))
+                if (trackedWindows.ContainsKey(newTargetWindow))
                 {
-                    trackedWindows[newTargetWindow] = newDescription;
-                }
+                    UpdateTargetWindow(newTargetWindow);
 
-                System.Diagnostics.Debug.WriteLine($"Manually switched target from {GetWindowTitleFromHandle(oldTarget)} to {newDescription}");
-
-                if (isRecording)
-                {
-                    AddWindowSwitchCommand(newDescription);
+                    if (IsRecording)
+                    {
+                        AddWindowSwitchCommand($"Switched to {trackedWindows[newTargetWindow]}", newTargetWindow);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error switching target window: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error switching target window: {ex.Message}");
             }
         }
 
-        private void OnKeyPressed(object sender, KeyPressedEventArgs e)
+        /// <summary>
+        /// Naplánuje cleanup kontextu
+        /// </summary>
+        private void ScheduleContextCleanup(IntPtr windowHandle)
         {
-            if (!isRecording || isPaused)
-                return;
-
-            // ROZŠÍRENÉ - Kontroluj či klik prišiel z aktuálneho target window alebo sledovaného okna
-            bool isFromTrackedWindow = false;
-            if (targetWindow != IntPtr.Zero && e.WindowHandle == targetWindow)
-            {
-                isFromTrackedWindow = true;
-            }
-            else if (trackedWindows.ContainsKey(e.WindowHandle))
-            {
-                // Automaticky prepni target ak je autoswitch povolený
-                if (AutoSwitchToNewWindows)
+            Task.Delay(TimeSpan.FromMinutes(5)).ContinueWith(_ => {
+                try
                 {
-                    SwitchToNewWindow(e.WindowHandle, trackedWindows[e.WindowHandle]);
+                    if (windowContexts.ContainsKey(windowHandle))
+                    {
+                        var context = windowContexts[windowHandle];
+                        if (!context.IsActive)
+                        {
+                            windowContexts.Remove(windowHandle);
+                            System.Diagnostics.Debug.WriteLine($"🧹 Cleaned up context for: {context.WindowTitle}");
+                        }
+                    }
                 }
-                isFromTrackedWindow = true;
-            }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error in context cleanup: {ex.Message}");
+                }
+            });
+        }
 
-            // Ak nie je z trackovaného okna a je strict mode, ignoruj
-            if (!isFromTrackedWindow && AutoDetectNewWindows && !string.IsNullOrEmpty(targetProcessName))
+        /// <summary>
+        /// Konvertuje WindowDetectionInfo na WindowTrackingInfo
+        /// </summary>
+        private WindowTrackingInfo ConvertToWindowTrackingInfo(WindowDetectionInfo detectionInfo)
+        {
+            return new WindowTrackingInfo
             {
-                System.Diagnostics.Debug.WriteLine($"Ignoring key press from untracked window: {e.ProcessName}");
-                return;
-            }
-
-            // Skip certain system keys
-            if (ShouldSkipKey(e.Key))
-                return;
-
-            System.Diagnostics.Debug.WriteLine($"Recording key: {e.Key} in {e.ProcessName} (Window: {trackedWindows.ContainsKey(e.WindowHandle)})");
-
-            // Create command for key press
-            var command = new Command(commandCounter++, $"Key_{e.Key}", CommandType.KeyPress)
-            {
-                Key = e.Key,
-                Value = e.Key.ToString(),
-                TargetWindow = e.WindowTitle,
-                TargetProcess = e.ProcessName,
-                ElementX = -1, // Key presses don't have specific coordinates
-                ElementY = -1
+                WindowHandle = detectionInfo.WindowHandle,
+                Title = detectionInfo.Title,
+                ProcessName = detectionInfo.ProcessName,
+                WindowType = detectionInfo.WindowType,
+                IsModal = detectionInfo.IsModal,
+                DetectedAt = detectionInfo.DetectedAt,
+                ClassName = detectionInfo.ClassName
             };
-
-            AddCommand(command, null);
         }
 
-        private void OnMouseClicked(object sender, MouseClickedEventArgs e)
-        {
-            if (!isRecording || isPaused)
-                return;
+        #endregion
 
-            // ROZŠÍRENÉ - Kontroluj či klik prišiel z aktuálneho target window alebo sledovaného okna
-            bool isFromTrackedWindow = false;
-            string currentWindowDescription = "";
-
-            if (targetWindow != IntPtr.Zero && e.WindowHandle == targetWindow)
-            {
-                isFromTrackedWindow = true;
-                currentWindowDescription = trackedWindows.ContainsKey(targetWindow) ? trackedWindows[targetWindow] : "Current Target";
-            }
-            else if (trackedWindows.ContainsKey(e.WindowHandle))
-            {
-                isFromTrackedWindow = true;
-                currentWindowDescription = trackedWindows[e.WindowHandle];
-
-                // Automaticky prepni target ak je autoswitch povolený
-                if (AutoSwitchToNewWindows && e.WindowHandle != targetWindow)
-                {
-                    SwitchToNewWindow(e.WindowHandle, currentWindowDescription);
-                }
-            }
-
-            // Ak nie je z trackovaného okna, skús automaticky detekovať
-            if (!isFromTrackedWindow && AutoDetectNewWindows)
-            {
-                // Skús pridať okno do trackingu
-                string newWindowDesc = $"{e.ProcessName} - {e.WindowTitle}";
-
-                // Pridaj iba ak je z target procesu alebo ak nie je strict mode
-                if (string.IsNullOrEmpty(targetProcessName) ||
-                    e.ProcessName.Equals(targetProcessName, StringComparison.OrdinalIgnoreCase))
-                {
-                    AddWindowToTracking(e.WindowHandle, newWindowDesc);
-                    currentWindowDescription = newWindowDesc;
-                    isFromTrackedWindow = true;
-
-                    if (AutoSwitchToNewWindows)
-                    {
-                        SwitchToNewWindow(e.WindowHandle, newWindowDesc);
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"Auto-added new window to tracking: {newWindowDesc}");
-                }
-            }
-
-            if (!isFromTrackedWindow)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ignoring click from untracked window: {e.ProcessName} - {e.WindowTitle}");
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Recording mouse click at ({e.X}, {e.Y}) in {currentWindowDescription}");
-
-            // **POUŽITIE ROZŠÍRENEJ DETEKCIE S PODPOROU TABULIEK**
-            var uiElement = UIElementDetector.GetElementAtPointEnhanced(e.X, e.Y);
-
-            if (uiElement?.IsTableCell == true)
-            {
-                System.Diagnostics.Debug.WriteLine("=== TABLE CELL DETECTED DURING RECORDING ===");
-                System.Diagnostics.Debug.WriteLine($"Table: {uiElement.TableName}");
-                System.Diagnostics.Debug.WriteLine($"Cell: {uiElement.GetTableCellDisplayName()}");
-                System.Diagnostics.Debug.WriteLine($"Position: Row {uiElement.TableRow}, Column {uiElement.TableColumn}");
-                System.Diagnostics.Debug.WriteLine($"Identifier: {uiElement.TableCellIdentifier}");
-                System.Diagnostics.Debug.WriteLine($"Content: '{uiElement.TableCellContent}'");
-            }
-
-            // **WinUI3 špecifická analýza**
-            if (EnableWinUI3Analysis && uiElement?.ClassName == "Microsoft.UI.Content.DesktopChildSiteBridge")
-            {
-                System.Diagnostics.Debug.WriteLine("=== WinUI3 ELEMENT DETECTED ===");
-                AnalyzeWinUI3Point(targetWindow, e.X, e.Y);
-            }
-
-            CommandType commandType = e.Button == System.Windows.Forms.MouseButtons.Left ? CommandType.Click : CommandType.RightClick;
-
-            // **VYLEPŠENÁ TVORBA NÁZVU ELEMENTU S PODPOROU TABULIEK**
-            string elementName = CreateMeaningfulElementNameEnhanced(uiElement, e.X, e.Y);
-
-            // **Vytvor command s originálnymi súradnicami**
-            var command = new Command(commandCounter++, elementName, commandType, e.X, e.Y)
-            {
-                MouseButton = e.Button,
-                ElementX = e.X,  // Aktuálne súradnice
-                ElementY = e.Y,  // Aktuálne súradnice
-                TargetWindow = currentWindowDescription, // Použij aktuálny popis okna
-                TargetProcess = e.ProcessName
-            };
-
-            // **Aktualizuj z UIElementInfo s podporou tabuliek**
-            if (uiElement != null)
-            {
-                command.UpdateFromElementInfoEnhanced(uiElement);
-
-                if (EnableDetailedLogging)
-                {
-                    string logMessage = $"Element details: Name='{command.ElementName}', " +
-                        $"Id='{command.ElementId}', Class='{command.ElementClass}', " +
-                        $"Type='{command.ElementControlType}', Text='{command.ElementText}', " +
-                        $"WinUI3={command.IsWinUI3Element}, ClickPos=({command.ElementX}, {command.ElementY}), " +
-                        $"Window='{currentWindowDescription}'";
-
-                    // Pridaj tabuľkové informácie do logu
-                    if (uiElement.IsTableCell)
-                    {
-                        logMessage += $", TABLE: {uiElement.TableName}, Row: {uiElement.TableRow}, " +
-                            $"Col: {uiElement.TableColumn}, CellId: '{uiElement.TableCellIdentifier}'";
-                    }
-
-                    System.Diagnostics.Debug.WriteLine(logMessage);
-                }
-            }
-
-            AddCommand(command, uiElement);
-
-            System.Diagnostics.Debug.WriteLine($"Command recorded: Step {command.StepNumber}: {command.Type} on {command.ElementName} in {currentWindowDescription}");
-        }
+        #region Helper Methods
 
         /// <summary>
-        /// Rozšírená metóda pre tvorbu názvu elementu s podporou tabuliek
+        /// Skenuje UI elementy okna
         /// </summary>
-        private string CreateMeaningfulElementNameEnhanced(UIElementInfo uiElement, int x, int y)
-        {
-            if (uiElement == null)
-                return $"Click_at_{x}_{y}";
-
-            // **ŠPECIALIZOVANÉ SPRACOVANIE PRE TABUĽKOVÉ BUNKY**
-            if (uiElement.IsTableCell)
-            {
-                return uiElement.GetTableCellDisplayName();
-            }
-
-            // Fallback na štandardnú metódu
-            return CreateMeaningfulElementName(uiElement, x, y);
-        }
-
-        /// <summary>
-        /// **Vytvára zmysluplný názov elementu**
-        /// </summary>
-        private string CreateMeaningfulElementName(UIElementInfo uiElement, int x, int y)
-        {
-            if (uiElement == null)
-                return $"Click_at_{x}_{y}";
-
-            // Použij UIElementDetector logiku pre tvorbu názvu
-            string elementName = "Unknown";
-
-            // 1. Skutočný názov elementu
-            if (!string.IsNullOrWhiteSpace(uiElement.Name) && !IsGenericElementName(uiElement.Name))
-            {
-                elementName = CleanElementName(uiElement.Name);
-            }
-            // 2. AutomationId
-            else if (!string.IsNullOrWhiteSpace(uiElement.AutomationId) && !IsGenericId(uiElement.AutomationId))
-            {
-                elementName = $"AutoId_{CleanElementName(uiElement.AutomationId)}";
-            }
-            // 3. Text obsah
-            else if (!string.IsNullOrWhiteSpace(uiElement.ElementText) && uiElement.ElementText.Length <= 20)
-            {
-                elementName = $"{uiElement.ControlType}_{CleanElementName(uiElement.ElementText)}";
-            }
-            // 4. Help text
-            else if (!string.IsNullOrWhiteSpace(uiElement.HelpText) && uiElement.HelpText.Length <= 20)
-            {
-                elementName = $"{uiElement.ControlType}_{CleanElementName(uiElement.HelpText)}";
-            }
-            // 5. Fallback na typ a pozíciu
-            else
-            {
-                string controlType = uiElement.ControlType ?? "Unknown";
-                elementName = $"{controlType}_at_{x}_{y}";
-            }
-
-            return elementName;
-        }
-
-        private bool IsGenericElementName(string name)
-        {
-            var genericNames = new[]
-            {
-            "Microsoft.UI.Content.DesktopChildSiteBridge",
-            "DesktopChildSiteBridge", "ContentPresenter", "Border",
-            "Grid", "StackPanel", "Canvas", "UserControl"
-        };
-
-            return genericNames.Any(generic => name.IndexOf(generic, StringComparison.OrdinalIgnoreCase) >= 0);
-        }
-
-        private bool IsGenericId(string id)
-        {
-            return string.IsNullOrEmpty(id) || id.Length > 20 || id.All(char.IsDigit) || id.Contains("-") || id.Contains("{");
-        }
-
-        private string CleanElementName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                return "";
-
-            return new string(name.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == ' ')
-                                 .ToArray())
-                                 .Replace(" ", "_")
-                                 .Trim('_');
-        }
-
-        /// <summary>
-        /// **Analyzuje nahraté WinUI3 elementy**
-        /// </summary>
-        public void AnalyzeRecordedWinUI3Elements()
-        {
-            if (currentSequence == null) return;
-
-            var winui3Commands = currentSequence.Commands.Where(c => c.IsWinUI3Element).ToList();
-
-            System.Diagnostics.Debug.WriteLine($"\n=== WINUI3 ANALYSIS ===");
-            System.Diagnostics.Debug.WriteLine($"Total commands: {currentSequence.Commands.Count}");
-            System.Diagnostics.Debug.WriteLine($"WinUI3 commands: {winui3Commands.Count}");
-
-            if (winui3Commands.Any())
-            {
-                System.Diagnostics.Debug.WriteLine("\nWinUI3 Command Details:");
-                foreach (var cmd in winui3Commands)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Step {cmd.StepNumber}: {cmd.Type} on '{cmd.ElementName}'");
-                    System.Diagnostics.Debug.WriteLine($"  Position: ({cmd.OriginalX}, {cmd.OriginalY}) -> ({cmd.ElementX}, {cmd.ElementY})");
-                    System.Diagnostics.Debug.WriteLine($"  Identifier: {cmd.GetBestElementIdentifier()}");
-                    if (!string.IsNullOrEmpty(cmd.ElementText))
-                        System.Diagnostics.Debug.WriteLine($"  Text: '{cmd.ElementText}'");
-                }
-
-                // Identifikuj potenciálne problémy
-                var problematicCommands = winui3Commands.Where(c =>
-                    c.ElementName.Contains("Unknown") ||
-                    c.ElementName.Contains("at_") ||
-                    (string.IsNullOrEmpty(c.ElementId) && string.IsNullOrEmpty(c.ElementText))
-                ).ToList();
-
-                if (problematicCommands.Any())
-                {
-                    System.Diagnostics.Debug.WriteLine($"\n⚠️  Potentially problematic commands: {problematicCommands.Count}");
-                    foreach (var cmd in problematicCommands)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  Step {cmd.StepNumber}: {cmd.ElementName} - may be unreliable");
-                    }
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===\n");
-        }
-
-        /// <summary>
-        /// Analyzuje WinUI3 point (náhrada za WinUI3DebugHelper)
-        /// </summary>
-        private void AnalyzeWinUI3Point(IntPtr targetWindow, int x, int y)
+        private List<UIElementInfo> ScanUIElements(IntPtr windowHandle)
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"WinUI3 Analysis: Point ({x}, {y}) in window {targetWindow}");
-
-                // Jednoduchá analýza - môžete rozšíriť neskôr
-                var element = UIElementDetector.GetElementAtPoint(x, y);
-                if (element != null && element.ClassName == "Microsoft.UI.Content.DesktopChildSiteBridge")
-                {
-                    System.Diagnostics.Debug.WriteLine($"  WinUI3 Bridge Element: {element.Name}");
-                    System.Diagnostics.Debug.WriteLine($"  AutomationId: {element.AutomationId}");
-                    System.Diagnostics.Debug.WriteLine($"  Text: {element.ElementText}");
-                }
+                return AdaptiveElementFinder.GetAllInteractiveElements(windowHandle);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"WinUI3 analysis error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error scanning UI elements: {ex.Message}");
+                return new List<UIElementInfo>();
             }
         }
 
         /// <summary>
-        /// Pridá command do sequence a aktualizuje štatistiky
+        /// Získa title okna
         /// </summary>
-        private void AddCommand(Command command, UIElementInfo uiElement)
-        {
-            // Add to sequence
-            currentSequence.AddCommand(command);
-
-            // Update element statistics
-            UpdateElementStats(command, uiElement);
-
-            // Notify listeners
-            CommandRecorded?.Invoke(this, new CommandRecordedEventArgs
-            {
-                Command = command,
-                UIElement = uiElement,
-                TotalCommands = currentSequence.Commands.Count
-            });
-
-            System.Diagnostics.Debug.WriteLine($"Command recorded: {command}");
-        }
-
-        /// <summary>
-        /// Aktualizuje štatistiky použitia elementov
-        /// </summary>
-        private void UpdateElementStats(Command command, UIElementInfo uiElement)
-        {
-            string elementKey = command.ElementName;
-
-            if (!elementStats.ContainsKey(elementKey))
-            {
-                elementStats[elementKey] = new ElementUsageStats
-                {
-                    ElementName = command.ElementName,
-                    ElementType = command.ElementClass,
-                    ControlType = command.ElementControlType
-                };
-            }
-
-            var stats = elementStats[elementKey];
-            stats.IncrementUsage(command.Type);
-
-            ElementUsageUpdated?.Invoke(this, new ElementUsageEventArgs
-            {
-                ElementName = elementKey,
-                Stats = stats
-            });
-        }
-
-        /// <summary>
-        /// Kontroluje či má byť klávesa preskočená
-        /// </summary>
-        private bool ShouldSkipKey(Keys key)
-        {
-            // Skip modifier keys, function keys, etc.
-            var skipKeys = new[]
-            {
-        Keys.LWin, Keys.RWin, Keys.Apps,
-        Keys.LControlKey, Keys.RControlKey, Keys.ControlKey,
-        Keys.LShiftKey, Keys.RShiftKey, Keys.ShiftKey,
-        Keys.LMenu, Keys.RMenu, Keys.Alt,
-        Keys.CapsLock, Keys.NumLock, Keys.Scroll,
-        Keys.PrintScreen, Keys.Pause,
-        Keys.Insert, Keys.Delete, Keys.Home, Keys.End,
-        Keys.PageUp, Keys.PageDown,
-        Keys.F1, Keys.F2, Keys.F3, Keys.F4, Keys.F5, Keys.F6,
-        Keys.F7, Keys.F8, Keys.F9, Keys.F10, Keys.F11, Keys.F12
-    };
-
-            return skipKeys.Contains(key);
-        }
-
-        /// <summary>
-        /// Získa class name okna z window handle
-        /// </summary>
-        private string GetWindowClassFromHandle(IntPtr hWnd)
+        private string GetWindowTitle(IntPtr windowHandle)
         {
             try
             {
-                var buffer = new System.Text.StringBuilder(256);
-                GetClassName(hWnd, buffer, buffer.Capacity);
-                return buffer.ToString();
+                var sb = new System.Text.StringBuilder(256);
+                GetWindowText(windowHandle, sb, sb.Capacity);
+                return sb.ToString();
             }
             catch
             {
-                return string.Empty;
+                return "Unknown Window";
             }
         }
 
         /// <summary>
-        /// Uloží aktuálnu sequence do súboru
+        /// Získa meno procesu z okna
         /// </summary>
-        public void SaveCurrentSequence(string filePath)
-        {
-            if (currentSequence == null)
-                throw new InvalidOperationException("No sequence to save");
-
-            currentSequence.SaveToFile(filePath);
-        }
-
-        /// <summary>
-        /// Načíta sequence zo súboru
-        /// </summary>
-        public CommandSequence LoadSequence(string filePath)
-        {
-            return CommandSequence.LoadFromFile(filePath);
-        }
-
-        /// <summary>
-        /// Pridá manuálny command
-        /// </summary>
-        public void AddManualCommand(CommandType type, string elementName, string value = "", int repeatCount = 1)
-        {
-            if (currentSequence == null)
-                return;
-
-            var command = new Command(commandCounter++, elementName, type)
-            {
-                Value = value,
-                RepeatCount = repeatCount,
-                TargetWindow = "Manual",
-                TargetProcess = "Manual"
-            };
-
-            AddCommand(command, null);
-        }
-
-        /// <summary>
-        /// Začne loop
-        /// </summary>
-        public void StartLoop(string loopName, int iterations = 1)
-        {
-            if (currentSequence == null)
-                return;
-
-            var command = new Command(commandCounter++, loopName, CommandType.Loop)
-            {
-                RepeatCount = iterations,
-                IsLoopStart = true,
-                Value = iterations.ToString()
-            };
-
-            AddCommand(command, null);
-        }
-
-        /// <summary>
-        /// Ukončí loop
-        /// </summary>
-        public void EndLoop()
-        {
-            if (currentSequence == null)
-                return;
-
-            var command = new Command(commandCounter++, "LoopEnd", CommandType.LoopEnd);
-            AddCommand(command, null);
-        }
-
-        /// <summary>
-        /// Pridá wait command
-        /// </summary>
-        public void AddWaitCommand(int milliseconds)
-        {
-            if (currentSequence == null)
-                return;
-
-            var command = new Command(commandCounter++, $"Wait_{milliseconds}ms", CommandType.Wait)
-            {
-                Value = milliseconds.ToString(),
-                RepeatCount = 1
-            };
-
-            AddCommand(command, null);
-        }
-
-        /// <summary>
-        /// Destruktor - zastaví hooking
-        /// </summary>
-        ~CommandRecorder()
-        {
-            globalHook?.StopHooking();
-            windowTracker?.StopTracking();
-        }
-
-        // Windows API import pre GetClassName
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
-    }
-
-    // NOVÉ - Event argument classes pre window tracking
-    public class WindowAutoDetectedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public WindowTrackingInfo WindowInfo { get; set; }
-        public string Description { get; set; } = "";
-        public bool AutoSwitched { get; set; }
-    }
-
-    public class CommandRecordedEventArgs : EventArgs
-    {
-        public Command Command { get; set; }
-        public UIElementInfo UIElement { get; set; }
-        public int TotalCommands { get; set; }
-    }
-
-    public class RecordingStateChangedEventArgs : EventArgs
-    {
-        public bool IsRecording { get; set; }
-        public bool IsPaused { get; set; }
-        public string SequenceName { get; set; } = string.Empty;
-        public IntPtr TargetWindow { get; set; }
-        public int CommandCount { get; set; }
-    }
-
-    public class ElementUsageEventArgs : EventArgs
-    {
-        public string ElementName { get; set; } = string.Empty;
-        public ElementUsageStats Stats { get; set; }
-    }a názov procesu z window handle
-		/// </summary>
-		private string GetProcessNameFromWindow(IntPtr hWnd)
+        private string GetProcessNameFromWindow(IntPtr windowHandle)
         {
             try
             {
-                GetWindowThreadProcessId(hWnd, out uint processId);
-                using (var process = System.Diagnostics.Process.GetProcessById((int)processId))
+                GetWindowThreadProcessId(windowHandle, out uint processId);
+                using (var process = Process.GetProcessById((int)processId))
                 {
                     return process.ProcessName;
                 }
             }
             catch
             {
-                return string.Empty;
+                return "Unknown Process";
             }
         }
 
         /// <summary>
-        /// Získa title okna z window handle
+        /// Získa meno procesu
         /// </summary>
-        private string GetWindowTitleFromHandle(IntPtr hWnd)
+        private string GetProcessName(IntPtr windowHandle)
+        {
+            return GetProcessNameFromWindow(windowHandle);
+        }
+
+        /// <summary>
+        /// Získa title z handle
+        /// </summary>
+        private string GetWindowTitleFromHandle(IntPtr windowHandle)
+        {
+            return GetWindowTitle(windowHandle);
+        }
+
+        /// <summary>
+        /// Získa class z handle
+        /// </summary>
+        private string GetWindowClassFromHandle(IntPtr windowHandle)
         {
             try
             {
-                const int nChars = 256;
-                var buffer = new System.Text.StringBuilder(nChars);
-
-                if (GetWindowText(hWnd, buffer, nChars) > 0)
-                    return buffer.ToString();
-
-                return string.Empty;
+                var sb = new System.Text.StringBuilder(256);
+                GetClassName(windowHandle, sb, sb.Capacity);
+                return sb.ToString();
             }
             catch
             {
-                return string.Empty;
+                return "";
             }
         }
-    } 
+
+        /// <summary>
+        /// Určí typ okna
+        /// </summary>
+        private WindowType DetermineWindowType(IntPtr windowHandle)
+        {
+            try
+            {
+                string className = GetWindowClassFromHandle(windowHandle);
+                string title = GetWindowTitle(windowHandle);
+
+                // MessageBox detection
+                if (className.Contains("MessageBox") || className == "#32770")
+                {
+                    if (title.Contains("Error") || title.Contains("Warning") ||
+                        title.Contains("Information") || title.Contains("Confirm"))
+                        return WindowType.MessageBox;
+                }
+
+                // Dialog detection
+                if (className.Contains("Dialog") || className == "#32770")
+                    return WindowType.Dialog;
+
+                // Child window detection
+                IntPtr parent = GetParent(windowHandle);
+                if (parent != IntPtr.Zero)
+                    return WindowType.ChildWindow;
+
+                return WindowType.MainWindow;
+            }
+            catch
+            {
+                return WindowType.MainWindow;
+            }
+        }
+
+        #endregion
+
+        #region Win32 API Imports
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetParent(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        #endregion
+    }
+
+    #region Supporting Classes - Len tie ktoré nie sú definované inde
+
+    /// <summary>
+    /// Kontext okna s rozšírenými informáciami
+    /// </summary>
+    public class WindowContext
+    {
+        public IntPtr WindowHandle { get; set; }
+        public string WindowTitle { get; set; } = "";
+        public string ProcessName { get; set; } = "";
+        public WindowType WindowType { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastActivated { get; set; }
+        public DateTime? ClosedAt { get; set; }
+        public DateTime LastUIUpdate { get; set; }
+        public bool IsActive { get; set; }
+        public List<UIElementInfo> UIElements { get; set; } = new List<UIElementInfo>();
+    }
+
+    /// <summary>
+    /// Informácie o detekovanom okne
+    /// </summary>
+    public class WindowDetectionInfo
+    {
+        public IntPtr WindowHandle { get; set; }
+        public string Title { get; set; } = "";
+        public string ProcessName { get; set; } = "";
+        public WindowType WindowType { get; set; }
+        public bool IsModal { get; set; }
+        public DateTime DetectedAt { get; set; }
+        public string ClassName { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Automatický detektor okien - zjednodušený
+    /// </summary>
+    public class AutoWindowDetector
+    {
+        public bool EnableDialogDetection { get; set; } = true;
+        public bool EnableMessageBoxDetection { get; set; } = true;
+        public bool EnableChildWindowDetection { get; set; } = true;
+        public bool EnableWinUI3Detection { get; set; } = true;
+        public DetectionSensitivity DetectionSensitivity { get; set; } = DetectionSensitivity.Medium;
+
+        public event EventHandler<AutoWindowDetectedEventArgs> NewWindowDetected;
+        public event EventHandler<WindowActivatedEventArgs> WindowActivated;
+        public event EventHandler<WindowClosedEventArgs> WindowClosed;
+
+        private bool isDetecting = false;
+
+        public void StartDetection(IntPtr primaryWindow, string targetProcess)
+        {
+            isDetecting = true;
+            System.Diagnostics.Debug.WriteLine("🔍 AutoWindowDetector started");
+        }
+
+        public void StopDetection()
+        {
+            isDetecting = false;
+            System.Diagnostics.Debug.WriteLine("🛑 AutoWindowDetector stopped");
+        }
+    }
+
+    /// <summary>
+    /// Skener UI elementov - zjednodušený
+    /// </summary>
+    public class UIElementScanner
+    {
+        public int ScanInterval { get; set; } = 750;
+        public bool EnableDeepScanning { get; set; } = true;
+        public bool EnableWinUI3ElementDetection { get; set; } = true;
+        public int MaxElementsPerScan { get; set; } = 100;
+
+        public event EventHandler<UIElementsChangedEventArgs> ElementsChanged;
+        public event EventHandler<NewElementDetectedEventArgs> NewElementDetected;
+        public event EventHandler<ElementDisappearedEventArgs> ElementDisappeared;
+
+        private bool isScanning = false;
+
+        public void StartScanning(IntPtr primaryWindow)
+        {
+            isScanning = true;
+            System.Diagnostics.Debug.WriteLine("🔍 UIElementScanner started");
+        }
+
+        public void StopScanning()
+        {
+            isScanning = false;
+            System.Diagnostics.Debug.WriteLine("🛑 UIElementScanner stopped");
+        }
+
+        public void AddWindowToScan(IntPtr windowHandle)
+        {
+            System.Diagnostics.Debug.WriteLine($"➕ Added window to scan: {windowHandle}");
+        }
+
+        public void SwitchPrimaryWindow(IntPtr newPrimaryWindow)
+        {
+            System.Diagnostics.Debug.WriteLine($"🔄 Switched primary scan window: {newPrimaryWindow}");
+        }
+    }
+
+    /// <summary>
+    /// Citlivosť detekcie
+    /// </summary>
+    public enum DetectionSensitivity
+    {
+        Low,
+        Medium,
+        High,
+        VeryHigh
+    }
+
+    /// <summary>
+    /// Typ zmeny kontextu
+    /// </summary>
+    public enum ContextChangeType
+    {
+        Created,
+        Updated,
+        Activated,
+        Closed
+    }
+
+    #endregion
+
+    #region Event Args Classes - Len tie ktoré nie sú definované inde
+
+    /// <summary>
+    /// Event args pre zmenu stavu nahrávania
+    /// </summary>
+    public class RecordingStateChangedEventArgs : EventArgs
+    {
+        public bool IsRecording { get; set; }
+        public bool IsPaused { get; set; }
+        public string SequenceName { get; set; } = "";
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Event args pre nahranie príkazu
+    /// </summary>
+    public class CommandRecordedEventArgs : EventArgs
+    {
+        public Command Command { get; set; }
+        public string SequenceName { get; set; } = "";
+        public int CommandNumber { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Event args pre aktualizáciu použitia elementu
+    /// </summary>
+    public class ElementUsageEventArgs : EventArgs
+    {
+        public string ElementName { get; set; } = "";
+        public ElementUsageStats Stats { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Event args pre zmenu kontextu okna
+    /// </summary>
+    public class WindowContextChangedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public WindowContext Context { get; set; }
+        public ContextChangeType ChangeType { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre aktualizáciu UI elementov
+    /// </summary>
+    public class UIElementsUpdatedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public List<UIElementInfo> PreviousElements { get; set; }
+        public List<UIElementInfo> NewElements { get; set; }
+        public WindowContext Context { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre automaticky detekované okno
+    /// </summary>
+    public class AutoWindowDetectedEventArgs : EventArgs
+    {
+        public WindowDetectionInfo WindowInfo { get; set; }
+        public string DetectionMethod { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre nový UI element
+    /// </summary>
+    public class NewElementDetectedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public UIElementInfo Element { get; set; }
+        public string DetectionMethod { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre zmiznutý element
+    /// </summary>
+    public class ElementDisappearedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public string ElementIdentifier { get; set; }
+        public DateTime DisappearedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre window auto detection
+    /// </summary>
+    public class WindowAutoDetectedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public string Description { get; set; }
+        public WindowTrackingInfo WindowInfo { get; set; }
+        public bool AutoSwitched { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre UI elementy changed
+    /// </summary>
+    public class UIElementsChangedEventArgs : EventArgs
+    {
+        public IntPtr WindowHandle { get; set; }
+        public List<UIElementInfo> NewElements { get; set; }
+        public List<UIElementInfo> PreviousElements { get; set; }
+    }
+
+    /// <summary>
+    /// Event args pre stlačenie klávesu
+    /// </summary>
+    public class KeyPressedEventArgs : EventArgs
+    {
+        public ConsoleKey Key { get; set; }
+        public bool IsShiftPressed { get; set; }
+        public bool IsCtrlPressed { get; set; }
+        public bool IsAltPressed { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Event args pre klik myšou
+    /// </summary>
+    public class MouseClickedEventArgs : EventArgs
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public MouseButton Button { get; set; }
+        public bool IsDoubleClick { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Typ tlačidla myši
+    /// </summary>
+    public enum MouseButton
+    {
+        Left,
+        Right,
+        Middle
+    }
+
+
+
+    ///// <summary>
+    ///// Placeholder pre GlobalHook je definovaný inde - GlobalHook.cs
+    ///// </summary>
+    //public class GlobalHook{}
+
+
+
+    ///// <summary>
+    ///// Placeholder pre WindowTracker je definovaný inde - WindowTracker.cs
+    ///// </summary>
+    //public class WindowTracker{}
+
+    #endregion
 }

@@ -69,6 +69,17 @@
         <!-- Menu Bar -->
         <Menu Grid.Row="0" Background="#FFF0F0F0">
             <MenuItem Header="_File">
+                <MenuItem Header="Enhanced">
+                    <MenuItem Header="Start Enhanced Recording" Click="StartEnhancedRecordingWithAutoDetection_Click"/>
+                    <MenuItem Header="Auto-Detect Windows" Click="AutoDetectAndAddWindow_Click"/>
+                    <MenuItem Header="Refresh All UI Elements" Click="AutoRefreshAllUIElements_Click"/>
+                    <MenuItem Header="Toggle Automatic Mode" Click="ToggleAutomaticMode_Click"/>
+                    <Separator/>
+                    <MenuItem Header="System Status" Click="ShowAutomaticSystemStatus_Click"/>
+                    <MenuItem Header="Export Auto Data" Click="ExportAutoDetectedData_Click"/>
+                    <MenuItem Header="Reset Auto System" Click="ResetAutomaticSystem_Click"/>
+                </MenuItem>
+                <Separator/>
                 <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N"/>
                 <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O"/>
                 <MenuItem Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S"/>
@@ -95,7 +106,6 @@
             </MenuItem>
         </Menu>
 
-        <!-- Control Panel -->
         <!-- Control Panel -->
         <StackPanel Grid.Row="1" Margin="5">
             <!-- Hlavný Control Panel -->
@@ -135,7 +145,7 @@
                     </StackPanel>
 
                     <!-- Playback Controls -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" >
                         <Button Name="btnPlay" Content="▶ Play" 
                         Style="{StaticResource PrimaryButtonStyle}" 
                         Click="PlaySequence_Click" Margin="0,0,10,0"/>
@@ -145,6 +155,20 @@
                         <Button Name="btnStop" Content="⏹ Stop" 
                         Style="{StaticResource SecondaryButtonStyle}" 
                         Click="StopPlayback_Click" IsEnabled="False"/>
+                        
+
+                        <Button x:Name="btnStartEnhancedRecording" Content="Start Enhanced Recording" 
+                                Click="StartEnhancedRecordingWithAutoDetection_Click"/>
+                        <Button x:Name="btnAutoRefreshElements" Content="Auto-Refresh All UI" 
+                                    Click="AutoRefreshAllUIElements_Click"/>
+                        <Button x:Name="btnToggleAutoMode" Content="Toggle Auto Mode" 
+                                    Click="ToggleAutomaticMode_Click"/>
+                        <Button x:Name="btnShowSystemStatus" Content="Show System Status" 
+                                    Click="ShowAutomaticSystemStatus_Click"/>
+                        <Label x:Name="lblAutoDetectionStatus" Content="🔴 Auto-Detection Inactive"/>
+                        <Label x:Name="lblUIRecordingStatus" Content="🔴 UI Scanning Inactive"/>
+                        <ProgressBar x:Name="progressEnhancedRecording" IsIndeterminate="False" Visibility="Collapsed" Height="4"/>
+
                     </StackPanel>
                 </Grid>
             </GroupBox>

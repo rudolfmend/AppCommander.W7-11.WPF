@@ -6,23 +6,20 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
-// ALIAS pre riešenie namespace konfliktu
-using MainWindowInfo = AppCommander.W7_11.WPF.WindowInfo;
-using CoreWindowInfo = AppCommander.W7_11.WPF.Core.WindowInfo;
-
 namespace AppCommander.W7_11.WPF
 {
     public partial class WindowSelectorDialog : Window
     {
-        public MainWindowInfo SelectedWindow { get; private set; }
+        // OPRAVENÉ: Používa WindowTrackingInfo z WindowTracker namiesto WindowFinder
+        public WindowTrackingInfo SelectedWindow { get; private set; }
 
-        private readonly ObservableCollection<MainWindowInfo> windows;
+        private readonly ObservableCollection<WindowTrackingInfo> windows;
 
         public WindowSelectorDialog()
         {
             InitializeComponent();
 
-            windows = new ObservableCollection<MainWindowInfo>();
+            windows = new ObservableCollection<WindowTrackingInfo>();
             dgWindows.ItemsSource = windows;
             dgWindows.SelectionChanged += DgWindows_SelectionChanged;
 
@@ -35,34 +32,23 @@ namespace AppCommander.W7_11.WPF
 
             try
             {
-                // Získaj všetky windows pomocou WindowFinder (ktorý vracia Core.WindowInfo)
-                var coreWindows = WindowFinder.GetAllWindows();
+                // OPRAVENÉ: Používa WindowTracker.GetAllWindows() namiesto WindowFinder.GetAllWindows()
+                var allWindows = WindowTracker.GetAllWindows();
 
-                foreach (var coreWindow in coreWindows)
+                foreach (var window in allWindows)
                 {
                     try
                     {
                         // Skip our own process
-                        if (coreWindow.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                        if (window.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                             continue;
 
                         // Skip windows without titles
-                        if (string.IsNullOrWhiteSpace(coreWindow.WindowTitle))
+                        if (string.IsNullOrWhiteSpace(window.Title))
                             continue;
 
-                        // KONVERTUJ Core.WindowInfo na MainWindow.WindowInfo
-                        var mainWindowInfo = new MainWindowInfo
-                        {
-                            Handle = coreWindow.Handle,
-                            WindowTitle = coreWindow.WindowTitle,
-                            ProcessName = coreWindow.ProcessName,
-                            ProcessId = coreWindow.ProcessId,
-                            WindowClass = coreWindow.WindowClass,
-                            ClassName = coreWindow.WindowClass, // Alias pre kompatibilitu
-                            ErrorMessage = coreWindow.ErrorMessage
-                        };
-
-                        windows.Add(mainWindowInfo);
+                        // Pridaj priamo WindowTrackingInfo (už nepotrebujeme konverziu)
+                        windows.Add(window);
                     }
                     catch
                     {
@@ -71,7 +57,7 @@ namespace AppCommander.W7_11.WPF
                     }
                 }
 
-                // Ak WindowFinder.GetAllWindows() neexistuje, použij fallback
+                // Ak WindowTracker.GetAllWindows() vráti prázdny zoznam, použij fallback
                 if (windows.Count == 0)
                 {
                     LoadWindowsFallback();
@@ -79,10 +65,10 @@ namespace AppCommander.W7_11.WPF
 
                 // Remove duplicates and sort
                 var uniqueWindows = windows
-                    .GroupBy(w => w.Handle)
+                    .GroupBy(w => w.WindowHandle)
                     .Select(g => g.First())
                     .OrderBy(w => w.ProcessName)
-                    .ThenBy(w => w.WindowTitle)
+                    .ThenBy(w => w.Title)
                     .ToList();
 
                 windows.Clear();
@@ -102,7 +88,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Fallback metóda ak WindowFinder nie je dostupný
+        /// Fallback metóda ak WindowTracker zlyhá
         /// </summary>
         private void LoadWindowsFallback()
         {
@@ -122,14 +108,17 @@ namespace AppCommander.W7_11.WPF
                         if (process.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        windows.Add(new MainWindowInfo
+                        windows.Add(new WindowTrackingInfo
                         {
-                            Handle = process.MainWindowHandle,
-                            WindowTitle = process.MainWindowTitle,
+                            WindowHandle = process.MainWindowHandle,
+                            Title = process.MainWindowTitle,
                             ProcessName = process.ProcessName,
                             ProcessId = process.Id,
-                            WindowClass = GetWindowClassName(process.MainWindowHandle),
-                            ClassName = GetWindowClassName(process.MainWindowHandle)
+                            ClassName = GetWindowClassName(process.MainWindowHandle),
+                            DetectedAt = DateTime.Now,
+                            IsVisible = true,
+                            IsEnabled = true,
+                            WindowType = WindowType.MainWindow
                         });
                     }
                     catch
@@ -161,14 +150,14 @@ namespace AppCommander.W7_11.WPF
 
         private void DgWindows_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selected = dgWindows.SelectedItem as MainWindowInfo;
+            var selected = dgWindows.SelectedItem as WindowTrackingInfo;
 
             if (selected != null)
             {
                 txtSelectedProcess.Text = selected.ProcessName;
-                txtSelectedTitle.Text = selected.WindowTitle;
-                txtSelectedClass.Text = selected.ClassName; // Používame ClassName property
-                txtSelectedHandle.Text = $"0x{selected.Handle.ToString("X8")}";
+                txtSelectedTitle.Text = selected.Title;
+                txtSelectedClass.Text = selected.ClassName;
+                txtSelectedHandle.Text = $"0x{selected.WindowHandle.ToString("X8")}";
 
                 btnOK.IsEnabled = true;
             }
@@ -190,7 +179,7 @@ namespace AppCommander.W7_11.WPF
 
         private void OK_Click(object sender, RoutedEventArgs e)
         {
-            SelectedWindow = dgWindows.SelectedItem as MainWindowInfo;
+            SelectedWindow = dgWindows.SelectedItem as WindowTrackingInfo;
 
             if (SelectedWindow == null)
             {
