@@ -1,14 +1,16 @@
 ﻿using AppCommander.W7_11.WPF.Core;
 using Microsoft.Win32; // WPF dialógy
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using CommandType = AppCommander.W7_11.WPF.Core.CommandType;
-using System.Diagnostics;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -45,6 +47,9 @@ namespace AppCommander.W7_11.WPF
             commands = new ObservableCollection<Command>();
             elementStatsList = new ObservableCollection<ElementUsageStats>();
             actionSimulator = new ActionSimulator();
+
+            InitializeEnhancedMenuItems();
+            InitializeEnhancedKeyboardShortcuts();
 
             // Setup data bindings
             dgCommands.ItemsSource = commands;
@@ -338,49 +343,49 @@ namespace AppCommander.W7_11.WPF
 
         #region Button Event Handlers
 
-        private void StartRecording_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                string sequenceName = string.IsNullOrWhiteSpace(txtSequenceName.Text)
-                    ? "New Sequence"
-                    : txtSequenceName.Text.Trim();
+        //private void StartRecording_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        string sequenceName = string.IsNullOrWhiteSpace(txtSequenceName.Text)
+        //            ? "New Sequence"
+        //            : txtSequenceName.Text.Trim();
 
-                System.Diagnostics.Debug.WriteLine($"Starting recording with sequence name: {sequenceName}");
-                System.Diagnostics.Debug.WriteLine($"Target window handle: {targetWindowHandle}");
+        //        System.Diagnostics.Debug.WriteLine($"Starting recording with sequence name: {sequenceName}");
+        //        System.Diagnostics.Debug.WriteLine($"Target window handle: {targetWindowHandle}");
 
-                // **Analyzuj target aplikáciu pred nahrávaním**
-                if (targetWindowHandle != IntPtr.Zero)
-                {
-                    AnalyzeTargetApplication();
-                }
+        //        // **Analyzuj target aplikáciu pred nahrávaním**
+        //        if (targetWindowHandle != IntPtr.Zero)
+        //        {
+        //            AnalyzeTargetApplication();
+        //        }
 
-                // Clear existing commands if starting new recording
-                if (commands.Count > 0)
-                {
-                    var result = MessageBox.Show(
-                        "Starting a new recording will clear the current command sequence. Continue?",
-                        "Clear Current Sequence",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
+        //        // Clear existing commands if starting new recording
+        //        if (commands.Count > 0)
+        //        {
+        //            var result = MessageBox.Show(
+        //                "Starting a new recording will clear the current command sequence. Continue?",
+        //                "Clear Current Sequence",
+        //                MessageBoxButton.YesNo,
+        //                MessageBoxImage.Question);
 
-                    if (result == MessageBoxResult.No)
-                        return;
+        //            if (result == MessageBoxResult.No)
+        //                return;
 
-                    commands.Clear();
-                    elementStatsList.Clear();
-                }
+        //            commands.Clear();
+        //            elementStatsList.Clear();
+        //        }
 
-                recorder.StartRecording(sequenceName, targetWindowHandle);
-                System.Diagnostics.Debug.WriteLine($"Started recording sequence: {sequenceName}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to start recording: {ex.Message}", "Error",
-                               MessageBoxButton.OK, MessageBoxImage.Error);
-                System.Diagnostics.Debug.WriteLine($"Error starting recording: {ex.Message}");
-            }
-        }
+        //        recorder.StartRecording(sequenceName, targetWindowHandle);
+        //        System.Diagnostics.Debug.WriteLine($"Started recording sequence: {sequenceName}");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Failed to start recording: {ex.Message}", "Error",
+        //                       MessageBoxButton.OK, MessageBoxImage.Error);
+        //        System.Diagnostics.Debug.WriteLine($"Error starting recording: {ex.Message}");
+        //    }
+        //}
 
         private void StopRecording_Click(object sender, RoutedEventArgs e)
         {
@@ -2260,6 +2265,559 @@ namespace AppCommander.W7_11.WPF
                                MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        #region Window Auto-Detection Event Handlers
+
+        /// <summary>
+        /// Event handler pre automaticky detekované okná
+        /// </summary>
+        private void OnWindowAutoDetected(object sender, WindowAutoDetectedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var windowInfo = e.WindowInfo;
+                    string message = $"🔍 Auto-detected: {e.Description}";
+
+                    if (e.AutoSwitched)
+                    {
+                        message += " (auto-switched)";
+                        txtTarget.Text = e.Description;
+                        statusTarget.Text = $"Target: {windowInfo.ProcessName} [Auto]";
+                    }
+
+                    // Pridaj do Activity Log
+                    string logEntry = $"[{DateTime.Now:HH:mm:ss}] {message}\n";
+                    logEntry += $"   Type: {windowInfo.WindowType}, Modal: {windowInfo.IsModal}\n";
+
+                    if (txtLog != null)
+                    {
+                        txtLog.AppendText(logEntry);
+                        txtLog.ScrollToEnd();
+                    }
+
+                    // Update sequence info
+                    if (txtSequenceInfo != null)
+                    {
+                        txtSequenceInfo.Text = $"Recording on: {windowInfo.ProcessName}";
+                    }
+
+                    // Notifikácia pre užívateľa
+                    ShowWindowDetectionNotification(windowInfo, e.AutoSwitched);
+
+                    System.Diagnostics.Debug.WriteLine($"UI updated for auto-detected window: {e.Description}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error handling window auto-detection: {ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Zobrazí notifikáciu o detekcii nového okna
+        /// </summary>
+        private void ShowWindowDetectionNotification(WindowTrackingInfo windowInfo, bool autoSwitched)
+        {
+            try
+            {
+                // Dočasne zmení farbu status textu
+                if (txtStatus != null)
+                {
+                    var originalBrush = txtStatus.Foreground;
+                    txtStatus.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.DarkGreen);
+
+                    string statusMessage = autoSwitched
+                        ? $"Switched to: {windowInfo.Title}"
+                        : $"Detected: {windowInfo.Title}";
+
+                    txtStatus.Text = statusMessage;
+
+                    // Resetni farbu po 3 sekundách
+                    Task.Delay(3000).ContinueWith(t =>
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (txtStatus != null)
+                            {
+                                txtStatus.Foreground = originalBrush;
+                                txtStatus.Text = recorder?.IsRecording == true ? "Recording..." : "Ready";
+                            }
+                        });
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing notification: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Získa zoznam sledovaných okien pre display
+        /// </summary>
+        public void UpdateTrackedWindowsDisplay()
+        {
+            try
+            {
+                if (recorder?.IsRecording == true)
+                {
+                    var trackedWindows = recorder.GetTrackedWindows();
+
+                    if (trackedWindows.Count > 1)
+                    {
+                        var windowsList = string.Join(", ", trackedWindows.Values.Take(3));
+                        if (trackedWindows.Count > 3)
+                        {
+                            windowsList += $" (+{trackedWindows.Count - 3} more)";
+                        }
+
+                        if (txtTarget != null)
+                        {
+                            txtTarget.Text = $"Multiple windows: {windowsList}";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating tracked windows display: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Enhanced Recording Methods
+
+        /// <summary>
+        /// Rozšírená verzia StartRecording s window tracking
+        /// </summary>
+        private void StartRecording_Click_Enhanced(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string sequenceName = string.IsNullOrWhiteSpace(txtSequenceName.Text)
+                    ? "New Sequence"
+                    : txtSequenceName.Text.Trim();
+
+                System.Diagnostics.Debug.WriteLine($"Starting enhanced recording with sequence name: {sequenceName}");
+                System.Diagnostics.Debug.WriteLine($"Target window handle: {targetWindowHandle}");
+                System.Diagnostics.Debug.WriteLine($"Auto-detect windows: {recorder.AutoDetectNewWindows}");
+
+                // Subscribe to window auto-detection events
+                recorder.WindowAutoDetected += OnWindowAutoDetected;
+
+                // **Analyzuj target aplikáciu pred nahrávaním**
+                if (targetWindowHandle != IntPtr.Zero)
+                {
+                    AnalyzeTargetApplication();
+                }
+
+                // Clear existing commands if starting new recording
+                if (commands.Count > 0)
+                {
+                    var result = MessageBox.Show(
+                        "Starting a new recording will clear the current command sequence. Continue?",
+                        "Clear Current Sequence",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.No)
+                        return;
+
+                    commands.Clear();
+                    elementStatsList.Clear();
+                }
+
+                // Enable automatic window detection
+                recorder.AutoDetectNewWindows = true;
+                recorder.AutoSwitchToNewWindows = true;
+                recorder.LogWindowChanges = true;
+
+                recorder.StartRecording(sequenceName, targetWindowHandle);
+
+                // Update UI to show enhanced recording mode
+                if (txtStatus != null)
+                {
+                    txtStatus.Text = "Recording (Auto-detect ON)";
+                }
+
+                if (txtLog != null)
+                {
+                    txtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] Enhanced recording started with auto-detection\n");
+                    txtLog.AppendText($"   Target: {GetWindowInfo(targetWindowHandle)}\n");
+                    txtLog.AppendText($"   Auto-switch to new windows: Enabled\n\n");
+                    txtLog.ScrollToEnd();
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Enhanced recording started: {sequenceName}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start enhanced recording: {ex.Message}", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Error starting enhanced recording: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Manuálne pridanie okna do tracking
+        /// </summary>
+        public void AddWindowToTracking_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!recorder.IsRecording)
+                {
+                    MessageBox.Show("Recording must be active to add windows to tracking.",
+                                  "Recording Not Active", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Spusti window selector pre výber okna na pridanie
+                var dialog = new WindowSelectorDialog
+                {
+                    Owner = this,
+                    Title = "Add Window to Tracking"
+                };
+
+                if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
+                {
+                    var selected = dialog.SelectedWindow;
+                    string description = $"{selected.ProcessName} - {selected.WindowTitle}";
+
+                    recorder.AddWindowToTracking(selected.Handle, description);
+
+                    if (txtLog != null)
+                    {
+                        txtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] Manually added window: {description}\n");
+                        txtLog.ScrollToEnd();
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"Manually added window to tracking: {description}");
+
+                    MessageBox.Show($"Window added to tracking:\n{description}",
+                                  "Window Added", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error adding window to tracking: {ex.Message}", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Error adding window to tracking: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Zobrazí zoznam sledovaných okien
+        /// </summary>
+        public void ShowTrackedWindows_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!recorder.IsRecording)
+                {
+                    MessageBox.Show("No recording session active.", "No Recording",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var trackedWindows = recorder.GetTrackedWindows();
+
+                if (trackedWindows.Count == 0)
+                {
+                    MessageBox.Show("No windows are currently being tracked.", "No Tracked Windows",
+                                  MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var windowList = new System.Text.StringBuilder();
+                windowList.AppendLine("Currently tracked windows:");
+                windowList.AppendLine();
+
+                int index = 1;
+                foreach (var window in trackedWindows)
+                {
+                    string status = window.Key == targetWindowHandle ? " (Current Target)" : "";
+                    windowList.AppendLine($"{index}. {window.Value}{status}");
+                    index++;
+                }
+
+                MessageBox.Show(windowList.ToString(), "Tracked Windows",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error showing tracked windows: {ex.Message}", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Error showing tracked windows: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Manuálne prepnutie target window
+        /// </summary>
+        public void SwitchTargetWindow_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!recorder.IsRecording)
+                {
+                    MessageBox.Show("Recording must be active to switch target windows.",
+                                  "Recording Not Active", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var trackedWindows = recorder.GetTrackedWindows();
+
+                if (trackedWindows.Count <= 1)
+                {
+                    MessageBox.Show("Only one window is currently tracked. Use 'Add Window' to track more windows.",
+                                  "Insufficient Windows", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Vytvor dialog pre výber target window
+                ShowTargetWindowSwitchDialog(trackedWindows);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error switching target window: {ex.Message}", "Error",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Error switching target window: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Zobrazí dialog pre prepnutie target window
+        /// </summary>
+        private void ShowTargetWindowSwitchDialog(Dictionary<IntPtr, string> trackedWindows)
+        {
+            try
+            {
+                var dialog = new Window()
+                {
+                    Title = "Switch Target Window",
+                    Width = 500,
+                    Height = 300,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = this
+                };
+
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var instruction = new TextBlock
+                {
+                    Text = "Select new target window:",
+                    Margin = new Thickness(10),
+                    FontWeight = FontWeights.Bold
+                };
+                Grid.SetRow(instruction, 0);
+                grid.Children.Add(instruction);
+
+                var listBox = new ListBox { Margin = new Thickness(10) };
+
+                foreach (var window in trackedWindows)
+                {
+                    string displayText = window.Value;
+                    if (window.Key == targetWindowHandle)
+                        displayText += " (Current Target)";
+
+                    var item = new ListBoxItem
+                    {
+                        Content = displayText,
+                        Tag = window.Key
+                    };
+                    listBox.Items.Add(item);
+                }
+
+                Grid.SetRow(listBox, 1);
+                grid.Children.Add(listBox);
+
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Margin = new Thickness(10)
+                };
+
+                var okButton = new Button { Content = "Switch", Width = 75, Margin = new Thickness(5, 0, 5, 0) };
+                var cancelButton = new Button { Content = "Cancel", Width = 75 };
+
+                buttonPanel.Children.Add(okButton);
+                buttonPanel.Children.Add(cancelButton);
+                Grid.SetRow(buttonPanel, 2);
+                grid.Children.Add(buttonPanel);
+
+                dialog.Content = grid;
+
+                okButton.Click += (s, e) =>
+                {
+                    var selectedItem = listBox.SelectedItem as ListBoxItem;
+                    if (selectedItem?.Tag is IntPtr newTarget && newTarget != targetWindowHandle)
+                    {
+                        recorder.SwitchTargetWindow(newTarget);
+                        targetWindowHandle = newTarget;
+
+                        string newDescription = trackedWindows[newTarget];
+                        txtTarget.Text = newDescription;
+                        statusTarget.Text = $"Target: {newDescription.Split('-')[0].Trim()} [Switched]";
+
+                        if (txtLog != null)
+                        {
+                            txtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] Manually switched to: {newDescription}\n");
+                            txtLog.ScrollToEnd();
+                        }
+
+                        dialog.DialogResult = true;
+                        dialog.Close();
+                    }
+                };
+
+                cancelButton.Click += (s, e) =>
+                {
+                    dialog.DialogResult = false;
+                    dialog.Close();
+                };
+
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing target switch dialog: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Helper metóda pre získanie window info
+        /// </summary>
+        private string GetWindowInfo(IntPtr windowHandle)
+        {
+            try
+            {
+                if (windowHandle == IntPtr.Zero)
+                    return "No window selected";
+
+                var windowInfo = ExtractWindowInfo(windowHandle);
+                return $"{windowInfo.ProcessName} - {windowInfo.WindowTitle}";
+            }
+            catch
+            {
+                return "Unknown window";
+            }
+        }
+
+        #endregion
+
+        #region Enhanced Menu Items
+
+        /// <summary>
+        /// Pridá nové menu items do Tools menu pre window management
+        /// </summary>
+        private void InitializeEnhancedMenuItems()
+        {
+            try
+            {
+                // Nájdi Tools menu v MainWindow.xaml
+                var mainMenu = this.FindName("mainMenu") as Menu;
+                if (mainMenu != null)
+                {
+                    var toolsMenu = mainMenu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header.ToString().Contains("Tools"));
+                    if (toolsMenu != null)
+                    {
+                        // Pridaj separator
+                        toolsMenu.Items.Add(new Separator());
+
+                        // Add Window to Tracking
+                        var addWindowItem = new MenuItem
+                        {
+                            Header = "_Add Window to Tracking",
+                            InputGestureText = "Ctrl+W"
+                        };
+                        addWindowItem.Click += AddWindowToTracking_Click;
+                        toolsMenu.Items.Add(addWindowItem);
+
+                        // Show Tracked Windows
+                        var showWindowsItem = new MenuItem
+                        {
+                            Header = "_Show Tracked Windows",
+                            InputGestureText = "Ctrl+Shift+W"
+                        };
+                        showWindowsItem.Click += ShowTrackedWindows_Click;
+                        toolsMenu.Items.Add(showWindowsItem);
+
+                        // Switch Target Window
+                        var switchWindowItem = new MenuItem
+                        {
+                            Header = "S_witch Target Window",
+                            InputGestureText = "Ctrl+T"
+                        };
+                        switchWindowItem.Click += SwitchTargetWindow_Click;
+                        toolsMenu.Items.Add(switchWindowItem);
+
+                        System.Diagnostics.Debug.WriteLine("Enhanced menu items added successfully");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing enhanced menu items: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Pridaj keyboard shortcuts pre enhanced features
+        /// </summary>
+        private void InitializeEnhancedKeyboardShortcuts()
+        {
+            try
+            {
+                // Ctrl+W - Add Window to Tracking
+                var addWindowCommand = new RoutedCommand();
+                var addWindowGesture = new KeyGesture(Key.W, ModifierKeys.Control);
+                var addWindowBinding = new KeyBinding(addWindowCommand, addWindowGesture);
+                this.InputBindings.Add(addWindowBinding);
+
+                var addWindowCommandBinding = new CommandBinding(addWindowCommand);
+                addWindowCommandBinding.Executed += AddWindowToTracking_Click;
+                this.CommandBindings.Add(addWindowCommandBinding);
+
+                // Ctrl+Shift+W - Show Tracked Windows
+                var showWindowsCommand = new RoutedCommand();
+                var showWindowsGesture = new KeyGesture(Key.W, ModifierKeys.Control | ModifierKeys.Shift);
+                var showWindowsBinding = new KeyBinding(showWindowsCommand, showWindowsGesture);
+                this.InputBindings.Add(showWindowsBinding);
+
+                var showWindowsCommandBinding = new CommandBinding(showWindowsCommand);
+                showWindowsCommandBinding.Executed += ShowTrackedWindows_Click;
+                this.CommandBindings.Add(showWindowsCommandBinding);
+
+                // Ctrl+T - Switch Target Window
+                var switchWindowCommand = new RoutedCommand();
+                var switchWindowGesture = new KeyGesture(Key.T, ModifierKeys.Control);
+                var switchWindowBinding = new KeyBinding(switchWindowCommand, switchWindowGesture);
+                this.InputBindings.Add(switchWindowBinding);
+
+                var switchWindowCommandBinding = new CommandBinding(switchWindowCommand);
+                switchWindowCommandBinding.Executed += SwitchTargetWindow_Click;
+                this.CommandBindings.Add(switchWindowCommandBinding);
+
+                System.Diagnostics.Debug.WriteLine("Enhanced keyboard shortcuts initialized");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing enhanced keyboard shortcuts: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        // V StartRecording_Click nahraď pôvodnú implementáciu za:
+        // StartRecording_Click_Enhanced(sender, e);
     }
 
     /// <summary>
