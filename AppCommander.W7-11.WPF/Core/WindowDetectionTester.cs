@@ -23,6 +23,7 @@ namespace AppCommander.W7_11.WPF.Core
             Console.WriteLine($"Start Time: {DateTime.Now}");
             Console.WriteLine();
 
+            // OPRAVENÉ: WindowTrackingInfo je tracker trieda v tomto projekte
             var tracker = new WindowTrackingInfo();
             var detectedWindows = new List<WindowTrackingInfo>();
 
@@ -180,18 +181,25 @@ namespace AppCommander.W7_11.WPF.Core
         {
             var windows = new List<IntPtr>();
 
-            WindowTrackingInfo.EnumWindows((hWnd, lParam) =>
+            try
             {
-                if (WindowTrackingInfo.IsWindowVisible(hWnd))
+                EnumWindows((hWnd, lParam) =>
                 {
-                    string title = GetWindowTitle(hWnd);
-                    if (!string.IsNullOrEmpty(title) && title.Length > 3)
+                    if (IsWindowVisible(hWnd))
                     {
-                        windows.Add(hWnd);
+                        string title = GetWindowTitle(hWnd);
+                        if (!string.IsNullOrEmpty(title) && title.Length > 3)
+                        {
+                            windows.Add(hWnd);
+                        }
                     }
-                }
-                return true;
-            }, IntPtr.Zero);
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting test windows: {ex.Message}");
+            }
 
             return windows.Take(10).ToList(); // Limit to 10 for testing
         }
@@ -210,8 +218,8 @@ namespace AppCommander.W7_11.WPF.Core
                 DetectedAt = DateTime.Now
             };
 
-            // Determine window type
-            info.WindowType = DetermineWindowType(info);
+            // Determine window type - použite static helper metódu
+            info.WindowType = DetermineWindowTypeStatic(info.Title, info.ClassName, windowHandle);
             info.IsModal = IsModalWindow(windowHandle);
 
             // Get dimensions
@@ -225,26 +233,31 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Určí typ okna pre testovanie
+        /// Určí typ okna pre testovanie - static helper metóda
         /// </summary>
-        private static WindowType DetermineWindowType(WindowTrackingInfo info)
+        private static WindowType DetermineWindowTypeStatic(string title, string className, IntPtr handle)
         {
             // MessageBox detection
-            if (info.ClassName.Contains("MessageBox") ||
-                info.ClassName == "#32770" ||
-                info.Title.Contains("Error") || info.Title.Contains("Warning") ||
-                info.Title.Contains("Information") || info.Title.Contains("Confirm"))
+            if (className.Contains("MessageBox") ||
+                className == "#32770" ||
+                title.Contains("Error") || title.Contains("Warning") ||
+                title.Contains("Information") || title.Contains("Confirm"))
             {
                 return WindowType.MessageBox;
             }
 
             // Dialog detection
-            if (info.ClassName.Contains("Dialog") ||
-                info.ClassName == "#32770" ||
-                info.Title.Contains("Dialog") ||
-                (info.Width < 600 && info.Height < 400))
+            if (className.Contains("Dialog") ||
+                className == "#32770" ||
+                title.Contains("Dialog"))
             {
                 return WindowType.Dialog;
+            }
+
+            // Child window detection
+            if (GetParent(handle) != IntPtr.Zero)
+            {
+                return WindowType.ChildWindow;
             }
 
             return WindowType.MainWindow;
@@ -287,15 +300,19 @@ namespace AppCommander.W7_11.WPF.Core
                 processName = "";
             }
 
-            // Find target window
+            // Find target window - použite static metódy z WindowTrackingInfo
             IntPtr targetWindow = IntPtr.Zero;
             if (!string.IsNullOrEmpty(processName))
             {
-                var result = WindowTrackingInfo.SmartFindWindow(processName);
-                if (result.IsValid)
+                // OPRAVENÉ: Použite statické metódy alebo GetAllWindows
+                var allWindows = GetAllWindowsStatic();
+                var processWindows = allWindows.Where(w =>
+                    w.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                if (processWindows.Any())
                 {
-                    targetWindow = result.Handle;
-                    Console.WriteLine($"Found target window: {result.MatchMethod}");
+                    targetWindow = processWindows.First().WindowHandle;
+                    Console.WriteLine($"Found target window: {processWindows.First().Title}");
                 }
                 else
                 {
@@ -317,6 +334,57 @@ namespace AppCommander.W7_11.WPF.Core
             Console.WriteLine("Step 3: Test completed");
             Console.WriteLine("Check the output above for detected windows.");
             Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Získa všetky okná - static verzia
+        /// </summary>
+        private static List<WindowTrackingInfo> GetAllWindowsStatic()
+        {
+            var windows = new List<WindowTrackingInfo>();
+
+            try
+            {
+                EnumWindows((hWnd, lParam) =>
+                {
+                    try
+                    {
+                        if (!IsWindowVisible(hWnd))
+                            return true;
+
+                        string title = GetWindowTitle(hWnd);
+                        string className = GetWindowClassName(hWnd);
+                        string processName = GetProcessName(hWnd);
+
+                        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrEmpty(processName))
+                            return true;
+
+                        var windowInfo = new WindowTrackingInfo
+                        {
+                            WindowHandle = hWnd,
+                            Title = title,
+                            ClassName = className,
+                            ProcessName = processName,
+                            DetectedAt = DateTime.Now,
+                            IsVisible = true,
+                            WindowType = DetermineWindowTypeStatic(title, className, hWnd)
+                        };
+
+                        windows.Add(windowInfo);
+                    }
+                    catch
+                    {
+                        // Skip problematic windows
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting all windows: {ex.Message}");
+            }
+
+            return windows;
         }
 
         /// <summary>
@@ -425,6 +493,9 @@ namespace AppCommander.W7_11.WPF.Core
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetParent(IntPtr hWnd);
 
         [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);

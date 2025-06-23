@@ -1487,6 +1487,11 @@ namespace AppCommander.W7_11.WPF.Core
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+        internal void StartRecording(IntPtr targetWindowHandle)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 

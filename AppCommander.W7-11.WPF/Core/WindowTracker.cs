@@ -540,7 +540,7 @@ namespace AppCommander.W7_11.WPF.Core
             return DetermineWindowTypeStatic(info.Title, info.ClassName, info.WindowHandle);
         }
 
-        private void CheckForClosedWindows(List<IntPtr> currentWindows)
+        public void CheckForClosedWindows(List<IntPtr> currentWindows)
         {
             var closedWindows = trackedWindows.Keys.Where(w => !currentWindows.Contains(w)).ToList();
 

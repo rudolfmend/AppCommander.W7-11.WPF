@@ -527,24 +527,24 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {e.WindowInfo?.Title ?? "Unknown"}");
 
                 // Ak je to tracked window, aktualizuj jeho stav
-                if (trackedWindows.ContainsKey(e.WindowHandle))
-                {
-                    // Aktualizuj kontext ak existuje
-                    if (windowContexts.ContainsKey(e.WindowHandle))
-                    {
-                        var context = windowContexts[e.WindowHandle];
-                        context.IsActive = true;
-                        context.LastActivated = DateTime.Now;
+                //if (trackedWindows.ContainsKey(e.WindowHandle))
+                //{
+                //    // Aktualizuj kontext ak existuje
+                //    if (windowContexts.ContainsKey(e.WindowHandle))
+                //    {
+                //        var context = windowContexts[e.WindowHandle];
+                //        context.IsActive = true;
+                //        context.LastActivated = DateTime.Now;
 
-                        // Trigger event
-                        WindowContextChanged?.Invoke(this, new WindowContextChangedEventArgs
-                        {
-                            WindowHandle = e.WindowHandle,
-                            Context = context,
-                            ChangeType = ContextChangeType.Activated
-                        });
-                    }
-                }
+                //        // Trigger event
+                //        WindowContextChanged?.Invoke(this, new WindowContextChangedEventArgs
+                //        {
+                //            WindowHandle = e.WindowHandle,
+                //            Context = context,
+                //            ChangeType = ContextChangeType.Activated
+                //        });
+                //    }
+                //}
             }
             catch (Exception ex)
             {
@@ -672,8 +672,8 @@ namespace AppCommander.W7_11.WPF.Core
                                     AutomationId = element.AutomationId ?? "",
                                     ControlType = element.ControlType ?? "",
                                     ClassName = GetPropertyValue<string>(element, "ClassName") ?? "",
-                                    X = element.Position?.X ?? 0,
-                                    Y = element.Position?.Y ?? 0,
+                                    //X = element.Position?.X ?? 0,
+                                    //Y = element.Position?.Y ?? 0,
                                     IsEnabled = true,
                                     IsVisible = true,
                                     Text = element.Text ?? "",
@@ -730,7 +730,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         private string CalculateElementHash(WinUI3ElementInfo element)
         {
-            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.Position?.X}|{element.Position?.Y}|{element.Text}";
+            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.Position.X}|{element.Position.Y}|{element.Text}";
             return hashSource.GetHashCode().ToString();
         }
 
@@ -868,6 +868,11 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error disposing AutomaticUIManager: {ex.Message}");
             }
+        }
+
+        internal IEnumerable<object> GetNewWindows()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

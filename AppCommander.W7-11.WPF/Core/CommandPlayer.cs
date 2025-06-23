@@ -979,6 +979,26 @@ namespace AppCommander.W7_11.WPF.Core
 
             NotifyPlaybackStateChanged(PlaybackState.Started, progressInfo);
         }
+
+        internal void Pause()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void Resume()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void PlaySequence(CommandSequence sequence, int repeatCount)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void Stop()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     // Helper classes

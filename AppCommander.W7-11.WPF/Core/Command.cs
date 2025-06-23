@@ -16,7 +16,8 @@ namespace AppCommander.W7_11.WPF.Core
         LoopEnd,
         Click,
         DoubleClick,
-        RightClick
+        RightClick,
+        LoopStart
     }
 
     public class Command
@@ -101,6 +102,7 @@ namespace AppCommander.W7_11.WPF.Core
         public bool IsWinUI3Element { get; set; } = false;  // Označenie WinUI3 elementu
         public double ElementConfidence { get; set; } = 0.0;  // Confidence score pre finding
         public string LastFoundMethod { get; set; } = string.Empty;  // Metóda ktorou bol element nájdený
+        public bool IsLoopEnd { get; internal set; }
 
         public Command()
         {
@@ -843,7 +845,11 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public class ElementUsageStats
     {
-        public string ElementName { get; set; } = string.Empty;
+
+        public string ElementName { get; set; } = "";
+        public int UsageCount { get; set; } = 0;    // PRIDANÉ
+        public float Reliability { get; set; } = 1.0f; // PRIDANÉ
+        
         public string ElementType { get; set; } = string.Empty;
         public string ControlType { get; set; } = string.Empty;
         public int ClickCount { get; set; }
