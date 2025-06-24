@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using WindowTrackerEventArgs = AppCommander.W7_11.WPF.Core.WindowActivatedEventArgs;
+using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -462,59 +463,59 @@ namespace AppCommander.W7_11.WPF.Core
 
         #region Event Handlers
 
-        // OPRAVENÉ: Používa CustomWindowAppearedEventArgs namiesto duplikátnych
-        private void OnWindowAppeared(object sender, CustomWindowAppearedEventArgs e)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"🪟 New window appeared: {e.WindowTitle}");
+        //// OPRAVENÉ: Používa CustomWindowAppearedEventArgs namiesto duplikátnych
+        //private void OnWindowAppeared(object sender, CustomWindowAppearedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"🪟 New window appeared: {e.WindowTitle}");
 
-                // Automaticky pridaj do tracking ak spĺňa kritériá
-                if (ShouldAutoTrackWindow(e))
-                {
-                    AddWindowToTracking(e.WindowHandle, DetermineTrackingPriority(e));
+        //        // Automaticky pridaj do tracking ak spĺňa kritériá
+        //        if (ShouldAutoTrackWindow(e))
+        //        {
+        //            AddWindowToTracking(e.WindowHandle, DetermineTrackingPriority(e));
 
-                    NewWindowAppeared?.Invoke(this, new NewWindowAppearedEventArgs
-                    {
-                        WindowHandle = e.WindowHandle,
-                        WindowTitle = e.WindowTitle,
-                        ProcessName = e.ProcessName,
-                        WindowType = e.WindowType,
-                        AutoAdded = true
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error handling window appeared: {ex.Message}");
-            }
-        }
+        //            NewWindowAppeared?.Invoke(this, new NewWindowAppearedEventArgs
+        //            {
+        //                WindowHandle = e.WindowHandle,
+        //                WindowTitle = e.WindowTitle,
+        //                ProcessName = e.ProcessName,
+        //                WindowType = e.WindowType,
+        //                AutoAdded = true
+        //            });
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window appeared: {ex.Message}");
+        //    }
+        //}
 
-        // OPRAVENÉ: Používa CustomWindowDisappearedEventArgs
-        private void OnWindowDisappeared(object sender, CustomWindowDisappearedEventArgs e)
-        {
-            try
-            {
-                if (trackedWindows.ContainsKey(e.WindowHandle))
-                {
-                    var windowState = trackedWindows[e.WindowHandle];
-                    MarkWindowAsInactive(windowState);
+        //// OPRAVENÉ: Používa CustomWindowDisappearedEventArgs
+        //private void OnWindowDisappeared(object sender, CustomWindowDisappearedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (trackedWindows.ContainsKey(e.WindowHandle))
+        //        {
+        //            var windowState = trackedWindows[e.WindowHandle];
+        //            MarkWindowAsInactive(windowState);
 
-                    System.Diagnostics.Debug.WriteLine($"🗑️ Tracked window disappeared: {windowState.Title}");
+        //            System.Diagnostics.Debug.WriteLine($"🗑️ Tracked window disappeared: {windowState.Title}");
 
-                    // OPRAVENÉ: Používa existujúci WindowClosedEventArgs z WindowTracker.cs
-                    WindowClosed?.Invoke(this, new WindowClosedEventArgs
-                    {
-                        WindowHandle = e.WindowHandle,
-                        WindowInfo = CreateWindowTrackingInfo(windowState)
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error handling window disappeared: {ex.Message}");
-            }
-        }
+        //            // OPRAVENÉ: Používa existujúci WindowClosedEventArgs z WindowTracker.cs
+        //            WindowClosed?.Invoke(this, new WindowClosedEventArgs
+        //            {
+        //                WindowHandle = e.WindowHandle,
+        //                WindowInfo = CreateWindowTrackingInfo(windowState)
+        //            });
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window disappeared: {ex.Message}");
+        //    }
+        //}
 
         // Používa existujúci WindowActivatedEventArgs z WindowTracker.cs
         /// <summary>
@@ -880,25 +881,25 @@ namespace AppCommander.W7_11.WPF.Core
 
     #region Supporting Classes
 
-    /// <summary>
-    /// Stav sledovaného okna
-    /// </summary>
-    public class WindowState
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; } = "";
-        public string ProcessName { get; set; } = "";
-        public WindowTrackingPriority Priority { get; set; }
-        public DateTime AddedAt { get; set; }
-        public DateTime LastActivated { get; set; }
-        public DateTime? ClosedAt { get; set; }
-        public DateTime LastChangeDetected { get; set; }
-        public bool IsActive { get; set; } = true;
-        public int ActivationCount { get; set; } = 0;
-        public UISnapshot LastUISnapshot { get; set; }
-        public List<UIChangeSet> ChangeHistory { get; set; } = new List<UIChangeSet>();
-        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
-    }
+    ///// <summary>
+    ///// Stav sledovaného okna
+    ///// </summary>
+    //public class WindowState
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public string Title { get; set; } = "";
+    //    public string ProcessName { get; set; } = "";
+    //    public WindowTrackingPriority Priority { get; set; }
+    //    public DateTime AddedAt { get; set; }
+    //    public DateTime LastActivated { get; set; }
+    //    public DateTime? ClosedAt { get; set; }
+    //    public DateTime LastChangeDetected { get; set; }
+    //    public bool IsActive { get; set; } = true;
+    //    public int ActivationCount { get; set; } = 0;
+    //    public UISnapshot LastUISnapshot { get; set; }
+    //    public List<UIChangeSet> ChangeHistory { get; set; } = new List<UIChangeSet>();
+    //    public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+    //}
 
     /// <summary>
     /// Priorita sledovania okna
@@ -912,288 +913,288 @@ namespace AppCommander.W7_11.WPF.Core
         Primary
     }
 
-    /// <summary>
-    /// Snapshot UI stavu okna
-    /// </summary>
-    public class UISnapshot
-    {
-        public IntPtr WindowHandle { get; set; }
-        public DateTime CapturedAt { get; set; }
-        public List<UIElementSnapshot> Elements { get; set; } = new List<UIElementSnapshot>();
-        public string WindowTitle { get; set; } = "";
-        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
-    }
+    ///// <summary>
+    ///// Snapshot UI stavu okna
+    ///// </summary>
+    //public class UISnapshot
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public DateTime CapturedAt { get; set; }
+    //    public List<UIElementSnapshot> Elements { get; set; } = new List<UIElementSnapshot>();
+    //    public string WindowTitle { get; set; } = "";
+    //    public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+    //}
 
-    /// <summary>
-    /// Snapshot jednotlivého UI elementu
-    /// </summary>
-    public class UIElementSnapshot
-    {
-        public string Name { get; set; } = "";
-        public string AutomationId { get; set; } = "";
-        public string ControlType { get; set; } = "";
-        public string ClassName { get; set; } = "";
-        public int X { get; set; }
-        public int Y { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsVisible { get; set; }
-        public string Text { get; set; } = "";
-        public string Hash { get; set; } = "";
-        public bool IsWinUI3Element { get; set; } = false;
-        public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
-    }
+    ///// <summary>
+    ///// Snapshot jednotlivého UI elementu
+    ///// </summary>
+    //public class UIElementSnapshot
+    //{
+    //    public string Name { get; set; } = "";
+    //    public string AutomationId { get; set; } = "";
+    //    public string ControlType { get; set; } = "";
+    //    public string ClassName { get; set; } = "";
+    //    public int X { get; set; }
+    //    public int Y { get; set; }
+    //    public int Width { get; set; }
+    //    public int Height { get; set; }
+    //    public bool IsEnabled { get; set; }
+    //    public bool IsVisible { get; set; }
+    //    public string Text { get; set; } = "";
+    //    public string Hash { get; set; } = "";
+    //    public bool IsWinUI3Element { get; set; } = false;
+    //    public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    //}
 
-    /// <summary>
-    /// Sada zmien v UI
-    /// </summary>
-    public class UIChangeSet
-    {
-        public UISnapshot PreviousSnapshot { get; set; }
-        public UISnapshot CurrentSnapshot { get; set; }
-        public DateTime DetectedAt { get; set; }
-        public bool HasChanges { get; set; }
-        public List<UIElementSnapshot> AddedElements { get; set; } = new List<UIElementSnapshot>();
-        public List<UIElementSnapshot> RemovedElements { get; set; } = new List<UIElementSnapshot>();
-        public List<(UIElementSnapshot Previous, UIElementSnapshot Current)> ModifiedElements { get; set; } = new List<(UIElementSnapshot, UIElementSnapshot)>();
-        public string ChangeDescription { get; set; } = "";
-    }
+    ///// <summary>
+    ///// Sada zmien v UI
+    ///// </summary>
+    //public class UIChangeSet
+    //{
+    //    public UISnapshot PreviousSnapshot { get; set; }
+    //    public UISnapshot CurrentSnapshot { get; set; }
+    //    public DateTime DetectedAt { get; set; }
+    //    public bool HasChanges { get; set; }
+    //    public List<UIElementSnapshot> AddedElements { get; set; } = new List<UIElementSnapshot>();
+    //    public List<UIElementSnapshot> RemovedElements { get; set; } = new List<UIElementSnapshot>();
+    //    public List<(UIElementSnapshot Previous, UIElementSnapshot Current)> ModifiedElements { get; set; } = new List<(UIElementSnapshot, UIElementSnapshot)>();
+    //    public string ChangeDescription { get; set; } = "";
+    //}
 
-    /// <summary>
-    /// Monitor okien - OPRAVENÉ eventy
-    /// </summary>
-    public class WindowMonitor : IDisposable
-    {
-        public event EventHandler<CustomWindowAppearedEventArgs> WindowAppeared;
-        public event EventHandler<CustomWindowDisappearedEventArgs> WindowDisappeared;
+    ///// <summary>
+    ///// Monitor okien - OPRAVENÉ eventy
+    ///// </summary>
+    //public class WindowMonitor : IDisposable
+    //{
+    //    public event EventHandler<CustomWindowAppearedEventArgs> WindowAppeared;
+    //    public event EventHandler<CustomWindowDisappearedEventArgs> WindowDisappeared;
 
-        // používa WindowActivatedEventArgs z WindowTracker.cs
-        public event EventHandler<WindowTrackerEventArgs> WindowActivated;
+    //    // používa WindowActivatedEventArgs z WindowTracker.cs
+    //    public event EventHandler<WindowTrackerEventArgs> WindowActivated;
 
-        private readonly List<string> targetProcesses = new List<string>();
-        private readonly HashSet<IntPtr> knownWindows = new HashSet<IntPtr>();
-        private bool isMonitoring = false;
+    //    private readonly List<string> targetProcesses = new List<string>();
+    //    private readonly HashSet<IntPtr> knownWindows = new HashSet<IntPtr>();
+    //    private bool isMonitoring = false;
 
-        public void StartMonitoring(string targetProcess = "")
-        {
-            isMonitoring = true;
-            if (!string.IsNullOrEmpty(targetProcess))
-            {
-                AddTargetProcess(targetProcess);
-            }
-            System.Diagnostics.Debug.WriteLine("🔍 WindowMonitor started");
-        }
+    //    public void StartMonitoring(string targetProcess = "")
+    //    {
+    //        isMonitoring = true;
+    //        if (!string.IsNullOrEmpty(targetProcess))
+    //        {
+    //            AddTargetProcess(targetProcess);
+    //        }
+    //        System.Diagnostics.Debug.WriteLine("🔍 WindowMonitor started");
+    //    }
 
-        public void StopMonitoring()
-        {
-            isMonitoring = false;
-            System.Diagnostics.Debug.WriteLine("🛑 WindowMonitor stopped");
-        }
+    //    public void StopMonitoring()
+    //    {
+    //        isMonitoring = false;
+    //        System.Diagnostics.Debug.WriteLine("🛑 WindowMonitor stopped");
+    //    }
 
-        public void AddTargetProcess(string processName)
-        {
-            if (!targetProcesses.Contains(processName))
-            {
-                targetProcesses.Add(processName);
-                System.Diagnostics.Debug.WriteLine($"📝 Added target process: {processName}");
-            }
-        }
+    //    public void AddTargetProcess(string processName)
+    //    {
+    //        if (!targetProcesses.Contains(processName))
+    //        {
+    //            targetProcesses.Add(processName);
+    //            System.Diagnostics.Debug.WriteLine($"📝 Added target process: {processName}");
+    //        }
+    //    }
 
-        public bool IsTargetProcess(string processName)
-        {
-            return targetProcesses.Contains(processName);
-        }
+    //    public bool IsTargetProcess(string processName)
+    //    {
+    //        return targetProcesses.Contains(processName);
+    //    }
 
-        public void Dispose()
-        {
-            StopMonitoring();
-        }
-    }
+    //    public void Dispose()
+    //    {
+    //        StopMonitoring();
+    //    }
+    //}
 
-    /// <summary>
-    /// Detektor zmien elementov
-    /// </summary>
-    public class ElementChangeDetector : IDisposable
-    {
-        public event EventHandler<ElementAddedEventArgs> ElementAdded;
-        public event EventHandler<ElementRemovedEventArgs> ElementRemoved;
-        public event EventHandler<ElementModifiedEventArgs> ElementModified;
+    ///// <summary>
+    ///// Detektor zmien elementov
+    ///// </summary>
+    //public class ElementChangeDetector : IDisposable
+    //{
+    //    public event EventHandler<ElementAddedEventArgs> ElementAdded;
+    //    public event EventHandler<ElementRemovedEventArgs> ElementRemoved;
+    //    public event EventHandler<ElementModifiedEventArgs> ElementModified;
 
-        private bool isDetecting = false;
+    //    private bool isDetecting = false;
 
-        public void StartDetection()
-        {
-            isDetecting = true;
-            System.Diagnostics.Debug.WriteLine("🔍 ElementChangeDetector started");
-        }
+    //    public void StartDetection()
+    //    {
+    //        isDetecting = true;
+    //        System.Diagnostics.Debug.WriteLine("🔍 ElementChangeDetector started");
+    //    }
 
-        public void StopDetection()
-        {
-            isDetecting = false;
-            System.Diagnostics.Debug.WriteLine("🛑 ElementChangeDetector stopped");
-        }
+    //    public void StopDetection()
+    //    {
+    //        isDetecting = false;
+    //        System.Diagnostics.Debug.WriteLine("🛑 ElementChangeDetector stopped");
+    //    }
 
-        public void Dispose()
-        {
-            StopDetection();
-        }
-    }
+    //    public void Dispose()
+    //    {
+    //        StopDetection();
+    //    }
+    //}
 
-    /// <summary>
-    /// Inteligentný analyzátor UI
-    /// </summary>
-    public class SmartUIAnalyzer : IDisposable
-    {
-        public event EventHandler<PatternDetectedEventArgs> PatternDetected;
-        public event EventHandler<AnomalyDetectedEventArgs> AnomalyDetected;
+    ///// <summary>
+    ///// Inteligentný analyzátor UI
+    ///// </summary>
+    //public class SmartUIAnalyzer : IDisposable
+    //{
+    //    public event EventHandler<PatternDetectedEventArgs> PatternDetected;
+    //    public event EventHandler<AnomalyDetectedEventArgs> AnomalyDetected;
 
-        private bool isAnalyzing = false;
+    //    private bool isAnalyzing = false;
 
-        public void StartAnalysis()
-        {
-            isAnalyzing = true;
-            System.Diagnostics.Debug.WriteLine("🧠 SmartUIAnalyzer started");
-        }
+    //    public void StartAnalysis()
+    //    {
+    //        isAnalyzing = true;
+    //        System.Diagnostics.Debug.WriteLine("🧠 SmartUIAnalyzer started");
+    //    }
 
-        public void StopAnalysis()
-        {
-            isAnalyzing = false;
-            System.Diagnostics.Debug.WriteLine("🛑 SmartUIAnalyzer stopped");
-        }
+    //    public void StopAnalysis()
+    //    {
+    //        isAnalyzing = false;
+    //        System.Diagnostics.Debug.WriteLine("🛑 SmartUIAnalyzer stopped");
+    //    }
 
-        public void AnalyzeChanges(WindowState windowState, UIChangeSet changes)
-        {
-            if (!isAnalyzing) return;
+    //    public void AnalyzeChanges(WindowState windowState, UIChangeSet changes)
+    //    {
+    //        if (!isAnalyzing) return;
 
-            // Implementácia analýzy patterns a anomálií
-            // Napríklad: detekcia opakujúcich sa patterns, neočakávaných zmien, atď.
-        }
+    //        // Implementácia analýzy patterns a anomálií
+    //        // Napríklad: detekcia opakujúcich sa patterns, neočakávaných zmien, atď.
+    //    }
 
-        public void Dispose()
-        {
-            StopAnalysis();
-        }
-    }
+    //    public void Dispose()
+    //    {
+    //        StopAnalysis();
+    //    }
+    //}
 
     #endregion
 
     #region Event Args - OPRAVENÉ bez duplikátov
 
-    /// <summary>
-    /// Event args pre detekovanú zmenu UI
-    /// </summary>
-    public class UIChangeDetectedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public WindowState WindowState { get; set; }
-        public UIChangeSet Changes { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre detekovanú zmenu UI
+    ///// </summary>
+    //public class UIChangeDetectedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public WindowState WindowState { get; set; }
+    //    public UIChangeSet Changes { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre nové okno
-    /// </summary>
-    public class NewWindowAppearedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string WindowTitle { get; set; }
-        public string ProcessName { get; set; }
-        public WindowType WindowType { get; set; }
-        public bool AutoAdded { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre nové okno
+    ///// </summary>
+    //public class NewWindowAppearedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public string WindowTitle { get; set; }
+    //    public string ProcessName { get; set; }
+    //    public WindowType WindowType { get; set; }
+    //    public bool AutoAdded { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre interakciu s elementom
-    /// </summary>
-    public class ElementInteractionEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public UIElementSnapshot Element { get; set; }
-        public InteractionType InteractionType { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre interakciu s elementom
+    ///// </summary>
+    //public class ElementInteractionEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public UIElementSnapshot Element { get; set; }
+    //    public InteractionType InteractionType { get; set; }
+    //}
 
-    /// <summary>
-    /// VLASTNÉ Event args pre objavenie sa okna (aby sa predišlo duplikátom)
-    /// </summary>
-    public class CustomWindowAppearedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string WindowTitle { get; set; }
-        public string ProcessName { get; set; }
-        public WindowType WindowType { get; set; }
-    }
+    ///// <summary>
+    ///// VLASTNÉ Event args pre objavenie sa okna (aby sa predišlo duplikátom)
+    ///// </summary>
+    //public class CustomWindowAppearedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public string WindowTitle { get; set; }
+    //    public string ProcessName { get; set; }
+    //    public WindowType WindowType { get; set; }
+    //}
 
-    /// <summary>
-    /// VLASTNÉ Event args pre zmiznutie okna (aby sa predišlo duplikátom)
-    /// </summary>
-    public class CustomWindowDisappearedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-    }
+    ///// <summary>
+    ///// VLASTNÉ Event args pre zmiznutie okna (aby sa predišlo duplikátom)
+    ///// </summary>
+    //public class CustomWindowDisappearedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre pridaný element
-    /// </summary>
-    public class ElementAddedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public UIElementSnapshot Element { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre pridaný element
+    ///// </summary>
+    //public class ElementAddedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public UIElementSnapshot Element { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre odstránený element
-    /// </summary>
-    public class ElementRemovedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string ElementIdentifier { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre odstránený element
+    ///// </summary>
+    //public class ElementRemovedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public string ElementIdentifier { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre modifikovaný element
-    /// </summary>
-    public class ElementModifiedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public UIElementSnapshot Element { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre modifikovaný element
+    ///// </summary>
+    //public class ElementModifiedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public UIElementSnapshot Element { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre detekovaný pattern
-    /// </summary>
-    public class PatternDetectedEventArgs : EventArgs
-    {
-        public string PatternType { get; set; }
-        public float Confidence { get; set; }
-        public object PatternData { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre detekovaný pattern
+    ///// </summary>
+    //public class PatternDetectedEventArgs : EventArgs
+    //{
+    //    public string PatternType { get; set; }
+    //    public float Confidence { get; set; }
+    //    public object PatternData { get; set; }
+    //}
 
-    /// <summary>
-    /// Event args pre detekovanú anomáliu
-    /// </summary>
-    public class AnomalyDetectedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string AnomalyType { get; set; }
-        public string Description { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre detekovanú anomáliu
+    ///// </summary>
+    //public class AnomalyDetectedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public string AnomalyType { get; set; }
+    //    public string Description { get; set; }
+    //}
 
     #endregion
 
     #region Enums
 
-    /// <summary>
-    /// Typ interakcie s elementom
-    /// </summary>
-    public enum InteractionType
-    {
-        ElementAppeared,
-        ElementDisappeared,
-        ElementClicked,
-        ElementModified,
-        ElementFocused,
-        ElementValueChanged
-    }
+    ///// <summary>
+    ///// Typ interakcie s elementom
+    ///// </summary>
+    //public enum InteractionType
+    //{
+    //    ElementAppeared,
+    //    ElementDisappeared,
+    //    ElementClicked,
+    //    ElementModified,
+    //    ElementFocused,
+    //    ElementValueChanged
+    //}
 
     #endregion
 }

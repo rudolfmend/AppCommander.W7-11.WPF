@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Automation;
+using AppCommander.W7_11.WPF.Core;
 using System.Runtime.InteropServices;
 
 namespace AppCommander.W7_11.WPF.Core

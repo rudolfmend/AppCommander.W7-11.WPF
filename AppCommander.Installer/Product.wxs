@@ -33,17 +33,24 @@
 	<!-- Komponenty -->
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- Hlavný executable -->
+			<!-- Hlavný executable - použij plnú cestu -->
 			<Component Id="MainExecutable" Guid="*">
 				<File Id="AppCommanderExe"
-					  Source="$(var.AppCommander.W7-11.WPF.TargetPath)"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe"
 					  KeyPath="yes" />
 			</Component>
 
-			<!-- Newtonsoft.Json DLL -->
+			<!-- Newtonsoft.Json DLL - použij plnú cestu -->
 			<Component Id="NewtonsoftJson" Guid="*">
 				<File Id="NewtonsoftJsonDll"
-					  Source="$(var.AppCommander.W7-11.WPF.TargetDir)Newtonsoft.Json.dll"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Newtonsoft.Json.dll"
+					  KeyPath="yes" />
+			</Component>
+
+			<!-- App.config ak existuje -->
+			<Component Id="AppConfig" Guid="*">
+				<File Id="AppConfigFile"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe.config"
 					  KeyPath="yes" />
 			</Component>
 		</ComponentGroup>

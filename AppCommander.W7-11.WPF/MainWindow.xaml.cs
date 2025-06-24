@@ -20,7 +20,7 @@ namespace AppCommander.W7_11.WPF
     public partial class MainWindow : Window
     {
         #region Private Fields
-
+        private WindowTracker windowTracker;
         private CommandRecorder recorder;
         private CommandPlayer player;
         private ObservableCollection<Command> commands;
@@ -56,7 +56,7 @@ namespace AppCommander.W7_11.WPF
 
             // Inicializácia automatického systému
             InitializeAutomaticSystem();
-
+            InitializeWindowTracker();
             UpdateUI();
             System.Diagnostics.Debug.WriteLine("AppCommander initialized with Automatic Window Detection");
         }
@@ -2473,6 +2473,65 @@ namespace AppCommander.W7_11.WPF
         public void ExportSequenceForDebug_Click() 
         {
             throw new NotImplementedException();        
+        }
+
+        private void InitializeWindowTracker()
+        {
+            windowTracker = new WindowTracker();
+
+            // Nastavenie event handlerov
+            windowTracker.NewWindowDetected += OnNewWindowDetected;
+            windowTracker.WindowClosed += OnWindowClosed;
+            windowTracker.WindowActivated += OnWindowActivated;
+
+            // Konfigurácia
+            windowTracker.MonitoringIntervalMs = 500;
+            windowTracker.TrackOnlyTargetProcess = true;
+
+            // Spustenie sledovania
+            windowTracker.StartTracking("notepad"); // alebo prázdny string pre všetky procesy
+        }
+
+        private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Console.WriteLine($"Nové okno detekované: {e.Window.Title}");
+                // Pridaj do UI alebo vykonaj inú akciu
+            });
+        }
+
+        private void OnWindowClosed(object sender, WindowClosedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Console.WriteLine($"Okno zatvorené: {e.Window.Title}");
+            });
+        }
+
+        private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Console.WriteLine($"Okno aktivované: {e.Window.Title}");
+            });
+        }
+
+        // DÔLEŽITÉ: Správne vyčistenie
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                // Zastaviť sledovanie a dispose
+                windowTracker?.StopTracking();
+                windowTracker?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing WindowTracker: {ex.Message}");
+            }
+
+            base.OnClosed(e);
         }
     }
 

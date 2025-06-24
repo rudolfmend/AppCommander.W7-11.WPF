@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -840,56 +841,56 @@ namespace AppCommander.W7_11.WPF.Core
         }
     }
 
-    /// <summary>
-    /// Statistics for recorded UI elements usage
-    /// </summary>
-    public class ElementUsageStats
-    {
+    ///// <summary>
+    ///// Statistics for recorded UI elements usage
+    ///// </summary>
+    //public class ElementUsageStats
+    //{
 
-        public string ElementName { get; set; } = "";
-        public int UsageCount { get; set; } = 0;    // PRIDANÉ
-        public float Reliability { get; set; } = 1.0f; // PRIDANÉ
+    //    public string ElementName { get; set; } = "";
+    //    public int UsageCount { get; set; } = 0;    // PRIDANÉ
+    //    public float Reliability { get; set; } = 1.0f; // PRIDANÉ
         
-        public string ElementType { get; set; } = string.Empty;
-        public string ControlType { get; set; } = string.Empty;
-        public int ClickCount { get; set; }
-        public int KeyPressCount { get; set; }
-        public int TotalUsage { get; set; }
-        public DateTime FirstUsed { get; set; }
-        public DateTime LastUsed { get; set; }
-        public List<string> ActionsPerformed { get; set; } = new List<string>();
+    //    public string ElementType { get; set; } = string.Empty;
+    //    public string ControlType { get; set; } = string.Empty;
+    //    public int ClickCount { get; set; }
+    //    public int KeyPressCount { get; set; }
+    //    public int TotalUsage { get; set; }
+    //    public DateTime FirstUsed { get; set; }
+    //    public DateTime LastUsed { get; set; }
+    //    public List<string> ActionsPerformed { get; set; } = new List<string>();
 
-        public void IncrementUsage(CommandType actionType)
-        {
-            TotalUsage++;
-            LastUsed = DateTime.Now;
+    //    public void IncrementUsage(CommandType actionType)
+    //    {
+    //        TotalUsage++;
+    //        LastUsed = DateTime.Now;
 
-            if (FirstUsed == DateTime.MinValue)
-                FirstUsed = DateTime.Now;
+    //        if (FirstUsed == DateTime.MinValue)
+    //            FirstUsed = DateTime.Now;
 
-            switch (actionType)
-            {
-                case CommandType.Click:
-                case CommandType.DoubleClick:
-                case CommandType.RightClick:
-                case CommandType.MouseClick:
-                    ClickCount++;
-                    break;
-                case CommandType.KeyPress:
-                    KeyPressCount++;
-                    break;
-            }
+    //        switch (actionType)
+    //        {
+    //            case CommandType.Click:
+    //            case CommandType.DoubleClick:
+    //            case CommandType.RightClick:
+    //            case CommandType.MouseClick:
+    //                ClickCount++;
+    //                break;
+    //            case CommandType.KeyPress:
+    //                KeyPressCount++;
+    //                break;
+    //        }
 
-            if (!ActionsPerformed.Contains(actionType.ToString()))
-                ActionsPerformed.Add(actionType.ToString());
-        }
+    //        if (!ActionsPerformed.Contains(actionType.ToString()))
+    //            ActionsPerformed.Add(actionType.ToString());
+    //    }
 
-        public override string ToString()
-        {
-            if (string.IsNullOrEmpty(ElementName))
-                return $"Unknown ({ControlType}): {TotalUsage} uses";
+    //    public override string ToString()
+    //    {
+    //        if (string.IsNullOrEmpty(ElementName))
+    //            return $"Unknown ({ControlType}): {TotalUsage} uses";
 
-            return $"{ElementName} ({ControlType}): {TotalUsage} uses";
-        }
-    }
+    //        return $"{ElementName} ({ControlType}): {TotalUsage} uses";
+    //    }
+    //}
 }

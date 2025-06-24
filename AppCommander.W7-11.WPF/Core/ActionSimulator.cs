@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using AppCommander.W7_11.WPF.Core;
 using System.Windows.Forms;
 
 namespace AppCommander.W7_11.WPF.Core
