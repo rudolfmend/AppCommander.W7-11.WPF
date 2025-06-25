@@ -894,5 +894,6 @@ namespace AppCommander.W7_11.WPF.Core
         Critical,
         Primary
     }
+    
     #endregion
 }

@@ -137,7 +137,6 @@
     <Compile Include="Core\CommandPlayer.cs" />
     <Compile Include="Core\CommandRecorder.cs" />
     <Compile Include="Core\DebugTestHelper.cs" />
-    <Compile Include="Core\EventArgs.cs" />
     <Compile Include="Core\GlobalHook.cs" />
     <Compile Include="Core\SharedClasses.cs" />
     <Compile Include="Core\TableCellDetector.cs" />
