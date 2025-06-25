@@ -1,12 +1,13 @@
-﻿// WindowTracker.cs - OPRAVENÝ bez duplikátnych event args
+﻿using AppCommander.W7_11.WPF.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using AppCommander.W7_11.WPF.Core;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Windows;
+using System.Windows.Automation;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -29,6 +30,9 @@ namespace AppCommander.W7_11.WPF.Core
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         #endregion
@@ -41,6 +45,7 @@ namespace AppCommander.W7_11.WPF.Core
         private string targetProcessName;
         private bool isTracking;
         private bool disposed;
+        private IntPtr lastActiveWindow = IntPtr.Zero;
 
         #endregion
 
@@ -74,23 +79,23 @@ namespace AppCommander.W7_11.WPF.Core
 
         public void StartTracking(string processName = "")
         {
-            if (disposed)
-                throw new ObjectDisposedException(nameof(WindowTracker));
-
             if (isTracking) return;
 
             targetProcessName = processName;
             isTracking = true;
 
-            try
+            // Inicializácia so súčasnými oknami
+            var currentWindows = GetAllWindows();
+            foreach (var hWnd in currentWindows)
             {
-                windowMonitorTimer.Change(MonitoringIntervalMs, MonitoringIntervalMs);
-                System.Diagnostics.Debug.WriteLine($"🔍 WindowTracker started for process: {processName}");
+                knownWindows.Add(hWnd);
+                var windowInfo = CreateWindowTrackingInfo(hWnd);
+                trackedWindows[hWnd] = windowInfo;
             }
-            catch (ObjectDisposedException)
-            {
-                System.Diagnostics.Debug.WriteLine("⚠️ Timer already disposed");
-            }
+
+            // Spusti sledovanie
+            windowMonitorTimer.Change(0, MonitoringIntervalMs);
+            System.Diagnostics.Debug.WriteLine($"🎯 WindowTracker started - Target: '{processName}'");
         }
 
         public void StopTracking()
@@ -98,15 +103,66 @@ namespace AppCommander.W7_11.WPF.Core
             if (!isTracking) return;
 
             isTracking = false;
+            windowMonitorTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            System.Diagnostics.Debug.WriteLine("🛑 WindowTracker stopped");
+        }
 
-            try
+        public List<IntPtr> GetAllWindows()
+        {
+            var windows = new List<IntPtr>();
+            EnumWindows((hWnd, lParam) =>
             {
-                windowMonitorTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-                System.Diagnostics.Debug.WriteLine("🛑 WindowTracker stopped");
+                if (IsWindowVisible(hWnd))
+                {
+                    if (string.IsNullOrEmpty(targetProcessName) || !TrackOnlyTargetProcess)
+                    {
+                        windows.Add(hWnd);
+                    }
+                    else
+                    {
+                        var processName = GetProcessName(hWnd);
+                        if (processName.Contains(targetProcessName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            windows.Add(hWnd);
+                        }
+                    }
+                }
+                return true;
+            }, IntPtr.Zero);
+
+            return windows;
+        }
+
+        public WindowTrackingInfo SmartFindWindow(string criteria)
+        {
+            var windows = GetAllWindows();
+            foreach (var hWnd in windows)
+            {
+                var windowInfo = CreateWindowTrackingInfo(hWnd);
+                if (windowInfo.Title.Contains(criteria, StringComparison.OrdinalIgnoreCase) ||
+                    windowInfo.ProcessName.Contains(criteria, StringComparison.OrdinalIgnoreCase) ||
+                    windowInfo.ClassName.Contains(criteria, StringComparison.OrdinalIgnoreCase))
+                {
+                    return windowInfo;
+                }
             }
-            catch (ObjectDisposedException)
+            return null;
+        }
+
+        public void WaitForApplication(string processName)
+        {
+            while (isTracking)
             {
-                // Timer už bol disposed, to je OK
+                var windows = GetAllWindows();
+                foreach (var hWnd in windows)
+                {
+                    var windowProcessName = GetProcessName(hWnd);
+                    if (windowProcessName.Contains(processName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return; // Aplikácia nájdená
+                    }
+                }
+                Thread.Sleep(500);
             }
         }
 
@@ -116,45 +172,25 @@ namespace AppCommander.W7_11.WPF.Core
 
         private void MonitorWindows(object state)
         {
-            if (!isTracking || disposed) return;
+            if (!isTracking) return;
 
             try
             {
                 var currentWindows = GetAllWindows();
+
+                // Kontrola nových okien
                 CheckForNewWindows(currentWindows);
+
+                // Kontrola zatvorených okien
                 CheckForClosedWindows(currentWindows);
+
+                // Kontrola aktivovaných okien
+                CheckForActivatedWindow();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error monitoring windows: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error in MonitorWindows: {ex.Message}");
             }
-        }
-
-        private List<IntPtr> GetAllWindows()
-        {
-            var windows = new List<IntPtr>();
-
-            EnumWindows((hWnd, lParam) =>
-            {
-                if (IsWindowVisible(hWnd) && !IsSystemWindow(GetWindowClassName(hWnd)))
-                {
-                    if (TrackOnlyTargetProcess && !string.IsNullOrEmpty(targetProcessName))
-                    {
-                        var processName = GetProcessName(hWnd);
-                        if (processName.Equals(targetProcessName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            windows.Add(hWnd);
-                        }
-                    }
-                    else
-                    {
-                        windows.Add(hWnd);
-                    }
-                }
-                return true;
-            }, IntPtr.Zero);
-
-            return windows;
         }
 
         private void CheckForNewWindows(List<IntPtr> currentWindows)
@@ -165,10 +201,15 @@ namespace AppCommander.W7_11.WPF.Core
                 var windowInfo = CreateWindowTrackingInfo(hWnd);
                 trackedWindows[hWnd] = windowInfo;
 
+                // OPRAVENÉ: Používa správne definované EventArgs
                 NewWindowDetected?.Invoke(this, new NewWindowDetectedEventArgs
                 {
-                    Window = windowInfo
+                    Window = windowInfo,
+                    WindowInfo = windowInfo,
+                    Description = $"New window detected: {windowInfo.Title}"
                 });
+
+                System.Diagnostics.Debug.WriteLine($"🆕 New window: {windowInfo.Title} ({windowInfo.ProcessName})");
             }
         }
 
@@ -183,10 +224,50 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     trackedWindows.Remove(hWnd);
 
+                    // OPRAVENÉ: Používa správne definované EventArgs
                     WindowClosed?.Invoke(this, new WindowClosedEventArgs
                     {
-                        Window = windowInfo
+                        WindowHandle = hWnd,
+                        Window = windowInfo,
+                        WindowInfo = windowInfo,
+                        WindowTitle = windowInfo.Title,
+                        ProcessName = windowInfo.ProcessName
                     });
+
+                    System.Diagnostics.Debug.WriteLine($"🗑️ Window closed: {windowInfo.Title}");
+                }
+            }
+        }
+
+        private void CheckForActivatedWindow()
+        {
+            var currentActiveWindow = GetForegroundWindow();
+            if (currentActiveWindow != IntPtr.Zero && currentActiveWindow != lastActiveWindow)
+            {
+                lastActiveWindow = currentActiveWindow;
+
+                if (trackedWindows.TryGetValue(currentActiveWindow, out var windowInfo))
+                {
+                    windowInfo.LastActivated = DateTime.Now;
+                    windowInfo.IsActive = true;
+
+                    // Označiť ostatné okná ako neaktívne
+                    foreach (var other in trackedWindows.Values.Where(w => w.WindowHandle != currentActiveWindow))
+                    {
+                        other.IsActive = false;
+                    }
+
+                    // OPRAVENÉ: Používa správne definované EventArgs
+                    WindowActivated?.Invoke(this, new WindowActivatedEventArgs
+                    {
+                        WindowHandle = currentActiveWindow,
+                        Window = windowInfo,
+                        WindowInfo = windowInfo,
+                        WindowTitle = windowInfo.Title,
+                        ProcessName = windowInfo.ProcessName
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {windowInfo.Title}");
                 }
             }
         }
@@ -205,10 +286,10 @@ namespace AppCommander.W7_11.WPF.Core
                 DetectedAt = DateTime.Now,
                 ProcessId = processId,
                 IsVisible = IsWindowVisible(hWnd),
-                IsActive = false, // Bude aktualizované podľa potreby
+                IsActive = false,
                 IsEnabled = true,
                 IsModal = false,
-                Width = 0, // Môže byť doplnené GetWindowRect API
+                Width = 0,
                 Height = 0,
                 LastActivated = DateTime.Now
             };
@@ -216,9 +297,16 @@ namespace AppCommander.W7_11.WPF.Core
 
         private string GetWindowTitle(IntPtr hWnd)
         {
-            var sb = new StringBuilder(256);
-            GetWindowText(hWnd, sb, sb.Capacity);
-            return sb.ToString();
+            var title = new StringBuilder(256);
+            GetWindowText(hWnd, title, title.Capacity);
+            return title.ToString();
+        }
+
+        private string GetWindowClassName(IntPtr hWnd)
+        {
+            var className = new StringBuilder(256);
+            GetClassName(hWnd, className, className.Capacity);
+            return className.ToString();
         }
 
         private string GetProcessName(IntPtr hWnd)
@@ -226,8 +314,10 @@ namespace AppCommander.W7_11.WPF.Core
             try
             {
                 GetWindowThreadProcessId(hWnd, out uint processId);
-                var process = Process.GetProcessById((int)processId);
-                return process.ProcessName;
+                using (var process = Process.GetProcessById((int)processId))
+                {
+                    return process.ProcessName;
+                }
             }
             catch
             {
@@ -235,36 +325,19 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private string GetWindowClassName(IntPtr hWnd)
-        {
-            var sb = new StringBuilder(256);
-            GetClassName(hWnd, sb, sb.Capacity);
-            return sb.ToString();
-        }
-
         private WindowType DetermineWindowType(IntPtr hWnd)
         {
             var className = GetWindowClassName(hWnd);
+            var title = GetWindowTitle(hWnd);
 
-            if (className.Contains("Dialog"))
+            if (className.Contains("Dialog") || title.Contains("Dialog"))
                 return WindowType.Dialog;
-            if (className.Contains("MessageBox"))
+            if (className.Contains("MessageBox") || className.Equals("#32770"))
                 return WindowType.MessageBox;
             if (className.Contains("Popup"))
                 return WindowType.Popup;
 
             return WindowType.Standard;
-        }
-
-        private bool IsSystemWindow(string className)
-        {
-            var systemClasses = new[]
-            {
-                "Shell_TrayWnd", "DV2ControlHost", "MsgrIMEWindowClass",
-                "SysShadow", "Button", "Progman", "Windows.UI.Core.CoreWindow"
-            };
-
-            return systemClasses.Any(sc => className.Contains(sc));
         }
 
         #endregion
@@ -283,15 +356,10 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (disposing)
                 {
-                    try
-                    {
-                        StopTracking();
-                        windowMonitorTimer?.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ Error disposing WindowTracker: {ex.Message}");
-                    }
+                    StopTracking();
+                    windowMonitorTimer?.Dispose();
+                    knownWindows.Clear();
+                    trackedWindows.Clear();
                 }
 
                 disposed = true;
@@ -305,63 +373,4 @@ namespace AppCommander.W7_11.WPF.Core
 
         #endregion
     }
-
-    #region Supporting Classes
-
-    public class WindowTrackingInfo
-    {
-        public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; }
-        public string ProcessName { get; set; }
-        public string ClassName { get; set; }
-        public WindowType WindowType { get; set; }
-        public DateTime DetectedAt { get; set; }
-
-        // Dodatočné vlastnosti potrebné pre kód
-        public bool IsModal { get; set; }
-        public bool IsVisible { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsEnabled { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public uint ProcessId { get; set; }
-        public DateTime LastActivated { get; set; }
-
-        // Eventy (pre kompatibilitu s existujúcim kódom)
-        public event EventHandler<NewWindowDetectedEventArgs> NewWindowDetected;
-        public event EventHandler<WindowActivatedEventArgs> WindowActivated;
-        public event EventHandler<WindowClosedEventArgs> WindowClosed;
-
-        // Metódy pre kompatibilitu
-        public void StartTracking(string processName = "") { }
-        public void StopTracking() { }
-        public List<IntPtr> GetAllWindows() { return new List<IntPtr>(); }
-        public WindowTrackingInfo SmartFindWindow(string criteria) { return this; }
-        public void WaitForApplication(string processName) { }
-        public bool TrackOnlyTargetProcess { get; set; }
-    }
-
-    // POZNÁMKA: Event args triedy sú teraz iba v EventArgs.cs
-    // Odstránené duplikáty: WindowActivatedEventArgs, WindowClosedEventArgs
-
-    public class NewWindowDetectedEventArgs : EventArgs
-    {
-        public WindowTrackingInfo Window { get; set; }
-        public WindowTrackingInfo WindowInfo { get; set; }
-        public string Description { get; set; }
-    }
-
-    public enum WindowType
-    {
-        Standard,
-        Dialog,
-        MessageBox,
-        Popup,
-        Child,
-        Tool,
-        ChildWindow,
-        MainWindow
-    }
-
-    #endregion
 }

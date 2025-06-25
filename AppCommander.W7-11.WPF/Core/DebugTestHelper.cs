@@ -806,18 +806,6 @@ namespace AppCommander.W7_11.WPF.Core
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
     }
 
-    //public class WinUI3ApplicationAnalysis
-    //{
-    //    public bool IsSuccessful { get; set; } = false;
-    //    public string ErrorMessage { get; set; } = "";
-    //    public string WindowTitle { get; set; } = "";
-    //    public string WindowClass { get; set; } = "";
-    //    public int BridgeCount { get; set; } = 0;
-    //    public List<WinUI3BridgeInfo> Bridges { get; set; } = new List<WinUI3BridgeInfo>();
-    //    public List<WinUI3ElementInfo> InteractiveElements { get; set; } = new List<WinUI3ElementInfo>();
-    //    public List<string> Recommendations { get; set; } = new List<string>();
-    //}
-
     public class WinUI3BridgeInfo
     {
         public System.Drawing.Point Position { get; set; }

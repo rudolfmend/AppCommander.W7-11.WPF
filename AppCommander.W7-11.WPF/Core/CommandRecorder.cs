@@ -1529,74 +1529,6 @@ namespace AppCommander.W7_11.WPF.Core
         public string ClassName { get; set; } = "";
     }
 
-    ///// <summary>
-    ///// Automatický detektor okien - zjednodušený
-    ///// </summary>
-    //public class AutoWindowDetector
-    //{
-    //    public bool EnableDialogDetection { get; set; } = true;
-    //    public bool EnableMessageBoxDetection { get; set; } = true;
-    //    public bool EnableChildWindowDetection { get; set; } = true;
-    //    public bool EnableWinUI3Detection { get; set; } = true;
-    //    public DetectionSensitivity DetectionSensitivity { get; set; } = DetectionSensitivity.Medium;
-
-    //    public event EventHandler<AutoWindowDetectedEventArgs> NewWindowDetected;
-    //    public event EventHandler<WindowActivatedEventArgs> WindowActivated;
-    //    public event EventHandler<WindowClosedEventArgs> WindowClosed;
-
-    //    private bool isDetecting = false;
-
-    //    public void StartDetection(IntPtr primaryWindow, string targetProcess)
-    //    {
-    //        isDetecting = true;
-    //        System.Diagnostics.Debug.WriteLine("🔍 AutoWindowDetector started");
-    //    }
-
-    //    public void StopDetection()
-    //    {
-    //        isDetecting = false;
-    //        System.Diagnostics.Debug.WriteLine("🛑 AutoWindowDetector stopped");
-    //    }
-    //}
-
-    ///// <summary>
-    ///// Skener UI elementov - zjednodušený
-    ///// </summary>
-    //public class UIElementScanner
-    //{
-    //    public int ScanInterval { get; set; } = 750;
-    //    public bool EnableDeepScanning { get; set; } = true;
-    //    public bool EnableWinUI3ElementDetection { get; set; } = true;
-    //    public int MaxElementsPerScan { get; set; } = 100;
-
-    //    public event EventHandler<UIElementsChangedEventArgs> ElementsChanged;
-    //    public event EventHandler<NewElementDetectedEventArgs> NewElementDetected;
-    //    public event EventHandler<ElementDisappearedEventArgs> ElementDisappeared;
-
-    //    private bool isScanning = false;
-
-    //    public void StartScanning(IntPtr primaryWindow)
-    //    {
-    //        isScanning = true;
-    //        System.Diagnostics.Debug.WriteLine("🔍 UIElementScanner started");
-    //    }
-
-    //    public void StopScanning()
-    //    {
-    //        isScanning = false;
-    //        System.Diagnostics.Debug.WriteLine("🛑 UIElementScanner stopped");
-    //    }
-
-    //    public void AddWindowToScan(IntPtr windowHandle)
-    //    {
-    //        System.Diagnostics.Debug.WriteLine($"➕ Added window to scan: {windowHandle}");
-    //    }
-
-    //    public void SwitchPrimaryWindow(IntPtr newPrimaryWindow)
-    //    {
-    //        System.Diagnostics.Debug.WriteLine($"🔄 Switched primary scan window: {newPrimaryWindow}");
-    //    }
-    //}
 
     /// <summary>
     /// Citlivosť detekcie
@@ -1624,16 +1556,7 @@ namespace AppCommander.W7_11.WPF.Core
 
     #region Event Args Classes - Len tie ktoré nie sú definované inde
 
-    ///// <summary>
-    ///// Event args pre zmenu stavu nahrávania
-    ///// </summary>
-    //public class RecordingStateChangedEventArgs : EventArgs
-    //{
-    //    public bool IsRecording { get; set; }
-    //    public bool IsPaused { get; set; }
-    //    public string SequenceName { get; set; } = "";
-    //    public DateTime Timestamp { get; set; } = DateTime.Now;
-    //}
+
 
     /// <summary>
     /// Event args pre nahranie príkazu
@@ -1706,16 +1629,7 @@ namespace AppCommander.W7_11.WPF.Core
         public DateTime DisappearedAt { get; set; }
     }
 
-    ///// <summary>
-    ///// Event args pre window auto detection
-    ///// </summary>
-    //public class WindowAutoDetectedEventArgs : EventArgs
-    //{
-    //    public IntPtr WindowHandle { get; set; }
-    //    public string Description { get; set; }
-    //    public WindowTrackingInfo WindowInfo { get; set; }
-    //    public bool AutoSwitched { get; set; }
-    //}
+
 
     /// <summary>
     /// Event args pre UI elementy changed
