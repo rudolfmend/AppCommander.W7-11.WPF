@@ -1,12 +1,12 @@
-﻿// SharedClasses.cs - Vyčistené triedy bez duplicít s Command.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Automation;
 
 namespace AppCommander.W7_11.WPF.Core
 {
-    #region Enums (len tie ktoré nie sú v Command.cs)
+    #region Enums
 
     /// <summary>
     /// Typ okna pre klasifikáciu
@@ -63,7 +63,7 @@ namespace AppCommander.W7_11.WPF.Core
     #region Core Data Classes
 
     /// <summary>
-    /// Informácie o sledovanom okne
+    /// OPRAVENÉ: Informácie o sledovanom okne s pridanými properties
     /// </summary>
     public class WindowTrackingInfo
     {
@@ -74,37 +74,47 @@ namespace AppCommander.W7_11.WPF.Core
         public bool IsVisible { get; set; } = true;
         public DateTime DetectedAt { get; set; } = DateTime.Now;
         public WindowType WindowType { get; set; } = WindowType.MainWindow;
-        //      IsActive = windowState.IsActive,
-        //LastActivated
 
+        public int ProcessId { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsModal { get; set; } = false;
         public DateTime LastActivated { get; set; } = DateTime.Now;
         public WindowTrackingPrioritySharedClasses Priority { get; set; } = WindowTrackingPrioritySharedClasses.Medium;
+
         public override string ToString()
         {
             return $"{ProcessName} - {Title}";
         }
     }
 
-    /// <summary>
-    /// WinUI3 Bridge informácie
-    /// </summary>
-    public class WinUI3BridgeInfo
-    {
-        public string BridgeName { get; set; } = string.Empty;
-        public IntPtr BridgeHandle { get; set; }
-        public bool IsAccessible { get; set; }
-        public string Version { get; set; } = string.Empty;
-    }
+    ///// <summary>
+    ///// WinUI3 Bridge informácie
+    ///// </summary>
+    //public class WinUI3BridgeInfo
+    //{
+    //    public string BridgeName { get; set; } = string.Empty;
+    //    public IntPtr BridgeHandle { get; set; }
+    //    public bool IsAccessible { get; set; }
+    //    public string Version { get; set; } = string.Empty;
+    //}
 
     /// <summary>
-    /// WinUI3 Element informácie
+    /// WinUI3 Element informácie s pozíciou
     /// </summary>
     public class WinUI3ElementInfo
     {
-        public string ElementName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string AutomationId { get; set; } = string.Empty;
         public string ElementType { get; set; } = string.Empty;
+        public string ControlType { get; set; } = string.Empty;
         public bool IsInteractive { get; set; }
         public string AccessMethod { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+
+        // PRIDANÉ: Position property pre kompatibilitu
+        public Point? Position { get; set; }
+        public bool IsEnabled { get; internal set; }
+        public bool IsVisible { get; internal set; }
     }
 
     /// <summary>
@@ -122,7 +132,10 @@ namespace AppCommander.W7_11.WPF.Core
         public List<string> Recommendations { get; set; } = new List<string>();
         public string ApplicationName { get; set; } = string.Empty;
         public string Version { get; set; } = string.Empty;
+
+        // OPRAVENÉ: Unifikované názvy properties
         public bool IsWinUI3 { get; set; } = false;
+        public bool IsWinUI3Application => IsWinUI3; // Alias pre kompatibilitu
     }
 
     #endregion
@@ -153,7 +166,8 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public abstract class UIElementEventArgsBase : EventArgs
     {
-        protected UIElementEventArgsBase(IntPtr windowHandle, UIElementSnapshot element = null)
+        protected UIElementEventArgsBase(IntPtr windowHandle, 
+           string element = null)
         {
             WindowHandle = windowHandle;
             Element = element;
@@ -380,25 +394,30 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Event args pre interakciu s elementom
+    /// OPRAVENÉ: Event args pre interakciu s elementom - nastaviteľné properties
     /// </summary>
-    public sealed class ElementInteractionEventArgs : UIElementEventArgsBase
+    public sealed class ElementInteractionEventArgs : EventArgs
     {
         public ElementInteractionEventArgs(
             IntPtr windowHandle,
             UIElementSnapshot element,
             InteractionType interactionType)
-            : base(windowHandle, element)
         {
+            WindowHandle = windowHandle;
+            Element = element;
             InteractionType = interactionType;
+            Timestamp = DateTime.Now;
         }
 
+        public IntPtr WindowHandle { get; }
+        public UIElementSnapshot Element { get; }
         public InteractionType InteractionType { get; }
+        public DateTime Timestamp { get; }
         public DateTime InteractionAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre UI zmeny detekované automaticky
+    /// OPRAVENÉ: Event args pre UI zmeny detekované automaticky - nastaviteľné properties
     /// </summary>
     public sealed class UIChangeDetectedEventArgs : EventArgs
     {
@@ -784,6 +803,8 @@ namespace AppCommander.W7_11.WPF.Core
                 IsVisible = windowInfo.IsVisible;
                 DetectedAt = windowInfo.DetectedAt;
                 WindowType = windowInfo.WindowType;
+                IsModal = windowInfo.IsModal;
+                IsActive = windowInfo.IsActive;
             }
 
             UIElements = new List<UIElementInfo>();
@@ -819,7 +840,9 @@ namespace AppCommander.W7_11.WPF.Core
                 ClassName = ClassName,
                 IsVisible = IsVisible,
                 DetectedAt = DetectedAt,
-                WindowType = WindowType
+                WindowType = WindowType,
+                IsModal = IsModal,
+                IsActive = IsActive
             };
         }
 
@@ -941,7 +964,7 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Skener UI elementov
+    /// Skaner UI elementov
     /// </summary>
     public class UIElementScanner : IDisposable
     {
@@ -1119,7 +1142,9 @@ namespace AppCommander.W7_11.WPF.Core
             ModifiedElements = modifiedElements ?? new List<UIElementSnapshot>();
             Timestamp = DateTime.Now;
         }
-
+        //NewElements a PreviousElements
+        public List<UIElementSnapshot> NewElements { get; }
+        public List<UIElementSnapshot> PreviousElements { get; }
         public IntPtr WindowHandle { get; }
         public List<UIElementSnapshot> AddedElements { get; }
         public List<UIElementSnapshot> RemovedElements { get; }
@@ -1132,18 +1157,20 @@ namespace AppCommander.W7_11.WPF.Core
             ModifiedElements.Count > 0;
     }
 
-    ///// <summary>
-    ///// Event args pre nový detekovaný element
-    ///// </summary>
-    //public sealed class NewElementDetectedEventArgs : UIElementEventArgsBase
-    //{
-    //    public NewElementDetectedEventArgs(IntPtr windowHandle, UIElementSnapshot element)
-    //        : base(windowHandle, element)
-    //    {
-    //    }
+    /// <summary>
+    /// Event args pre nový detekovaný element
+    /// </summary>
+    public sealed class NewElementDetectedEventArgs : UIElementEventArgsBase
+    {
+        private readonly DateTime Timestamp;
 
-    //    public DateTime DetectedAt => Timestamp;
-    //}
+        public NewElementDetectedEventArgs(IntPtr windowHandle, UIElementSnapshot element)
+            : base(windowHandle, element)
+        {
+        }
+
+        public DateTime DetectedAt => Timestamp;
+    }
 
     /// <summary>
     /// Event args pre zmiznutý element
@@ -1167,6 +1194,68 @@ namespace AppCommander.W7_11.WPF.Core
         public DateTime Timestamp { get; }
         public DateTime DisappearedAt => Timestamp;
     }
+
+    #endregion
+
+    #region Missing Dependencies - Placeholder Classes
+
+    /// <summary>
+    /// PRIDANÉ: Placeholder pre Command typ z Command.cs
+    /// </summary>
+    public class Command
+    {
+        public CommandType CommandType { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public DateTime ExecutedAt { get; set; } = DateTime.Now;
+        // Pridajte ďalšie properties podľa potreby
+    }
+
+    /// <summary>
+    /// PRIDANÉ: Placeholder pre CommandType enum z Command.cs
+    /// </summary>
+    public enum CommandType
+    {
+        Click,
+        DoubleClick,
+        RightClick,
+        MouseClick,
+        KeyPress,
+        TypeText,
+        Wait,
+        WindowSwitch,
+        ElementFocus,
+        Other
+    }
+
+    ///// <summary>
+    ///// PRIDANÉ: Placeholder pre AdaptiveElementFinder
+    ///// </summary>
+    //public static class AdaptiveElementFinder
+    //{
+    //    public static List<UIElementInfo> GetAllInteractiveElements(IntPtr windowHandle)
+    //    {
+    //        // Placeholder implementácia
+    //        return new List<UIElementInfo>();
+    //    }
+    //}
+
+    ///// <summary>
+    ///// PRIDANÉ: Placeholder pre DebugTestHelper
+    ///// </summary>
+    //public static class DebugTestHelper
+    //{
+    //    public static WinUI3ApplicationAnalysis AnalyzeWinUI3Application(IntPtr windowHandle)
+    //    {
+    //        // Placeholder implementácia
+    //        return new WinUI3ApplicationAnalysis
+    //        {
+    //            IsSuccessful = false,
+    //            IsWinUI3 = false,
+    //            ErrorMessage = "Not implemented",
+    //            InteractiveElements = new List<WinUI3ElementInfo>()
+    //        };
+    //    }
+    //}
 
     #endregion
 }

@@ -392,7 +392,7 @@ namespace AppCommander.W7_11.WPF.Core
                             AutomationId = GetProperty(descendant, AutomationElement.AutomationIdProperty),
                             ControlType = descendant.Current.ControlType?.LocalizedControlType ?? "Unknown",
                             Text = GetElementText(descendant),
-                            Position = new System.Drawing.Point(
+                            Position = new System.Windows.Point(
                                 (int)(descendant.Current.BoundingRectangle.X + descendant.Current.BoundingRectangle.Width / 2),
                                 (int)(descendant.Current.BoundingRectangle.Y + descendant.Current.BoundingRectangle.Height / 2)
                             )
@@ -473,7 +473,9 @@ namespace AppCommander.W7_11.WPF.Core
                 AutomationId = GetProperty(element, AutomationElement.AutomationIdProperty),
                 ControlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown",
                 Text = GetElementText(element),
-                Position = new System.Drawing.Point(
+
+                //Position = new System.Drawing.Point(
+                Position = new System.Windows.Point(
                     (int)(rect.X + rect.Width / 2),
                     (int)(rect.Y + rect.Height / 2)
                 ),
@@ -818,15 +820,15 @@ namespace AppCommander.W7_11.WPF.Core
         public string ErrorMessage { get; set; } = "";
     }
 
-    public class WinUI3ElementInfo
-    {
-        public string Name { get; set; } = "";
-        public string AutomationId { get; set; } = "";
-        public string ControlType { get; set; } = "";
-        public string Text { get; set; } = "";
-        public System.Drawing.Point Position { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsVisible { get; set; }
-    }
+    //public class WinUI3ElementInfo
+    //{
+    //    public string Name { get; set; } = "";
+    //    public string AutomationId { get; set; } = "";
+    //    public string ControlType { get; set; } = "";
+    //    public string Text { get; set; } = "";
+    //    public System.Drawing.Point Position { get; set; }
+    //    public bool IsEnabled { get; set; }
+    //    public bool IsVisible { get; set; }
+    //}
 
 }

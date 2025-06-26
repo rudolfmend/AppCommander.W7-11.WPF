@@ -1726,15 +1726,15 @@ namespace AppCommander.W7_11.WPF.Core
     //    public List<UIElementInfo> PreviousElements { get; set; }
     //}
 
-    /// <summary>
-    /// Event args pre nový UI element
-    /// </summary>
-    public class NewElementDetectedEventArgs : EventArgs
-    {
-        public IntPtr WindowHandle { get; set; }
-        public UIElementInfo Element { get; set; }
-        public string DetectionMethod { get; set; }
-    }
+    ///// <summary>
+    ///// Event args pre nový UI element
+    ///// </summary>
+    //public class NewElementDetectedEventArgs : EventArgs
+    //{
+    //    public IntPtr WindowHandle { get; set; }
+    //    public UIElementInfo Element { get; set; }
+    //    public string DetectionMethod { get; set; }
+    //}
 
     ///// <summary>
     ///// Event args pre key press

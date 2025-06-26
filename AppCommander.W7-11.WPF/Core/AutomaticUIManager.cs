@@ -1,12 +1,10 @@
-﻿// AutomaticUIHelpers.cs - OPRAVENÉ duplikátne event args
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-//using WindowTrackerEventArgs = AppCommander.W7_11.WPF.Core.WindowActivatedEventArgs;
 using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
@@ -25,7 +23,6 @@ namespace AppCommander.W7_11.WPF.Core
 
         public event EventHandler<UIChangeDetectedEventArgs> UIChangeDetected;
         public event EventHandler<NewWindowAppearedEventArgs> NewWindowAppeared;
-        // OPRAVENÉ: Používa existujúce WindowClosedEventArgs z WindowTracker.cs
         public event EventHandler<WindowClosedEventArgs> WindowClosed;
         public event EventHandler<ElementInteractionEventArgs> ElementInteractionDetected;
 
@@ -57,11 +54,6 @@ namespace AppCommander.W7_11.WPF.Core
 
         private void SetupEventHandlers()
         {
-            //windowMonitor.WindowAppeared += OnWindowAppeared;
-            //windowMonitor.WindowDisappeared += OnWindowDisappeared;
-
-            //windowMonitor.WindowActivated += (sender, e) => OnWindowActivated(sender, e);            // OPRAVENÉ: Cast na generic EventHandler
-
             elementDetector.ElementAdded += OnElementAdded;
             elementDetector.ElementRemoved += OnElementRemoved;
             elementDetector.ElementModified += OnElementModified;
@@ -73,8 +65,6 @@ namespace AppCommander.W7_11.WPF.Core
         #endregion
 
         #region Public Methods
-
-
 
         /// <summary>
         /// Spustí automatické monitorovanie
@@ -160,7 +150,8 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (trackedWindows.ContainsKey(windowHandle))
                 {
-                    trackedWindows[windowHandle].Priority = priority;
+                    // OPRAVENÉ: Konverzia enum typu
+                    trackedWindows[windowHandle].Priority = ConvertPriority(priority);
                     return;
                 }
 
@@ -169,7 +160,7 @@ namespace AppCommander.W7_11.WPF.Core
                     WindowHandle = windowHandle,
                     Title = GetWindowTitle(windowHandle),
                     ProcessName = GetProcessName(windowHandle),
-                    Priority = priority,
+                    Priority = ConvertPriority(priority), // OPRAVENÉ: Konverzia enum typu
                     AddedAt = DateTime.Now,
                     LastUISnapshot = CaptureUISnapshot(windowHandle)
                 };
@@ -181,6 +172,28 @@ namespace AppCommander.W7_11.WPF.Core
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error adding window to tracking: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// PRIDANÉ: Konvertuje WindowTrackingPriority na WindowTrackingPrioritySharedClasses
+        /// </summary>
+        private WindowTrackingPrioritySharedClasses ConvertPriority(WindowTrackingPriority priority)
+        {
+            switch (priority)
+            {
+                case WindowTrackingPriority.Low:
+                    return WindowTrackingPrioritySharedClasses.Low;
+                case WindowTrackingPriority.Normal:
+                    return WindowTrackingPrioritySharedClasses.Medium;
+                case WindowTrackingPriority.High:
+                    return WindowTrackingPrioritySharedClasses.High;
+                case WindowTrackingPriority.Critical:
+                    return WindowTrackingPrioritySharedClasses.Critical;
+                case WindowTrackingPriority.Primary:
+                    return WindowTrackingPrioritySharedClasses.Primary;
+                default:
+                    return WindowTrackingPrioritySharedClasses.Medium;
             }
         }
 
@@ -346,20 +359,12 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Konvertuje WindowTrackingInfo na WindowDetectionInfo
+        /// OPRAVENÉ: Konvertuje WindowTrackingInfo na WindowTrackingInfo (odstrániť konverziu)
         /// </summary>
-        private WindowDetectionInfo ConvertToWindowDetectionInfo(WindowTrackingInfo trackingInfo)
+        private WindowTrackingInfo ConvertToWindowTrackingInfo(WindowTrackingInfo trackingInfo)
         {
-            return new WindowDetectionInfo
-            {
-                WindowHandle = trackingInfo.WindowHandle,
-                Title = trackingInfo.Title,
-                ProcessName = trackingInfo.ProcessName,
-                WindowType = trackingInfo.WindowType,
-                IsModal = trackingInfo.IsModal,
-                DetectedAt = trackingInfo.DetectedAt,
-                ClassName = trackingInfo.ClassName ?? ""
-            };
+            // OPRAVENÉ: Už nie je potrebná konverzia, pretože oba typy sú rovnaké
+            return trackingInfo;
         }
 
         /// <summary>
@@ -439,13 +444,11 @@ namespace AppCommander.W7_11.WPF.Core
                     windowState.ChangeHistory.RemoveAt(0);
                 }
 
-                // Trigger event
-                UIChangeDetected?.Invoke(this, new UIChangeDetectedEventArgs
-                {
-                    WindowHandle = windowState.WindowHandle,
-                    WindowState = windowState,
-                    Changes = changes
-                });
+                // OPRAVENÉ: Trigger event s správnymi argumentami
+                UIChangeDetected?.Invoke(this, new UIChangeDetectedEventArgs(
+                    windowState.WindowHandle,
+                    windowState,
+                    changes));
 
                 // Analyzuj zmeny ak je smart detection zapnuté
                 if (EnableSmartDetection)
@@ -463,61 +466,6 @@ namespace AppCommander.W7_11.WPF.Core
 
         #region Event Handlers
 
-        //// OPRAVENÉ: Používa CustomWindowAppearedEventArgs namiesto duplikátnych
-        //private void OnWindowAppeared(object sender, CustomWindowAppearedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"🪟 New window appeared: {e.WindowTitle}");
-
-        //        // Automaticky pridaj do tracking ak spĺňa kritériá
-        //        if (ShouldAutoTrackWindow(e))
-        //        {
-        //            AddWindowToTracking(e.WindowHandle, DetermineTrackingPriority(e));
-
-        //            NewWindowAppeared?.Invoke(this, new NewWindowAppearedEventArgs
-        //            {
-        //                WindowHandle = e.WindowHandle,
-        //                WindowTitle = e.WindowTitle,
-        //                ProcessName = e.ProcessName,
-        //                WindowType = e.WindowType,
-        //                AutoAdded = true
-        //            });
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window appeared: {ex.Message}");
-        //    }
-        //}
-
-        //// OPRAVENÉ: Používa CustomWindowDisappearedEventArgs
-        //private void OnWindowDisappeared(object sender, CustomWindowDisappearedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (trackedWindows.ContainsKey(e.WindowHandle))
-        //        {
-        //            var windowState = trackedWindows[e.WindowHandle];
-        //            MarkWindowAsInactive(windowState);
-
-        //            System.Diagnostics.Debug.WriteLine($"🗑️ Tracked window disappeared: {windowState.Title}");
-
-        //            // OPRAVENÉ: Používa existujúci WindowClosedEventArgs z WindowTracker.cs
-        //            WindowClosed?.Invoke(this, new WindowClosedEventArgs
-        //            {
-        //                WindowHandle = e.WindowHandle,
-        //                WindowInfo = CreateWindowTrackingInfo(windowState)
-        //            });
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"❌ Error handling window disappeared: {ex.Message}");
-        //    }
-        //}
-
-        // Používa existujúci WindowActivatedEventArgs z WindowTracker.cs
         /// <summary>
         /// Handler pre aktivované okno
         /// </summary>
@@ -526,26 +474,6 @@ namespace AppCommander.W7_11.WPF.Core
             try
             {
                 System.Diagnostics.Debug.WriteLine($"🎯 Window activated: {e.WindowInfo?.Title ?? "Unknown"}");
-
-                // Ak je to tracked window, aktualizuj jeho stav
-                //if (trackedWindows.ContainsKey(e.WindowHandle))
-                //{
-                //    // Aktualizuj kontext ak existuje
-                //    if (windowContexts.ContainsKey(e.WindowHandle))
-                //    {
-                //        var context = windowContexts[e.WindowHandle];
-                //        context.IsActive = true;
-                //        context.LastActivated = DateTime.Now;
-
-                //        // Trigger event
-                //        WindowContextChanged?.Invoke(this, new WindowContextChangedEventArgs
-                //        {
-                //            WindowHandle = e.WindowHandle,
-                //            Context = context,
-                //            ChangeType = ContextChangeType.Activated
-                //        });
-                //    }
-                //}
             }
             catch (Exception ex)
             {
@@ -562,12 +490,11 @@ namespace AppCommander.W7_11.WPF.Core
                 // Trigger interaction detection ak je element interaktívny
                 if (IsInteractiveElement(e.Element))
                 {
-                    ElementInteractionDetected?.Invoke(this, new ElementInteractionEventArgs
-                    {
-                        WindowHandle = e.WindowHandle,
-                        Element = e.Element,
-                        InteractionType = InteractionType.ElementAppeared
-                    });
+                    // OPRAVENÉ: Používame správny konštruktor s požadovanými argumentmi
+                    ElementInteractionDetected?.Invoke(this, new ElementInteractionEventArgs(
+                        e.WindowHandle,
+                        e.Element,
+                        InteractionType.ElementAppeared));
                 }
             }
             catch (Exception ex)
@@ -629,7 +556,7 @@ namespace AppCommander.W7_11.WPF.Core
         #region Helper Methods
 
         /// <summary>
-        /// PRIDANÉ: Vytvorí WindowTrackingInfo z WindowState
+        /// Vytvorí WindowTrackingInfo z WindowState
         /// </summary>
         private WindowTrackingInfo CreateWindowTrackingInfo(WindowState windowState)
         {
@@ -638,9 +565,14 @@ namespace AppCommander.W7_11.WPF.Core
                 WindowHandle = windowState.WindowHandle,
                 Title = windowState.Title,
                 ProcessName = windowState.ProcessName,
+                // OPRAVENÉ: Pridané chýbajúce properties
                 IsActive = windowState.IsActive,
                 LastActivated = windowState.LastActivated,
-                DetectedAt = windowState.AddedAt
+                DetectedAt = windowState.AddedAt,
+                // Predpokladáme default hodnoty pre chýbajúce properties
+                ClassName = "",
+                IsVisible = true,
+                WindowType = WindowType.MainWindow
             };
         }
 
@@ -653,35 +585,29 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                // OPRAVENÉ: Skontrolovať či existuje WinUI3ApplicationAnalysis
                 var winui3Analysis = DebugTestHelper.AnalyzeWinUI3Application(windowHandle);
 
-                // OPRAVENÉ: Predpokladáme že má property IsWinUI3Application
-                if (winui3Analysis != null && HasProperty(winui3Analysis, "IsWinUI3Application"))
+                if (winui3Analysis != null && HasProperty(winui3Analysis, "IsWinUI3") && GetPropertyValue<bool>(winui3Analysis, "IsWinUI3"))
                 {
-                    var isWinUI3 = GetPropertyValue<bool>(winui3Analysis, "IsWinUI3Application");
-                    if (isWinUI3)
+                    var interactiveElements = GetPropertyValue<List<WinUI3ElementInfo>>(winui3Analysis, "InteractiveElements");
+                    if (interactiveElements != null)
                     {
-                        var interactiveElements = GetPropertyValue<List<WinUI3ElementInfo>>(winui3Analysis, "InteractiveElements");
-                        if (interactiveElements != null)
+                        foreach (var element in interactiveElements)
                         {
-                            foreach (var element in interactiveElements)
+                            elements.Add(new UIElementSnapshot
                             {
-                                elements.Add(new UIElementSnapshot
-                                {
-                                    Name = element.Name ?? "",
-                                    AutomationId = element.AutomationId ?? "",
-                                    ControlType = element.ControlType ?? "",
-                                    ClassName = GetPropertyValue<string>(element, "ClassName") ?? "",
-                                    //X = element.Position?.X ?? 0,
-                                    //Y = element.Position?.Y ?? 0,
-                                    IsEnabled = true,
-                                    IsVisible = true,
-                                    Text = element.Text ?? "",
-                                    Hash = CalculateElementHash(element),
-                                    IsWinUI3Element = true
-                                });
-                            }
+                                Name = element.Name ?? "",
+                                AutomationId = element.AutomationId ?? "",
+                                ControlType = element.ControlType ?? "",
+                                ClassName = GetPropertyValue<string>(element, "ClassName") ?? "",
+                                X = (int)(element.Position?.X ?? 0),
+                                Y = (int)(element.Position?.Y ?? 0),
+                                IsEnabled = true,
+                                IsVisible = true,
+                                Text = element.Text ?? "",
+                                Hash = CalculateElementHash(element),
+                                IsWinUI3Element = true
+                            });
                         }
                     }
                 }
@@ -695,7 +621,7 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// PRIDANÉ: Helper pre kontrolu existencie property
+        /// Helper pre kontrolu existencie property
         /// </summary>
         private bool HasProperty(object obj, string propertyName)
         {
@@ -703,7 +629,7 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// PRIDANÉ: Helper pre získanie hodnoty property
+        /// Helper pre získanie hodnoty property
         /// </summary>
         private T GetPropertyValue<T>(object obj, string propertyName)
         {
@@ -731,14 +657,14 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         private string CalculateElementHash(WinUI3ElementInfo element)
         {
-            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.Position.X}|{element.Position.Y}|{element.Text}";
+            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.Position?.X}|{element.Position?.Y}|{element.Text}";
             return hashSource.GetHashCode().ToString();
         }
 
         /// <summary>
         /// Rozhodne či automaticky sledovať okno
         /// </summary>
-        private bool ShouldAutoTrackWindow(CustomWindowAppearedEventArgs e)
+        private bool ShouldAutoTrackWindow(NewWindowAppearedEventArgs e)
         {
             // Vždy sleduj dialógy a message boxy
             if (e.WindowType == WindowType.Dialog || e.WindowType == WindowType.MessageBox)
@@ -754,7 +680,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Určí prioritu sledovania okna
         /// </summary>
-        private WindowTrackingPriority DetermineTrackingPriority(CustomWindowAppearedEventArgs e)
+        private WindowTrackingPriority DetermineTrackingPriority(NewWindowAppearedEventArgs e)
         {
             if (e.WindowType == WindowType.MessageBox)
                 return WindowTrackingPriority.Critical;
@@ -881,8 +807,6 @@ namespace AppCommander.W7_11.WPF.Core
 
     #region Supporting Classes
 
-
-
     /// <summary>
     /// Priorita sledovania okna
     /// </summary>
@@ -894,6 +818,6 @@ namespace AppCommander.W7_11.WPF.Core
         Critical,
         Primary
     }
-    
+
     #endregion
 }

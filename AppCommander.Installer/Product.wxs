@@ -34,11 +34,11 @@
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
 			<!-- Hlavný executable - použij plnú cestu -->
-			<Component Id="MainExecutable" Guid="*">
+			<!--<Component Id="MainExecutable" Guid="*">
 				<File Id="AppCommanderExe"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe"
-					  KeyPath="yes" />
-			</Component>
+					  KeyPath="yes" />-->
+			<!--</Component>-->
 
 			<!-- Newtonsoft.Json DLL - použij plnú cestu -->
 			<Component Id="NewtonsoftJson" Guid="*">
@@ -48,11 +48,11 @@
 			</Component>
 
 			<!-- App.config ak existuje -->
-			<Component Id="AppConfig" Guid="*">
+			<!--<Component Id="AppConfig" Guid="*">
 				<File Id="AppConfigFile"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe.config"
-					  KeyPath="yes" />
-			</Component>
+					  KeyPath="yes" />-->
+			<!--</Component>-->
 		</ComponentGroup>
 	</Fragment>
 </Wix>
