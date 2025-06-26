@@ -284,7 +284,7 @@ namespace AppCommander.W7_11.WPF.Core
                 ClassName = GetWindowClassName(hWnd),
                 WindowType = DetermineWindowType(hWnd),
                 DetectedAt = DateTime.Now,
-                ProcessId = processId,
+                ProcessId = (int)processId,
                 IsVisible = IsWindowVisible(hWnd),
                 IsActive = false,
                 IsEnabled = true,

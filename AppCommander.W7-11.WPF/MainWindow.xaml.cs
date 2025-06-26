@@ -46,6 +46,7 @@ namespace AppCommander.W7_11.WPF
         // WinUI3 support
         private WinUI3ApplicationAnalysis _currentWinUI3Analysis;
         private bool _isWinUI3Application = false;
+        private string txtSequenceName;
 
         #endregion
 
@@ -164,6 +165,27 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Failed to start recording", ex);
+            }
+        }
+
+        private void TestPlayback_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_commands.Count == 0)
+                {
+                    MessageBox.Show("No commands to playback.", "Empty Sequence",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                var sequence = new CommandSequence { Commands = _commands.ToList() };
+                _player?.TestPlayback(sequence);
+                UpdateUI();
+                UpdateStatusMessage("Test playback started");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error during test playback", ex);
             }
         }
 
@@ -530,7 +552,7 @@ namespace AppCommander.W7_11.WPF
         {
             Dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Okno aktivované: {e.Window.Title}");
+                System.Diagnostics.Debug.WriteLine($"Okno aktivované: {e.WindowTitle}");
                 // Handle window activation
             });
         }

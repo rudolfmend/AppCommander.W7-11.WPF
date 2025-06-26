@@ -18,7 +18,12 @@ namespace AppCommander.W7_11.WPF.Core
         Click,
         DoubleClick,
         RightClick,
-        LoopStart
+        LoopStart,
+
+        TypeText,
+        WindowSwitch,
+        ElementFocus,
+        Other
     }
 
     public class Command

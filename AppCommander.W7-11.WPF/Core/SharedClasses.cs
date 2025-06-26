@@ -67,6 +67,20 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public class WindowTrackingInfo
     {
+        internal bool IsEnabled;
+        internal int Width;
+        internal int Height;
+
+        //NewWindowDetected
+        public WindowTrackingInfo()
+        {
+            WindowHandle = IntPtr.Zero;
+            Title = string.Empty;
+            ProcessName = string.Empty;
+            ClassName = string.Empty;
+            DetectedAt = DateTime.Now;
+        }
+
         public IntPtr WindowHandle { get; set; }
         public string Title { get; set; } = string.Empty;
         public string ProcessName { get; set; } = string.Empty;
@@ -172,6 +186,12 @@ namespace AppCommander.W7_11.WPF.Core
             WindowHandle = windowHandle;
             Element = element;
             Timestamp = DateTime.Now;
+        }
+
+        protected UIElementEventArgsBase(IntPtr windowHandle, UIElementSnapshot element)
+        {
+            WindowHandle = windowHandle;
+            Element = element;
         }
 
         public IntPtr WindowHandle { get; }
@@ -589,6 +609,11 @@ namespace AppCommander.W7_11.WPF.Core
         public override string ToString()
         {
             return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
+        }
+
+        public static implicit operator UIElementSnapshot(string v)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -1162,7 +1187,7 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public sealed class NewElementDetectedEventArgs : UIElementEventArgsBase
     {
-        private readonly DateTime Timestamp;
+        private new readonly DateTime Timestamp;
 
         public NewElementDetectedEventArgs(IntPtr windowHandle, UIElementSnapshot element)
             : base(windowHandle, element)
@@ -1199,33 +1224,32 @@ namespace AppCommander.W7_11.WPF.Core
 
     #region Missing Dependencies - Placeholder Classes
 
-    /// <summary>
-    /// PRIDANÉ: Placeholder pre Command typ z Command.cs
-    /// </summary>
-    public class Command
-    {
-        public CommandType CommandType { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public DateTime ExecutedAt { get; set; } = DateTime.Now;
-        // Pridajte ďalšie properties podľa potreby
-    }
+    ///// <summary>
+    ///// PRIDANÉ: Placeholder pre Command typ z Command.cs
+    ///// </summary>
+    //public class Command
+    //{
+    //    public CommandType CommandType { get; set; }
+    //    public string Description { get; set; } = string.Empty;
+    //    public DateTime ExecutedAt { get; set; } = DateTime.Now;
+    //}
 
-    /// <summary>
-    /// PRIDANÉ: Placeholder pre CommandType enum z Command.cs
-    /// </summary>
-    public enum CommandType
-    {
-        Click,
-        DoubleClick,
-        RightClick,
-        MouseClick,
-        KeyPress,
-        TypeText,
-        Wait,
-        WindowSwitch,
-        ElementFocus,
-        Other
-    }
+    ///// <summary>
+    ///// PRIDANÉ: Placeholder pre CommandType enum z Command.cs
+    ///// </summary>
+    //public enum CommandType
+    //{
+    //    Click,
+    //    DoubleClick,
+    //    RightClick,
+    //    MouseClick,
+    //    KeyPress,
+    //    TypeText,
+    //    Wait,
+    //    WindowSwitch,
+    //    ElementFocus,
+    //    Other
+    //}
 
     ///// <summary>
     ///// PRIDANÉ: Placeholder pre AdaptiveElementFinder

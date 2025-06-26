@@ -1000,6 +1000,11 @@ namespace AppCommander.W7_11.WPF.Core
         {
             throw new NotImplementedException();
         }
+
+        internal void TestPlayback(CommandSequence sequence)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     // Helper classes
