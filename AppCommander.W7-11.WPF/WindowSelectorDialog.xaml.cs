@@ -31,37 +31,40 @@ namespace AppCommander.W7_11.WPF
 
             try
             {
-                var allWindows = WindowTrackingInfo.GetAllWindows();
+                // OPRAVENÉ: Použitie WindowTracker namiesto WindowTrackingInfo instance
+                var windowTracker = new WindowTracker();
+                var allWindowHandles = windowTracker.GetAllWindows();
 
-                foreach (var window in allWindows)
+                foreach (var windowHandle in allWindowHandles)
                 {
                     try
                     {
-                        // Skip our own process
-                        if (window.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                        var windowInfo = CreateWindowInfoFromHandle(windowHandle);
+
+                        // Skip našu vlastnú aplikáciu
+                        if (windowInfo.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        // Skip windows without titles
-                        if (string.IsNullOrWhiteSpace(window.Title))
+                        // Skip okná bez títulu
+                        if (string.IsNullOrWhiteSpace(windowInfo.Title))
                             continue;
 
-                        // Pridaj priamo WindowTrackingInfo (už nepotrebujeme konverziu)
-                        windows.Add(window);
+                        windows.Add(windowInfo);
                     }
                     catch
                     {
-                        // Skip processes we can't access
+                        // Skip procesy ktoré nemôžeme pristúpiť
                         continue;
                     }
                 }
 
-                // Ak WindowTracker.GetAllWindows() vráti prázdny zoznam, použij fallback
+                // Ak sa nenašli žiadne okná, použij fallback
                 if (windows.Count == 0)
                 {
                     LoadWindowsFallback();
                 }
 
-                // Remove duplicates and sort
+                // Odstráň duplikáty a zoraď
                 var uniqueWindows = windows
                     .GroupBy(w => w.WindowHandle)
                     .Select(g => g.First())
@@ -86,6 +89,30 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
+        /// Vytvorí WindowTrackingInfo z window handle
+        /// </summary>
+        private WindowTrackingInfo CreateWindowInfoFromHandle(IntPtr windowHandle)
+        {
+            var windowInfo = new WindowTrackingInfo
+            {
+                WindowHandle = windowHandle,
+                Title = GetWindowTitle(windowHandle),
+                ProcessName = GetProcessName(windowHandle),
+                ClassName = GetWindowClassName(windowHandle),
+                DetectedAt = DateTime.Now,
+                IsVisible = true,
+                IsEnabled = true,
+                WindowType = WindowType.MainWindow
+            };
+
+            // Získaj process ID
+            GetWindowThreadProcessId(windowHandle, out uint processId);
+            windowInfo.ProcessId = (int)processId;
+
+            return windowInfo;
+        }
+
+        /// <summary>
         /// Fallback metóda ak WindowTracker zlyhá
         /// </summary>
         private void LoadWindowsFallback()
@@ -102,7 +129,7 @@ namespace AppCommander.W7_11.WPF
                 {
                     try
                     {
-                        // Skip our own process
+                        // Skip našu vlastnú aplikáciu
                         if (process.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                             continue;
 
@@ -121,7 +148,7 @@ namespace AppCommander.W7_11.WPF
                     }
                     catch
                     {
-                        // Skip processes we can't access
+                        // Skip procesy ktoré nemôžeme pristúpiť
                         continue;
                     }
                 }
@@ -139,6 +166,36 @@ namespace AppCommander.W7_11.WPF
                 var className = new System.Text.StringBuilder(256);
                 GetClassName(handle, className, className.Capacity);
                 return className.ToString();
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private string GetWindowTitle(IntPtr handle)
+        {
+            try
+            {
+                var title = new System.Text.StringBuilder(256);
+                GetWindowText(handle, title, title.Capacity);
+                return title.ToString();
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private string GetProcessName(IntPtr handle)
+        {
+            try
+            {
+                GetWindowThreadProcessId(handle, out uint processId);
+                using (var process = Process.GetProcessById((int)processId))
+                {
+                    return process.ProcessName;
+                }
             }
             catch
             {
@@ -186,6 +243,14 @@ namespace AppCommander.W7_11.WPF
                 return;
             }
 
+            // PRIDANÉ: Debug informácie
+            System.Diagnostics.Debug.WriteLine($"=== WindowSelectorDialog OK_Click ===");
+            System.Diagnostics.Debug.WriteLine($"Selected Window Handle: 0x{SelectedWindow.WindowHandle:X8}");
+            System.Diagnostics.Debug.WriteLine($"Selected Process: {SelectedWindow.ProcessName}");
+            System.Diagnostics.Debug.WriteLine($"Selected Title: {SelectedWindow.Title}");
+            System.Diagnostics.Debug.WriteLine($"Handle is Zero: {SelectedWindow.WindowHandle == IntPtr.Zero}");
+            System.Diagnostics.Debug.WriteLine($"=====================================");
+
             DialogResult = true;
             Close();
         }
@@ -199,5 +264,11 @@ namespace AppCommander.W7_11.WPF
         // Windows API
         [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
         private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
     }
 }

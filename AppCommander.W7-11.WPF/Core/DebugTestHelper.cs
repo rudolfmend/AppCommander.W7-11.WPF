@@ -693,8 +693,6 @@ namespace AppCommander.W7_11.WPF.Core
 
             return report.ToString();
         }
-
-        // Existujúce metódy ostávajú rovnaké...
     }
 
     // **Support classes pre WinUI3 analýzu**

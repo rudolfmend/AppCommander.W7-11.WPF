@@ -109,6 +109,7 @@ namespace AppCommander.W7_11.WPF.Core
         public double ElementConfidence { get; set; } = 0.0;  // Confidence score pre finding
         public string LastFoundMethod { get; set; } = string.Empty;  // Metóda ktorou bol element nájdený
         public bool IsLoopEnd { get; internal set; }
+        public object Description { get; internal set; }
 
         public Command()
         {
@@ -587,7 +588,7 @@ namespace AppCommander.W7_11.WPF.Core
                     command.ElementConfidence = confidence;
                 if (parts.Count > 17) command.LastFoundMethod = Unquote(parts[17]);
 
-                // Parse ostatné údaje (rovnako ako predtým)
+                // Parse ostatné údaje
                 if (parts.Count > 18 && int.TryParse(parts[18].Trim(), out int keyCode))
                 {
                     command.KeyCode = keyCode;

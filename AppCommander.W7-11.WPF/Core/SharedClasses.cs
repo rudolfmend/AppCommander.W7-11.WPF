@@ -67,11 +67,6 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public class WindowTrackingInfo
     {
-        internal bool IsEnabled;
-        internal int Width;
-        internal int Height;
-
-        //NewWindowDetected
         public WindowTrackingInfo()
         {
             WindowHandle = IntPtr.Zero;
@@ -79,6 +74,7 @@ namespace AppCommander.W7_11.WPF.Core
             ProcessName = string.Empty;
             ClassName = string.Empty;
             DetectedAt = DateTime.Now;
+            LastActivated = DateTime.Now;
         }
 
         public IntPtr WindowHandle { get; set; }
@@ -95,22 +91,16 @@ namespace AppCommander.W7_11.WPF.Core
         public DateTime LastActivated { get; set; } = DateTime.Now;
         public WindowTrackingPrioritySharedClasses Priority { get; set; } = WindowTrackingPrioritySharedClasses.Medium;
 
+        // PRIDANÉ: Properties pre kompatibilitu
+        public bool IsEnabled { get; set; } = true;
+        public int Width { get; set; } = 0;
+        public int Height { get; set; } = 0;
+
         public override string ToString()
         {
             return $"{ProcessName} - {Title}";
         }
     }
-
-    ///// <summary>
-    ///// WinUI3 Bridge informácie
-    ///// </summary>
-    //public class WinUI3BridgeInfo
-    //{
-    //    public string BridgeName { get; set; } = string.Empty;
-    //    public IntPtr BridgeHandle { get; set; }
-    //    public bool IsAccessible { get; set; }
-    //    public string Version { get; set; } = string.Empty;
-    //}
 
     /// <summary>
     /// WinUI3 Element informácie s pozíciou
@@ -154,6 +144,119 @@ namespace AppCommander.W7_11.WPF.Core
 
     #endregion
 
+    #region Command Player Event Args (NOVÉ)
+
+    /// <summary>
+    /// Event args pre vykonaný príkaz
+    /// </summary>
+    public class CommandExecutedEventArgs : EventArgs
+    {
+        public Command Command { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public int CommandIndex { get; set; }
+        public int TotalCommands { get; set; }
+        public DateTime ExecutedAt { get; set; } = DateTime.Now;
+
+        public CommandExecutedEventArgs()
+        {
+        }
+
+        public CommandExecutedEventArgs(Command command, bool success, int commandIndex, int totalCommands)
+        {
+            Command = command;
+            Success = success;
+            CommandIndex = commandIndex;
+            TotalCommands = totalCommands;
+        }
+    }
+
+    /// <summary>
+    /// Event args pre zmenu stavu playback
+    /// </summary>
+    public class PlaybackStateChangedEventArgs : EventArgs
+    {
+        public PlaybackState State { get; set; }
+        public int CurrentIndex { get; set; }
+        public int TotalCommands { get; set; }
+        public string SequenceName { get; set; } = string.Empty;
+        public string AdditionalInfo { get; set; } = string.Empty;
+        public DateTime StateChangedAt { get; set; } = DateTime.Now;
+
+        public PlaybackStateChangedEventArgs()
+        {
+        }
+
+        public PlaybackStateChangedEventArgs(PlaybackState state, string sequenceName)
+        {
+            State = state;
+            SequenceName = sequenceName;
+        }
+    }
+
+    /// <summary>
+    /// Event args pre chybu v playback
+    /// </summary>
+    public class PlaybackErrorEventArgs : EventArgs
+    {
+        public string ErrorMessage { get; set; } = string.Empty;
+        public int CommandIndex { get; set; }
+        public Command Command { get; set; }
+        public Exception Exception { get; set; }
+        public DateTime ErrorOccurredAt { get; set; } = DateTime.Now;
+
+        public PlaybackErrorEventArgs()
+        {
+        }
+
+        public PlaybackErrorEventArgs(string errorMessage, int commandIndex, Command command = null)
+        {
+            ErrorMessage = errorMessage;
+            CommandIndex = commandIndex;
+            Command = command;
+        }
+    }
+
+    /// <summary>
+    /// Event args pre dokončenie playback
+    /// </summary>
+    public class PlaybackCompletedEventArgs : EventArgs
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int CommandsExecuted { get; set; }
+        public int TotalCommands { get; set; }
+        public TimeSpan Duration { get; set; }
+        public DateTime CompletedAt { get; set; } = DateTime.Now;
+
+        public PlaybackCompletedEventArgs()
+        {
+        }
+
+        public PlaybackCompletedEventArgs(bool success, string message, int commandsExecuted, int totalCommands)
+        {
+            Success = success;
+            Message = message;
+            CommandsExecuted = commandsExecuted;
+            TotalCommands = totalCommands;
+        }
+    }
+
+    /// <summary>
+    /// Stav playback
+    /// </summary>
+    public enum PlaybackState
+    {
+        Stopped,
+        Started,
+        Paused,
+        Resumed,
+        Completed,
+        Error
+    }
+
+    #endregion
+
     #region Base Event Args Classes
 
     /// <summary>
@@ -180,18 +283,11 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public abstract class UIElementEventArgsBase : EventArgs
     {
-        protected UIElementEventArgsBase(IntPtr windowHandle, 
-           string element = null)
-        {
-            WindowHandle = windowHandle;
-            Element = element;
-            Timestamp = DateTime.Now;
-        }
-
         protected UIElementEventArgsBase(IntPtr windowHandle, UIElementSnapshot element)
         {
             WindowHandle = windowHandle;
             Element = element;
+            Timestamp = DateTime.Now;
         }
 
         public IntPtr WindowHandle { get; }
@@ -275,39 +371,6 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Event args pre automaticky detekované okno
-    /// </summary>
-    public class WindowAutoDetectedEventArgs : WindowEventArgsBase
-    {
-        public WindowAutoDetectedEventArgs(
-            IntPtr windowHandle,
-            string description,
-            string windowTitle = null,
-            string processName = null,
-            WindowType windowType = WindowType.MainWindow)
-            : base(windowHandle, windowTitle, processName)
-        {
-            Description = description ?? string.Empty;
-            WindowType = windowType;
-        }
-
-        public WindowAutoDetectedEventArgs(WindowTrackingInfo windowInfo, string description)
-            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
-        {
-            WindowInfo = windowInfo;
-            Description = description ?? string.Empty;
-            WindowType = windowInfo?.WindowType ?? WindowType.MainWindow;
-        }
-
-        public WindowTrackingInfo WindowInfo { get; }
-        public string Description { get; }
-        public WindowType WindowType { get; }
-        public WindowTrackingInfo Window => WindowInfo;
-        public DateTime DetectedAt => Timestamp;
-        public bool AutoSwitched { get; set; }
-    }
-
-    /// <summary>
     /// Event args pre nové okno ktoré sa objavilo
     /// </summary>
     public class NewWindowAppearedEventArgs : WindowEventArgsBase
@@ -333,29 +396,6 @@ namespace AppCommander.W7_11.WPF.Core
         public WindowType WindowType { get; }
         public DateTime AppearedAt => Timestamp;
         public bool AutoAdded { get; set; }
-    }
-
-    /// <summary>
-    /// Event args pre okno ktoré zmizlo
-    /// </summary>
-    public class WindowDisappearedEventArgs : WindowEventArgsBase
-    {
-        public WindowDisappearedEventArgs(
-            IntPtr windowHandle,
-            string windowTitle = null,
-            string processName = null)
-            : base(windowHandle, windowTitle, processName)
-        {
-        }
-
-        public WindowDisappearedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
-        {
-            WindowInfo = windowInfo;
-        }
-
-        public WindowTrackingInfo WindowInfo { get; }
-        public DateTime DisappearedAt => Timestamp;
     }
 
     #endregion
@@ -610,11 +650,6 @@ namespace AppCommander.W7_11.WPF.Core
         {
             return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
         }
-
-        public static implicit operator UIElementSnapshot(string v)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     /// <summary>
@@ -805,150 +840,6 @@ namespace AppCommander.W7_11.WPF.Core
         }
     }
 
-    /// <summary>
-    /// Vylepšené tracking data pre okná
-    /// </summary>
-    public class WindowTrackingData
-    {
-        public WindowTrackingData()
-        {
-            UIElements = new List<UIElementInfo>();
-            DetectedAt = DateTime.Now;
-            LastUpdate = DateTime.Now;
-        }
-
-        public WindowTrackingData(WindowTrackingInfo windowInfo)
-        {
-            if (windowInfo != null)
-            {
-                WindowHandle = windowInfo.WindowHandle;
-                Title = windowInfo.Title ?? string.Empty;
-                ProcessName = windowInfo.ProcessName ?? string.Empty;
-                ClassName = windowInfo.ClassName ?? string.Empty;
-                IsVisible = windowInfo.IsVisible;
-                DetectedAt = windowInfo.DetectedAt;
-                WindowType = windowInfo.WindowType;
-                IsModal = windowInfo.IsModal;
-                IsActive = windowInfo.IsActive;
-            }
-
-            UIElements = new List<UIElementInfo>();
-            LastUpdate = DateTime.Now;
-            IsTracked = true;
-        }
-
-        // Window properties
-        public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string ProcessName { get; set; } = string.Empty;
-        public string ClassName { get; set; } = string.Empty;
-        public WindowType WindowType { get; set; }
-        public bool IsModal { get; set; }
-        public bool IsVisible { get; set; }
-
-        // Tracking properties
-        public DateTime DetectedAt { get; set; }
-        public DateTime LastUpdate { get; set; }
-        public bool IsTracked { get; set; } = true;
-        public bool IsActive { get; set; } = true;
-
-        // UI Elements
-        public List<UIElementInfo> UIElements { get; set; }
-
-        public WindowTrackingInfo ToWindowTrackingInfo()
-        {
-            return new WindowTrackingInfo
-            {
-                WindowHandle = WindowHandle,
-                Title = Title,
-                ProcessName = ProcessName,
-                ClassName = ClassName,
-                IsVisible = IsVisible,
-                DetectedAt = DetectedAt,
-                WindowType = WindowType,
-                IsModal = IsModal,
-                IsActive = IsActive
-            };
-        }
-
-        public void UpdateTracking()
-        {
-            LastUpdate = DateTime.Now;
-        }
-
-        public void MarkAsInactive()
-        {
-            IsActive = false;
-            IsTracked = false;
-            UpdateTracking();
-        }
-    }
-
-    #endregion
-
-    #region Compatibility & Legacy Support
-
-    /// <summary>
-    /// Aliasy pre backward compatibility - označené ako obsolete
-    /// </summary>
-    [Obsolete("Use WindowAutoDetectedEventArgs instead")]
-    public class AutoWindowDetectedEventArgs : WindowAutoDetectedEventArgs
-    {
-        public AutoWindowDetectedEventArgs(
-            IntPtr windowHandle,
-            string description,
-            string windowTitle = null,
-            string processName = null,
-            WindowType windowType = WindowType.MainWindow)
-            : base(windowHandle, description, windowTitle, processName, windowType)
-        {
-        }
-    }
-
-    [Obsolete("Use NewWindowAppearedEventArgs instead")]
-    public class CustomWindowAppearedEventArgs : NewWindowAppearedEventArgs
-    {
-        public CustomWindowAppearedEventArgs(
-            IntPtr windowHandle,
-            string windowTitle = null,
-            string processName = null,
-            WindowType windowType = WindowType.MainWindow)
-            : base(windowHandle, windowTitle, processName, windowType)
-        {
-        }
-    }
-
-    [Obsolete("Use WindowDisappearedEventArgs instead")]
-    public class CustomWindowDisappearedEventArgs : WindowDisappearedEventArgs
-    {
-        public CustomWindowDisappearedEventArgs(
-            IntPtr windowHandle,
-            string windowTitle = null,
-            string processName = null)
-            : base(windowHandle, windowTitle, processName)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Event args pre WindowTracker - rozširuje base functionality
-    /// </summary>
-    public class WindowTrackerEventArgs : WindowActivatedEventArgs
-    {
-        public WindowTrackerEventArgs(
-            IntPtr windowHandle,
-            string windowTitle = null,
-            string processName = null)
-            : base(windowHandle, windowTitle, processName)
-        {
-        }
-
-        public WindowTrackerEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo)
-        {
-        }
-    }
-
     #endregion
 
     #region Service Classes - Placeholder Implementations
@@ -964,7 +855,6 @@ namespace AppCommander.W7_11.WPF.Core
         public bool EnableWinUI3Detection { get; set; } = true;
         public DetectionSensitivity DetectionSensitivity { get; set; } = DetectionSensitivity.Medium;
 
-        public event EventHandler<WindowAutoDetectedEventArgs> NewWindowDetected;
         public event EventHandler<WindowActivatedEventArgs> WindowActivated;
         public event EventHandler<WindowClosedEventArgs> WindowClosed;
 
@@ -1038,8 +928,7 @@ namespace AppCommander.W7_11.WPF.Core
     public class WindowMonitor : IDisposable
     {
         public event EventHandler<NewWindowAppearedEventArgs> WindowAppeared;
-        public event EventHandler<WindowDisappearedEventArgs> WindowDisappeared;
-        public event EventHandler<WindowTrackerEventArgs> WindowActivated;
+        public event EventHandler<WindowClosedEventArgs> WindowClosed;
 
         private readonly List<string> _targetProcesses = new List<string>();
         private readonly HashSet<IntPtr> _knownWindows = new HashSet<IntPtr>();
@@ -1167,9 +1056,7 @@ namespace AppCommander.W7_11.WPF.Core
             ModifiedElements = modifiedElements ?? new List<UIElementSnapshot>();
             Timestamp = DateTime.Now;
         }
-        //NewElements a PreviousElements
-        public List<UIElementSnapshot> NewElements { get; }
-        public List<UIElementSnapshot> PreviousElements { get; }
+
         public IntPtr WindowHandle { get; }
         public List<UIElementSnapshot> AddedElements { get; }
         public List<UIElementSnapshot> RemovedElements { get; }
@@ -1187,8 +1074,6 @@ namespace AppCommander.W7_11.WPF.Core
     /// </summary>
     public sealed class NewElementDetectedEventArgs : UIElementEventArgsBase
     {
-        private new readonly DateTime Timestamp;
-
         public NewElementDetectedEventArgs(IntPtr windowHandle, UIElementSnapshot element)
             : base(windowHandle, element)
         {
@@ -1222,64 +1107,17 @@ namespace AppCommander.W7_11.WPF.Core
 
     #endregion
 
-    #region Missing Dependencies - Placeholder Classes
 
-    ///// <summary>
-    ///// PRIDANÉ: Placeholder pre Command typ z Command.cs
-    ///// </summary>
-    //public class Command
+    //public class WinUI3BridgeInfo // - nachádza sa už v triede DebugTestHelper.cs
     //{
-    //    public CommandType CommandType { get; set; }
-    //    public string Description { get; set; } = string.Empty;
-    //    public DateTime ExecutedAt { get; set; } = DateTime.Now;
+    //    public System.Drawing.Point Position { get; set; }
+    //    public System.Drawing.Size Size { get; set; }
+    //    public bool IsVisible { get; set; }
+    //    public bool IsEnabled { get; set; }
+    //    public int ChildCount { get; set; }
+    //    public List<string> SupportedPatterns { get; set; } = new List<string>();
+    //    public List<WinUI3ElementInfo> MeaningfulElements { get; set; } = new List<WinUI3ElementInfo>();
+    //    public string ErrorMessage { get; set; } = "";
     //}
 
-    ///// <summary>
-    ///// PRIDANÉ: Placeholder pre CommandType enum z Command.cs
-    ///// </summary>
-    //public enum CommandType
-    //{
-    //    Click,
-    //    DoubleClick,
-    //    RightClick,
-    //    MouseClick,
-    //    KeyPress,
-    //    TypeText,
-    //    Wait,
-    //    WindowSwitch,
-    //    ElementFocus,
-    //    Other
-    //}
-
-    ///// <summary>
-    ///// PRIDANÉ: Placeholder pre AdaptiveElementFinder
-    ///// </summary>
-    //public static class AdaptiveElementFinder
-    //{
-    //    public static List<UIElementInfo> GetAllInteractiveElements(IntPtr windowHandle)
-    //    {
-    //        // Placeholder implementácia
-    //        return new List<UIElementInfo>();
-    //    }
-    //}
-
-    ///// <summary>
-    ///// PRIDANÉ: Placeholder pre DebugTestHelper
-    ///// </summary>
-    //public static class DebugTestHelper
-    //{
-    //    public static WinUI3ApplicationAnalysis AnalyzeWinUI3Application(IntPtr windowHandle)
-    //    {
-    //        // Placeholder implementácia
-    //        return new WinUI3ApplicationAnalysis
-    //        {
-    //            IsSuccessful = false,
-    //            IsWinUI3 = false,
-    //            ErrorMessage = "Not implemented",
-    //            InteractiveElements = new List<WinUI3ElementInfo>()
-    //        };
-    //    }
-    //}
-
-    #endregion
 }

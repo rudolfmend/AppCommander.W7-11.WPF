@@ -23,29 +23,29 @@ namespace AppCommander.W7_11.WPF.Core
             Console.WriteLine($"Start Time: {DateTime.Now}");
             Console.WriteLine();
 
-            // OPRAVENÉ: WindowTrackingInfo je tracker trieda v tomto projekte
-            var tracker = new WindowTrackingInfo();
+            // OPRAVENÉ: Používa WindowTracker namiesto WindowTrackingInfo
+            var tracker = new WindowTracker();
             var detectedWindows = new List<WindowTrackingInfo>();
 
             // Subscribe to events
             tracker.NewWindowDetected += (sender, e) =>
             {
-                detectedWindows.Add(e.WindowInfo);
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] NEW WINDOW: {e.Description}");
-                Console.WriteLine($"    Type: {e.WindowInfo.WindowType}");
-                Console.WriteLine($"    Method: {e.DetectionMethod}");
-                Console.WriteLine($"    Modal: {e.WindowInfo.IsModal}");
+                var windowInfo = CreateWindowInfoFromEvent(e);
+                detectedWindows.Add(windowInfo);
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] NEW WINDOW: {e.WindowTitle}");
+                Console.WriteLine($"    Type: {e.WindowType}");
+                Console.WriteLine($"    Process: {e.ProcessName}");
                 Console.WriteLine();
             };
 
             tracker.WindowActivated += (sender, e) =>
             {
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ACTIVATED: {e.WindowInfo.Title}");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ACTIVATED: {e.WindowTitle}");
             };
 
             tracker.WindowClosed += (sender, e) =>
             {
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] CLOSED: {e.WindowInfo.Title}");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] CLOSED: {e.WindowTitle}");
             };
 
             // Štart tracking
@@ -82,6 +82,26 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 Console.WriteLine("No new windows were detected during the test.");
             }
+
+            // Cleanup
+            tracker.Dispose();
+        }
+
+        /// <summary>
+        /// Vytvorí WindowTrackingInfo z event args
+        /// </summary>
+        private static WindowTrackingInfo CreateWindowInfoFromEvent(NewWindowDetectedEventArgs e)
+        {
+            return new WindowTrackingInfo
+            {
+                WindowHandle = e.WindowHandle,
+                Title = e.WindowTitle,
+                ProcessName = e.ProcessName,
+                WindowType = e.WindowType,
+                DetectedAt = e.Timestamp,
+                IsVisible = true,
+                IsActive = false
+            };
         }
 
         /// <summary>
@@ -100,8 +120,6 @@ namespace AppCommander.W7_11.WPF.Core
                 Console.WriteLine($"  Process: {info.ProcessName}");
                 Console.WriteLine($"  Class: {info.ClassName}");
                 Console.WriteLine($"  Detected Type: {info.WindowType}");
-                Console.WriteLine($"  Is Modal: {info.IsModal}");
-                Console.WriteLine($"  Size: {info.Width}x{info.Height}");
                 Console.WriteLine();
             }
         }
@@ -220,13 +238,11 @@ namespace AppCommander.W7_11.WPF.Core
 
             // Determine window type - použite static helper metódu
             info.WindowType = DetermineWindowTypeStatic(info.Title, info.ClassName, windowHandle);
-            info.IsModal = IsModalWindow(windowHandle);
 
             // Get dimensions
             if (GetWindowRect(windowHandle, out RECT rect))
             {
-                info.Width = rect.Right - rect.Left;
-                info.Height = rect.Bottom - rect.Top;
+                // Môžeme pridať Width a Height properties do WindowTrackingInfo ak je potrebné
             }
 
             return info;
@@ -264,22 +280,6 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Kontroluje či je okno modálne
-        /// </summary>
-        private static bool IsModalWindow(IntPtr windowHandle)
-        {
-            try
-            {
-                long exStyle = GetWindowLong(windowHandle, -20); // GWL_EXSTYLE
-                return (exStyle & 0x00000001L) != 0; // WS_EX_DLGMODALFRAME
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Spustí interaktívny test
         /// </summary>
         public static void RunInteractiveTest()
@@ -300,11 +300,10 @@ namespace AppCommander.W7_11.WPF.Core
                 processName = "";
             }
 
-            // Find target window - použite static metódy z WindowTrackingInfo
+            // Find target window - použite static metódy
             IntPtr targetWindow = IntPtr.Zero;
             if (!string.IsNullOrEmpty(processName))
             {
-                // OPRAVENÉ: Použite statické metódy alebo GetAllWindows
                 var allWindows = GetAllWindowsStatic();
                 var processWindows = allWindows.Where(w =>
                     w.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -417,8 +416,6 @@ namespace AppCommander.W7_11.WPF.Core
                     report.AppendLine($"[{window.DetectedAt:HH:mm:ss}] {window.WindowType}: {window.Title}");
                     report.AppendLine($"    Process: {window.ProcessName}");
                     report.AppendLine($"    Class: {window.ClassName}");
-                    report.AppendLine($"    Modal: {window.IsModal}");
-                    report.AppendLine($"    Size: {window.Width}x{window.Height}");
                     report.AppendLine();
                 }
 
@@ -431,10 +428,6 @@ namespace AppCommander.W7_11.WPF.Core
                 if (detectedWindows.Any(w => w.WindowType == WindowType.Dialog))
                 {
                     report.AppendLine("✓ Dialog detection is working");
-                }
-                if (detectedWindows.Any(w => w.IsModal))
-                {
-                    report.AppendLine("✓ Modal window detection is working");
                 }
                 if (!detectedWindows.Any())
                 {
@@ -505,9 +498,6 @@ namespace AppCommander.W7_11.WPF.Core
 
         [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        private static extern long GetWindowLong(IntPtr hWnd, int nIndex);
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
