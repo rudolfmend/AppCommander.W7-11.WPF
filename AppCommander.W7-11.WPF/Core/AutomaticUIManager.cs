@@ -387,40 +387,71 @@ namespace AppCommander.W7_11.WPF.Core
                 return changeSet;
             }
 
-            var previousElements = previous.Elements.ToDictionary(e => e.Hash, e => e);
-            var currentElements = current.Elements.ToDictionary(e => e.Hash, e => e);
-
-            // Nájdi pridané elementy
-            changeSet.AddedElements = currentElements.Values
-                .Where(e => !previousElements.ContainsKey(e.Hash))
-                .ToList();
-
-            // Nájdi odstránené elementy
-            changeSet.RemovedElements = previousElements.Values
-                .Where(e => !currentElements.ContainsKey(e.Hash))
-                .ToList();
-
-            // Nájdi modifikované elementy (rovnaký ID ale iný hash)
-            changeSet.ModifiedElements = new List<(UIElementSnapshot Previous, UIElementSnapshot Current)>();
-
-            foreach (var currentElement in currentElements.Values)
+            try
             {
-                var previousElement = previousElements.Values
-                    .FirstOrDefault(e => e.AutomationId == currentElement.AutomationId &&
-                                        e.Name == currentElement.Name &&
-                                        e.Hash != currentElement.Hash);
+                // OPRAVENÉ: Použitie GroupBy na zvládnutie duplicitných hashov
+                var previousElements = previous.Elements
+                    .GroupBy(e => e.Hash)
+                    .ToDictionary(g => g.Key, g => g.First()); // Vezmi prvý element z každej skupiny
 
-                if (previousElement != null)
+                var currentElements = current.Elements
+                    .GroupBy(e => e.Hash)
+                    .ToDictionary(g => g.Key, g => g.First()); // Vezmi prvý element z každej skupiny
+
+                // Loguj duplicity ak existují
+                var previousDuplicates = previous.Elements.GroupBy(e => e.Hash).Where(g => g.Count() > 1);
+                var currentDuplicates = current.Elements.GroupBy(e => e.Hash).Where(g => g.Count() > 1);
+
+                foreach (var duplicate in previousDuplicates)
                 {
-                    changeSet.ModifiedElements.Add((previousElement, currentElement));
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Previous snapshot duplicate hash: {duplicate.Key} ({duplicate.Count()} elements)");
                 }
+
+                foreach (var duplicate in currentDuplicates)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Current snapshot duplicate hash: {duplicate.Key} ({duplicate.Count()} elements)");
+                }
+
+                // Nájdi pridané elementy
+                changeSet.AddedElements = currentElements.Values
+                    .Where(e => !previousElements.ContainsKey(e.Hash))
+                    .ToList();
+
+                // Nájdi odstránené elementy
+                changeSet.RemovedElements = previousElements.Values
+                    .Where(e => !currentElements.ContainsKey(e.Hash))
+                    .ToList();
+
+                // Nájdi modifikované elementy (rovnaký ID ale iný hash)
+                changeSet.ModifiedElements = new List<(UIElementSnapshot Previous, UIElementSnapshot Current)>();
+
+                foreach (var currentElement in currentElements.Values)
+                {
+                    var previousElement = previousElements.Values
+                        .FirstOrDefault(e => e.AutomationId == currentElement.AutomationId &&
+                                            e.Name == currentElement.Name &&
+                                            e.Hash != currentElement.Hash);
+
+                    if (previousElement != null)
+                    {
+                        changeSet.ModifiedElements.Add((previousElement, currentElement));
+                    }
+                }
+
+                changeSet.HasChanges = changeSet.AddedElements.Any() ||
+                                       changeSet.RemovedElements.Any() ||
+                                       changeSet.ModifiedElements.Any();
+
+                return changeSet;
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error in CompareUISnapshots: {ex.Message}");
 
-            changeSet.HasChanges = changeSet.AddedElements.Any() ||
-                                   changeSet.RemovedElements.Any() ||
-                                   changeSet.ModifiedElements.Any();
-
-            return changeSet;
+                // Fallback - vráť prázdny changeset
+                changeSet.HasChanges = false;
+                return changeSet;
+            }
         }
 
         /// <summary>
@@ -648,17 +679,93 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         private string CalculateElementHash(UIElementInfo element)
         {
-            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.X}|{element.Y}|{element.ElementText}";
-            return hashSource.GetHashCode().ToString();
+            try
+            {
+                // Použitie viacerých properties pre jedinečnejší hash
+                var hashComponents = new List<string>
+        {
+            element.Name ?? "",
+            element.AutomationId ?? "",
+            element.ControlType ?? "",
+            element.ClassName ?? "",
+            element.X.ToString(),
+            element.Y.ToString(),
+            element.ElementText ?? "",
+            element.IsEnabled.ToString(),
+            element.IsVisible.ToString(),
+            element.ProcessId.ToString()
+        };
+
+                // Pridaj table-specific informácie ak existujú
+                if (element.IsTableCell)
+                {
+                    hashComponents.Add($"Table:{element.TableName}");
+                    hashComponents.Add($"Row:{element.TableRow}");
+                    hashComponents.Add($"Col:{element.TableColumn}");
+                    hashComponents.Add($"Content:{element.TableCellContent}");
+                }
+
+                // Kombinuj všetky komponenty
+                var hashSource = string.Join("|", hashComponents);
+
+                // Použitie lepšieho hash algoritmu
+                using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                {
+                    var hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(hashSource));
+                    var hashString = Convert.ToBase64String(hashBytes).Replace("/", "_").Replace("+", "-");
+
+                    // Skráť na rozumnú dĺžku ale zachovaj jedinečnosť
+                    return hashString.Substring(0, Math.Min(16, hashString.Length));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error calculating element hash: {ex.Message}");
+
+                // Fallback hash s timestamp
+                return $"FALLBACK_{element.GetHashCode()}_{DateTime.Now.Ticks}";
+            }
         }
 
         /// <summary>
-        /// Vypočítava hash pre WinUI3 element
+        /// Vypočítava hash pre WinUI3 element - VYLEPŠENÉ: jedinečnejšie hashe
         /// </summary>
         private string CalculateElementHash(WinUI3ElementInfo element)
         {
-            var hashSource = $"{element.Name}|{element.AutomationId}|{element.ControlType}|{element.Position?.X}|{element.Position?.Y}|{element.Text}";
-            return hashSource.GetHashCode().ToString();
+            try
+            {
+                var hashComponents = new List<string>
+                {
+                    element.Name ?? "",
+                    element.AutomationId ?? "",
+                    element.ControlType ?? "",
+                    element.ElementType ?? "",
+                    element.Text ?? "",
+                    element.Position?.X.ToString() ?? "0",
+                    element.Position?.Y.ToString() ?? "0",
+                    element.IsEnabled.ToString(),
+                    element.IsVisible.ToString(),
+                    element.IsInteractive.ToString()
+                };
+
+                var hashSource = string.Join("|", hashComponents);
+
+                // Použitie lepšieho hash algoritmu
+                using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                {
+                    var hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(hashSource));
+                    var hashString = Convert.ToBase64String(hashBytes).Replace("/", "_").Replace("+", "-");
+
+                    return hashString.Substring(0, Math.Min(16, hashString.Length));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error calculating WinUI3 element hash: {ex.Message}");
+
+                // Fallback hash s timestamp
+                return $"WINUI3_FALLBACK_{element.GetHashCode()}_{DateTime.Now.Ticks}";
+            }
         }
 
         /// <summary>

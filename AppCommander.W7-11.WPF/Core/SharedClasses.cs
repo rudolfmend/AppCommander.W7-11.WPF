@@ -63,131 +63,196 @@ namespace AppCommander.W7_11.WPF.Core
     #region Core Data Classes
 
     /// <summary>
-    /// Informácie o sledovanom okne - .NET Framework 4.8 compatible
+    /// OPRAVENÉ: Informácie o sledovanom okne s pridanými properties
     /// </summary>
     public class WindowTrackingInfo
     {
         public WindowTrackingInfo()
         {
+            WindowHandle = IntPtr.Zero;
             Title = string.Empty;
             ProcessName = string.Empty;
             ClassName = string.Empty;
-            IsVisible = true;
             DetectedAt = DateTime.Now;
-            WindowType = WindowType.MainWindow;
-            ProcessId = 0;
-            IsActive = true;
-            IsModal = false;
             LastActivated = DateTime.Now;
-            Priority = WindowTrackingPrioritySharedClasses.Medium;
         }
 
         public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; }
-        public string ProcessName { get; set; }
-        public string ClassName { get; set; }
-        public bool IsVisible { get; set; }
-        public DateTime DetectedAt { get; set; }
-        public WindowType WindowType { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string ProcessName { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
+        public bool IsVisible { get; set; } = true;
+        public DateTime DetectedAt { get; set; } = DateTime.Now;
+        public WindowType WindowType { get; set; } = WindowType.MainWindow;
+
         public int ProcessId { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsModal { get; set; }
-        public DateTime LastActivated { get; set; }
-        public WindowTrackingPrioritySharedClasses Priority { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsModal { get; set; } = false;
+        public DateTime LastActivated { get; set; } = DateTime.Now;
+        public WindowTrackingPrioritySharedClasses Priority { get; set; } = WindowTrackingPrioritySharedClasses.Medium;
+
+        // PRIDANÉ: Properties pre kompatibilitu
+        public bool IsEnabled { get; set; } = true;
+        public int Width { get; set; } = 0;
+        public int Height { get; set; } = 0;
 
         public override string ToString()
         {
-            return string.Format("{0} - {1}", ProcessName, Title);
+            return $"{ProcessName} - {Title}";
         }
     }
 
     /// <summary>
-    /// WinUI3 Bridge informácie - .NET Framework 4.8 compatible
-    /// </summary>
-    public class WinUI3BridgeInfo
-    {
-        public WinUI3BridgeInfo()
-        {
-            BridgeName = string.Empty;
-            BridgeHandle = IntPtr.Zero;
-            IsAccessible = false;
-            Version = string.Empty;
-        }
-
-        public string BridgeName { get; set; }
-        public IntPtr BridgeHandle { get; set; }
-        public bool IsAccessible { get; set; }
-        public string Version { get; set; }
-    }
-
-    /// <summary>
-    /// WinUI3 Element informácie s pozíciou - .NET Framework 4.8 compatible
+    /// WinUI3 Element informácie s pozíciou
     /// </summary>
     public class WinUI3ElementInfo
     {
-        public WinUI3ElementInfo()
-        {
-            Name = string.Empty;
-            AutomationId = string.Empty;
-            ElementType = string.Empty;
-            ControlType = string.Empty;
-            IsInteractive = false;
-            AccessMethod = string.Empty;
-            Text = string.Empty;
-            Position = null;
-            IsEnabled = false;
-            IsVisible = false;
-        }
-
-        public string Name { get; set; }
-        public string AutomationId { get; set; }
-        public string ElementType { get; set; }
-        public string ControlType { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string AutomationId { get; set; } = string.Empty;
+        public string ElementType { get; set; } = string.Empty;
+        public string ControlType { get; set; } = string.Empty;
         public bool IsInteractive { get; set; }
-        public string AccessMethod { get; set; }
-        public string Text { get; set; }
+        public string AccessMethod { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+
+        // PRIDANÉ: Position property pre kompatibilitu
         public Point? Position { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsVisible { get; set; }
+        public bool IsEnabled { get; internal set; }
+        public bool IsVisible { get; internal set; }
     }
 
     /// <summary>
-    /// WinUI3 Application Analysis - .NET Framework 4.8 compatible
+    /// WinUI3 Application Analysis
     /// </summary>
     public class WinUI3ApplicationAnalysis
     {
-        public WinUI3ApplicationAnalysis()
+        public bool IsSuccessful { get; set; } = false;
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string WindowTitle { get; set; } = string.Empty;
+        public string WindowClass { get; set; } = string.Empty;
+        public int BridgeCount { get; set; } = 0;
+        public List<WinUI3BridgeInfo> Bridges { get; set; } = new List<WinUI3BridgeInfo>();
+        public List<WinUI3ElementInfo> InteractiveElements { get; set; } = new List<WinUI3ElementInfo>();
+        public List<string> Recommendations { get; set; } = new List<string>();
+        public string ApplicationName { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+
+        // OPRAVENÉ: Unifikované názvy properties
+        public bool IsWinUI3 { get; set; } = false;
+        public bool IsWinUI3Application => IsWinUI3; // Alias pre kompatibilitu
+    }
+
+    #endregion
+
+    #region Command Player Event Args (NOVÉ)
+
+    /// <summary>
+    /// Event args pre vykonaný príkaz
+    /// </summary>
+    public class CommandExecutedEventArgs : EventArgs
+    {
+        public Command Command { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public int CommandIndex { get; set; }
+        public int TotalCommands { get; set; }
+        public DateTime ExecutedAt { get; set; } = DateTime.Now;
+
+        public CommandExecutedEventArgs()
         {
-            IsSuccessful = false;
-            ErrorMessage = string.Empty;
-            WindowTitle = string.Empty;
-            WindowClass = string.Empty;
-            BridgeCount = 0;
-            Bridges = new List<WinUI3BridgeInfo>();
-            InteractiveElements = new List<WinUI3ElementInfo>();
-            Recommendations = new List<string>();
-            ApplicationName = string.Empty;
-            Version = string.Empty;
-            IsWinUI3 = false;
         }
 
-        public bool IsSuccessful { get; set; }
-        public string ErrorMessage { get; set; }
-        public string WindowTitle { get; set; }
-        public string WindowClass { get; set; }
-        public int BridgeCount { get; set; }
-        public List<WinUI3BridgeInfo> Bridges { get; set; }
-        public List<WinUI3ElementInfo> InteractiveElements { get; set; }
-        public List<string> Recommendations { get; set; }
-        public string ApplicationName { get; set; }
-        public string Version { get; set; }
-        public bool IsWinUI3 { get; set; }
-
-        // Alias pre kompatibilitu
-        public bool IsWinUI3Application
+        public CommandExecutedEventArgs(Command command, bool success, int commandIndex, int totalCommands)
         {
-            get { return IsWinUI3; }
+            Command = command;
+            Success = success;
+            CommandIndex = commandIndex;
+            TotalCommands = totalCommands;
         }
+    }
+
+    /// <summary>
+    /// Event args pre zmenu stavu playback
+    /// </summary>
+    public class PlaybackStateChangedEventArgs : EventArgs
+    {
+        public PlaybackState State { get; set; }
+        public int CurrentIndex { get; set; }
+        public int TotalCommands { get; set; }
+        public string SequenceName { get; set; } = string.Empty;
+        public string AdditionalInfo { get; set; } = string.Empty;
+        public DateTime StateChangedAt { get; set; } = DateTime.Now;
+
+        public PlaybackStateChangedEventArgs()
+        {
+        }
+
+        public PlaybackStateChangedEventArgs(PlaybackState state, string sequenceName)
+        {
+            State = state;
+            SequenceName = sequenceName;
+        }
+    }
+
+    /// <summary>
+    /// Event args pre chybu v playback
+    /// </summary>
+    public class PlaybackErrorEventArgs : EventArgs
+    {
+        public string ErrorMessage { get; set; } = string.Empty;
+        public int CommandIndex { get; set; }
+        public Command Command { get; set; }
+        public Exception Exception { get; set; }
+        public DateTime ErrorOccurredAt { get; set; } = DateTime.Now;
+
+        public PlaybackErrorEventArgs()
+        {
+        }
+
+        public PlaybackErrorEventArgs(string errorMessage, int commandIndex, Command command = null)
+        {
+            ErrorMessage = errorMessage;
+            CommandIndex = commandIndex;
+            Command = command;
+        }
+    }
+
+    /// <summary>
+    /// Event args pre dokončenie playback
+    /// </summary>
+    public class PlaybackCompletedEventArgs : EventArgs
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int CommandsExecuted { get; set; }
+        public int TotalCommands { get; set; }
+        public TimeSpan Duration { get; set; }
+        public DateTime CompletedAt { get; set; } = DateTime.Now;
+
+        public PlaybackCompletedEventArgs()
+        {
+        }
+
+        public PlaybackCompletedEventArgs(bool success, string message, int commandsExecuted, int totalCommands)
+        {
+            Success = success;
+            Message = message;
+            CommandsExecuted = commandsExecuted;
+            TotalCommands = totalCommands;
+        }
+    }
+
+    /// <summary>
+    /// Stav playback
+    /// </summary>
+    public enum PlaybackState
+    {
+        Stopped,
+        Started,
+        Paused,
+        Resumed,
+        Completed,
+        Error
     }
 
     #endregion
@@ -195,48 +260,39 @@ namespace AppCommander.W7_11.WPF.Core
     #region Base Event Args Classes
 
     /// <summary>
-    /// Základná trieda pre window-related event args - .NET Framework 4.8 compatible
+    /// Základná trieda pre window-related event args
     /// </summary>
     public abstract class WindowEventArgsBase : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly string _windowTitle;
-        private readonly string _processName;
-        private readonly DateTime _timestamp;
-
-        protected WindowEventArgsBase(IntPtr windowHandle, string windowTitle, string processName)
+        protected WindowEventArgsBase(IntPtr windowHandle, string windowTitle = null, string processName = null)
         {
-            _windowHandle = windowHandle;
-            _windowTitle = windowTitle ?? string.Empty;
-            _processName = processName ?? string.Empty;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            WindowTitle = windowTitle ?? string.Empty;
+            ProcessName = processName ?? string.Empty;
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public string WindowTitle { get { return _windowTitle; } }
-        public string ProcessName { get { return _processName; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public string WindowTitle { get; }
+        public string ProcessName { get; }
+        public DateTime Timestamp { get; }
     }
 
     /// <summary>
-    /// Základná trieda pre UI element-related event args - .NET Framework 4.8 compatible
+    /// Základná trieda pre UI element-related event args
     /// </summary>
     public abstract class UIElementEventArgsBase : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly UIElementSnapshot _element;
-        private readonly DateTime _timestamp;
-
         protected UIElementEventArgsBase(IntPtr windowHandle, UIElementSnapshot element)
         {
-            _windowHandle = windowHandle;
-            _element = element;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            Element = element;
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public UIElementSnapshot Element { get { return _element; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public UIElementSnapshot Element { get; }
+        public DateTime Timestamp { get; }
     }
 
     #endregion
@@ -244,184 +300,102 @@ namespace AppCommander.W7_11.WPF.Core
     #region Window Event Args
 
     /// <summary>
-    /// Event args pre aktivované okno - .NET Framework 4.8 compatible
+    /// Event args pre aktivované okno
     /// </summary>
     public class WindowActivatedEventArgs : WindowEventArgsBase
     {
-        private readonly WindowTrackingInfo _windowInfo;
-
-        public WindowActivatedEventArgs(IntPtr windowHandle, string windowTitle, string processName)
+        public WindowActivatedEventArgs(IntPtr windowHandle, string windowTitle = null, string processName = null)
             : base(windowHandle, windowTitle, processName)
         {
-            _windowInfo = null;
         }
 
         public WindowActivatedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
+            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
         {
-            _windowInfo = windowInfo;
+            WindowInfo = windowInfo;
         }
 
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public DateTime ActivatedAt { get { return Timestamp; } }
+        public WindowTrackingInfo WindowInfo { get; }
+        public DateTime ActivatedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre zatvorené okno - .NET Framework 4.8 compatible
+    /// Event args pre zatvorené okno
     /// </summary>
     public sealed class WindowClosedEventArgs : WindowEventArgsBase
     {
-        private readonly WindowTrackingInfo _windowInfo;
-        private readonly WindowTrackingInfo _windowTrackingInfo;
-
-        public WindowClosedEventArgs(IntPtr windowHandle, string windowTitle, string processName)
+        public WindowClosedEventArgs(IntPtr windowHandle, string windowTitle = null, string processName = null)
             : base(windowHandle, windowTitle, processName)
         {
-            _windowInfo = null;
-            _windowTrackingInfo = null;
         }
 
         public WindowClosedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
+            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
         {
-            _windowInfo = windowInfo;
-            _windowTrackingInfo = windowInfo;
+            WindowInfo = windowInfo;
+            WindowTrackingInfo = windowInfo;
         }
 
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public WindowTrackingInfo WindowTrackingInfo { get { return _windowTrackingInfo; } }
-        public WindowTrackingInfo Window { get { return WindowInfo; } }
-        public DateTime ClosedAt { get { return Timestamp; } }
+        public WindowTrackingInfo WindowInfo { get; }
+        public WindowTrackingInfo WindowTrackingInfo { get; }
+        public WindowTrackingInfo Window => WindowInfo;
+        public DateTime ClosedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre nové detekované okno - .NET Framework 4.8 compatible
+    /// Event args pre nové detekované okno
     /// </summary>
     public sealed class NewWindowDetectedEventArgs : WindowEventArgsBase
     {
-        private readonly WindowTrackingInfo _windowInfo;
-        private readonly WindowType _windowType;
-
-        public NewWindowDetectedEventArgs(IntPtr windowHandle, string windowTitle, string processName, WindowType windowType)
+        public NewWindowDetectedEventArgs(
+            IntPtr windowHandle,
+            string windowTitle = null,
+            string processName = null,
+            WindowType windowType = WindowType.MainWindow)
             : base(windowHandle, windowTitle, processName)
         {
-            _windowType = windowType;
-            _windowInfo = null;
+            WindowType = windowType;
         }
 
         public NewWindowDetectedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
+            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
         {
-            _windowInfo = windowInfo;
-            _windowType = windowInfo != null ? windowInfo.WindowType : WindowType.MainWindow;
+            WindowInfo = windowInfo;
+            WindowType = windowInfo?.WindowType ?? WindowType.MainWindow;
         }
 
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public WindowType WindowType { get { return _windowType; } }
-        public WindowTrackingInfo Window { get { return WindowInfo; } }
-        public DateTime DetectedAt { get { return Timestamp; } }
+        public WindowTrackingInfo WindowInfo { get; }
+        public WindowType WindowType { get; }
+        public WindowTrackingInfo Window => WindowInfo;
+        public DateTime DetectedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre automaticky detekované okno - .NET Framework 4.8 compatible
-    /// </summary>
-    public class WindowAutoDetectedEventArgs : WindowEventArgsBase
-    {
-        private readonly WindowTrackingInfo _windowInfo;
-        private readonly string _description;
-        private readonly WindowType _windowType;
-        private readonly bool _autoSwitched;
-
-        public WindowAutoDetectedEventArgs(IntPtr windowHandle, string description, string windowTitle, string processName, WindowType windowType)
-            : base(windowHandle, windowTitle, processName)
-        {
-            _description = description ?? string.Empty;
-            _windowType = windowType;
-            _windowInfo = null;
-            _autoSwitched = false;
-        }
-
-        public WindowAutoDetectedEventArgs(WindowTrackingInfo windowInfo, string description)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
-        {
-            _windowInfo = windowInfo;
-            _description = description ?? string.Empty;
-            _windowType = windowInfo != null ? windowInfo.WindowType : WindowType.MainWindow;
-            _autoSwitched = false;
-        }
-
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public string Description { get { return _description; } }
-        public WindowType WindowType { get { return _windowType; } }
-        public WindowTrackingInfo Window { get { return WindowInfo; } }
-        public DateTime DetectedAt { get { return Timestamp; } }
-        public bool AutoSwitched { get { return _autoSwitched; } set { /* ReadOnly in base, but settable here for compatibility */ } }
-    }
-
-    /// <summary>
-    /// Event args pre nové okno ktoré sa objavilo - .NET Framework 4.8 compatible
+    /// Event args pre nové okno ktoré sa objavilo
     /// </summary>
     public class NewWindowAppearedEventArgs : WindowEventArgsBase
     {
-        private readonly WindowTrackingInfo _windowInfo;
-        private readonly WindowType _windowType;
-        private readonly bool _autoAdded;
-
-        public NewWindowAppearedEventArgs(IntPtr windowHandle, string windowTitle, string processName, WindowType windowType)
+        public NewWindowAppearedEventArgs(
+            IntPtr windowHandle,
+            string windowTitle = null,
+            string processName = null,
+            WindowType windowType = WindowType.MainWindow)
             : base(windowHandle, windowTitle, processName)
         {
-            _windowType = windowType;
-            _windowInfo = null;
-            _autoAdded = false;
+            WindowType = windowType;
         }
 
         public NewWindowAppearedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
+            : base(windowInfo?.WindowHandle ?? IntPtr.Zero, windowInfo?.Title, windowInfo?.ProcessName)
         {
-            _windowInfo = windowInfo;
-            _windowType = windowInfo != null ? windowInfo.WindowType : WindowType.MainWindow;
-            _autoAdded = false;
+            WindowInfo = windowInfo;
+            WindowType = windowInfo?.WindowType ?? WindowType.MainWindow;
         }
 
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public WindowType WindowType { get { return _windowType; } }
-        public DateTime AppearedAt { get { return Timestamp; } }
-        public bool AutoAdded { get { return _autoAdded; } set { /* ReadOnly in base, but settable here for compatibility */ } }
-    }
-
-    /// <summary>
-    /// Event args pre okno ktoré zmizlo - .NET Framework 4.8 compatible
-    /// </summary>
-    public class WindowDisappearedEventArgs : WindowEventArgsBase
-    {
-        private readonly WindowTrackingInfo _windowInfo;
-
-        public WindowDisappearedEventArgs(IntPtr windowHandle, string windowTitle, string processName)
-            : base(windowHandle, windowTitle, processName)
-        {
-            _windowInfo = null;
-        }
-
-        public WindowDisappearedEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo != null ? windowInfo.WindowHandle : IntPtr.Zero,
-                   windowInfo != null ? windowInfo.Title : null,
-                   windowInfo != null ? windowInfo.ProcessName : null)
-        {
-            _windowInfo = windowInfo;
-        }
-
-        public WindowTrackingInfo WindowInfo { get { return _windowInfo; } }
-        public DateTime DisappearedAt { get { return Timestamp; } }
+        public WindowTrackingInfo WindowInfo { get; }
+        public WindowType WindowType { get; }
+        public DateTime AppearedAt => Timestamp;
+        public bool AutoAdded { get; set; }
     }
 
     #endregion
@@ -429,7 +403,7 @@ namespace AppCommander.W7_11.WPF.Core
     #region UI Element Event Args
 
     /// <summary>
-    /// Event args pre pridaný UI element - .NET Framework 4.8 compatible
+    /// Event args pre pridaný UI element
     /// </summary>
     public sealed class ElementAddedEventArgs : UIElementEventArgsBase
     {
@@ -438,100 +412,91 @@ namespace AppCommander.W7_11.WPF.Core
         {
         }
 
-        public DateTime AddedAt { get { return Timestamp; } }
+        public DateTime AddedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre odstránený UI element - .NET Framework 4.8 compatible
+    /// Event args pre odstránený UI element
     /// </summary>
     public sealed class ElementRemovedEventArgs : UIElementEventArgsBase
     {
-        private readonly string _elementIdentifier;
-
         public ElementRemovedEventArgs(IntPtr windowHandle, UIElementSnapshot element)
             : base(windowHandle, element)
         {
-            _elementIdentifier = string.Empty;
         }
 
         public ElementRemovedEventArgs(IntPtr windowHandle, string elementIdentifier)
             : base(windowHandle, null)
         {
-            _elementIdentifier = elementIdentifier ?? string.Empty;
+            ElementIdentifier = elementIdentifier ?? string.Empty;
         }
 
-        public string ElementIdentifier { get { return _elementIdentifier; } }
-        public DateTime RemovedAt { get { return Timestamp; } }
+        public string ElementIdentifier { get; } = string.Empty;
+        public DateTime RemovedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre zmenený UI element - .NET Framework 4.8 compatible
+    /// Event args pre zmenený UI element
     /// </summary>
     public sealed class ElementModifiedEventArgs : UIElementEventArgsBase
     {
-        private readonly UIElementSnapshot _previousElement;
-
-        public ElementModifiedEventArgs(IntPtr windowHandle, UIElementSnapshot element, UIElementSnapshot previousElement)
+        public ElementModifiedEventArgs(
+            IntPtr windowHandle,
+            UIElementSnapshot element,
+            UIElementSnapshot previousElement = null)
             : base(windowHandle, element)
         {
-            _previousElement = previousElement;
+            PreviousElement = previousElement;
         }
 
-        public UIElementSnapshot PreviousElement { get { return _previousElement; } }
-        public DateTime ModifiedAt { get { return Timestamp; } }
+        public UIElementSnapshot PreviousElement { get; }
+        public DateTime ModifiedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre interakciu s elementom - .NET Framework 4.8 compatible
+    /// OPRAVENÉ: Event args pre interakciu s elementom - nastaviteľné properties
     /// </summary>
     public sealed class ElementInteractionEventArgs : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly UIElementSnapshot _element;
-        private readonly InteractionType _interactionType;
-        private readonly DateTime _timestamp;
-
-        public ElementInteractionEventArgs(IntPtr windowHandle, UIElementSnapshot element, InteractionType interactionType)
+        public ElementInteractionEventArgs(
+            IntPtr windowHandle,
+            UIElementSnapshot element,
+            InteractionType interactionType)
         {
-            _windowHandle = windowHandle;
-            _element = element;
-            _interactionType = interactionType;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            Element = element;
+            InteractionType = interactionType;
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public UIElementSnapshot Element { get { return _element; } }
-        public InteractionType InteractionType { get { return _interactionType; } }
-        public DateTime Timestamp { get { return _timestamp; } }
-        public DateTime InteractionAt { get { return Timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public UIElementSnapshot Element { get; }
+        public InteractionType InteractionType { get; }
+        public DateTime Timestamp { get; }
+        public DateTime InteractionAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre UI zmeny detekované automaticky - .NET Framework 4.8 compatible
+    /// OPRAVENÉ: Event args pre UI zmeny detekované automaticky - nastaviteľné properties
     /// </summary>
     public sealed class UIChangeDetectedEventArgs : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly WindowState _windowState;
-        private readonly UIChangeSet _changes;
-        private readonly DateTime _timestamp;
-
-        public UIChangeDetectedEventArgs(IntPtr windowHandle, WindowState windowState, UIChangeSet changes)
+        public UIChangeDetectedEventArgs(
+            IntPtr windowHandle,
+            WindowState windowState,
+            UIChangeSet changes)
         {
-            if (windowState == null) throw new ArgumentNullException("windowState");
-            if (changes == null) throw new ArgumentNullException("changes");
-
-            _windowHandle = windowHandle;
-            _windowState = windowState;
-            _changes = changes;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            WindowState = windowState ?? throw new ArgumentNullException(nameof(windowState));
+            Changes = changes ?? throw new ArgumentNullException(nameof(changes));
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public WindowState WindowState { get { return _windowState; } }
-        public UIChangeSet Changes { get { return _changes; } }
-        public DateTime Timestamp { get { return _timestamp; } }
-        public DateTime DetectedAt { get { return Timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public WindowState WindowState { get; }
+        public UIChangeSet Changes { get; }
+        public DateTime Timestamp { get; }
+        public DateTime DetectedAt => Timestamp;
     }
 
     #endregion
@@ -539,47 +504,41 @@ namespace AppCommander.W7_11.WPF.Core
     #region Command & Recording Event Args
 
     /// <summary>
-    /// Event args pre nahraný príkaz - .NET Framework 4.8 compatible
+    /// Event args pre nahraný príkaz - používa Command z Command.cs
     /// </summary>
     public sealed class CommandRecordedEventArgs : EventArgs
     {
-        private readonly Command _command;
-        private readonly DateTime _timestamp;
-
         public CommandRecordedEventArgs(Command command)
         {
-            if (command == null) throw new ArgumentNullException("command");
-            _command = command;
-            _timestamp = DateTime.Now;
+            Command = command ?? throw new ArgumentNullException(nameof(command));
+            Timestamp = DateTime.Now;
         }
 
-        public Command Command { get { return _command; } }
-        public DateTime Timestamp { get { return _timestamp; } }
-        public DateTime RecordedAt { get { return Timestamp; } }
+        public Command Command { get; }
+        public DateTime Timestamp { get; }
+        public DateTime RecordedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre zmenu stavu nahrávania - .NET Framework 4.8 compatible
+    /// Event args pre zmenu stavu nahrávania
     /// </summary>
     public sealed class RecordingStateChangedEventArgs : EventArgs
     {
-        private readonly bool _isRecording;
-        private readonly bool _isPaused;
-        private readonly string _sequenceName;
-        private readonly DateTime _timestamp;
-
-        public RecordingStateChangedEventArgs(bool isRecording, bool isPaused, string sequenceName)
+        public RecordingStateChangedEventArgs(
+            bool isRecording,
+            bool isPaused = false,
+            string sequenceName = "")
         {
-            _isRecording = isRecording;
-            _isPaused = isPaused;
-            _sequenceName = sequenceName ?? string.Empty;
-            _timestamp = DateTime.Now;
+            IsRecording = isRecording;
+            IsPaused = isPaused;
+            SequenceName = sequenceName ?? string.Empty;
+            Timestamp = DateTime.Now;
         }
 
-        public bool IsRecording { get { return _isRecording; } }
-        public bool IsPaused { get { return _isPaused; } }
-        public string SequenceName { get { return _sequenceName; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public bool IsRecording { get; }
+        public bool IsPaused { get; }
+        public string SequenceName { get; }
+        public DateTime Timestamp { get; }
     }
 
     #endregion
@@ -587,51 +546,47 @@ namespace AppCommander.W7_11.WPF.Core
     #region Pattern & Analysis Event Args
 
     /// <summary>
-    /// Event args pre detekovaný pattern - .NET Framework 4.8 compatible
+    /// Event args pre detekovaný pattern
     /// </summary>
     public sealed class PatternDetectedEventArgs : EventArgs
     {
-        private readonly string _patternType;
-        private readonly float _confidence;
-        private readonly object _patternData;
-        private readonly DateTime _timestamp;
-
-        public PatternDetectedEventArgs(string patternType, float confidence, object patternData)
+        public PatternDetectedEventArgs(
+            string patternType,
+            float confidence,
+            object patternData = null)
         {
-            _patternType = patternType ?? string.Empty;
-            _confidence = confidence;
-            _patternData = patternData;
-            _timestamp = DateTime.Now;
+            PatternType = patternType ?? string.Empty;
+            Confidence = confidence;
+            PatternData = patternData;
+            Timestamp = DateTime.Now;
         }
 
-        public string PatternType { get { return _patternType; } }
-        public float Confidence { get { return _confidence; } }
-        public object PatternData { get { return _patternData; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public string PatternType { get; }
+        public float Confidence { get; }
+        public object PatternData { get; }
+        public DateTime Timestamp { get; }
     }
 
     /// <summary>
-    /// Event args pre detekovanú anomáliu - .NET Framework 4.8 compatible
+    /// Event args pre detekovanú anomáliu
     /// </summary>
     public sealed class AnomalyDetectedEventArgs : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly string _anomalyType;
-        private readonly string _description;
-        private readonly DateTime _timestamp;
-
-        public AnomalyDetectedEventArgs(IntPtr windowHandle, string anomalyType, string description)
+        public AnomalyDetectedEventArgs(
+            IntPtr windowHandle,
+            string anomalyType,
+            string description)
         {
-            _windowHandle = windowHandle;
-            _anomalyType = anomalyType ?? string.Empty;
-            _description = description ?? string.Empty;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            AnomalyType = anomalyType ?? string.Empty;
+            Description = description ?? string.Empty;
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public string AnomalyType { get { return _anomalyType; } }
-        public string Description { get { return _description; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public string AnomalyType { get; }
+        public string Description { get; }
+        public DateTime Timestamp { get; }
     }
 
     #endregion
@@ -639,190 +594,88 @@ namespace AppCommander.W7_11.WPF.Core
     #region UI Data Classes
 
     /// <summary>
-    /// Stav sledovaného okna - .NET Framework 4.8 compatible
+    /// Stav sledovaného okna
     /// </summary>
     public class WindowState
     {
-        public WindowState()
-        {
-            WindowHandle = IntPtr.Zero;
-            Title = string.Empty;
-            ProcessName = string.Empty;
-            Priority = WindowTrackingPrioritySharedClasses.Medium;
-            AddedAt = DateTime.Now;
-            LastActivated = DateTime.Now;
-            ClosedAt = null;
-            LastChangeDetected = DateTime.Now;
-            LastSeen = DateTime.Now;
-            IsActive = true;
-            ActivationCount = 0;
-            LastUISnapshot = null;
-            ChangeHistory = new List<UIChangeSet>();
-            Metadata = new Dictionary<string, object>();
-        }
-
         public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; }
-        public string ProcessName { get; set; }
-        public WindowTrackingPrioritySharedClasses Priority { get; set; }
-        public DateTime AddedAt { get; set; }
-        public DateTime LastActivated { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string ProcessName { get; set; } = string.Empty;
+        public WindowTrackingPrioritySharedClasses Priority { get; set; } = WindowTrackingPrioritySharedClasses.Medium;
+        public DateTime AddedAt { get; set; } = DateTime.Now;
+        public DateTime LastActivated { get; set; } = DateTime.Now;
         public DateTime? ClosedAt { get; set; }
-        public DateTime LastChangeDetected { get; set; }
-        public DateTime LastSeen { get; set; }
-        public bool IsActive { get; set; }
-        public int ActivationCount { get; set; }
+        public DateTime LastChangeDetected { get; set; } = DateTime.Now;
+        public DateTime LastSeen { get; set; } = DateTime.Now;
+        public bool IsActive { get; set; } = true;
+        public int ActivationCount { get; set; } = 0;
         public UISnapshot LastUISnapshot { get; set; }
-        public List<UIChangeSet> ChangeHistory { get; set; }
-        public Dictionary<string, object> Metadata { get; set; }
+        public List<UIChangeSet> ChangeHistory { get; set; } = new List<UIChangeSet>();
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
     }
 
     /// <summary>
-    /// Snapshot UI stavu okna - .NET Framework 4.8 compatible
+    /// Snapshot UI stavu okna
     /// </summary>
     public class UISnapshot
     {
-        public UISnapshot()
-        {
-            WindowHandle = IntPtr.Zero;
-            CapturedAt = DateTime.Now;
-            Elements = new List<UIElementSnapshot>();
-            WindowTitle = string.Empty;
-            Metadata = new Dictionary<string, object>();
-        }
-
         public IntPtr WindowHandle { get; set; }
-        public DateTime CapturedAt { get; set; }
-        public List<UIElementSnapshot> Elements { get; set; }
-        public string WindowTitle { get; set; }
-        public Dictionary<string, object> Metadata { get; set; }
+        public DateTime CapturedAt { get; set; } = DateTime.Now;
+        public List<UIElementSnapshot> Elements { get; set; } = new List<UIElementSnapshot>();
+        public string WindowTitle { get; set; } = string.Empty;
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
     }
 
     /// <summary>
-    /// Snapshot jednotlivého UI elementu - .NET Framework 4.8 compatible
+    /// Snapshot jednotlivého UI elementu
     /// </summary>
     public class UIElementSnapshot
     {
-        public UIElementSnapshot()
-        {
-            Name = string.Empty;
-            AutomationId = string.Empty;
-            ControlType = string.Empty;
-            ClassName = string.Empty;
-            X = 0;
-            Y = 0;
-            Width = 0;
-            Height = 0;
-            IsEnabled = false;
-            IsVisible = false;
-            Text = string.Empty;
-            Hash = string.Empty;
-            IsWinUI3Element = false;
-            Properties = new Dictionary<string, object>();
-        }
-
-        public string Name { get; set; }
-        public string AutomationId { get; set; }
-        public string ControlType { get; set; }
-        public string ClassName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string AutomationId { get; set; } = string.Empty;
+        public string ControlType { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public bool IsEnabled { get; set; }
         public bool IsVisible { get; set; }
-        public string Text { get; set; }
-        public string Hash { get; set; }
-        public bool IsWinUI3Element { get; set; }
-        public Dictionary<string, object> Properties { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string Hash { get; set; } = string.Empty;
+        public bool IsWinUI3Element { get; set; } = false;
+        public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
 
         public override string ToString()
         {
-            return string.Format("{0}: {1} ({2}) at ({3}, {4})", ControlType, Name, ClassName, X, Y);
+            return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
         }
     }
 
     /// <summary>
-    /// Sada zmien v UI - .NET Framework 4.8 compatible
+    /// Sada zmien v UI
     /// </summary>
     public class UIChangeSet
     {
-        public UIChangeSet()
-        {
-            PreviousSnapshot = null;
-            CurrentSnapshot = null;
-            DetectedAt = DateTime.Now;
-            HasChanges = false;
-            AddedElements = new List<UIElementSnapshot>();
-            RemovedElements = new List<UIElementSnapshot>();
-            ModifiedElements = new List<ModifiedElementPair>();
-            ChangeDescription = string.Empty;
-        }
-
         public UISnapshot PreviousSnapshot { get; set; }
         public UISnapshot CurrentSnapshot { get; set; }
-        public DateTime DetectedAt { get; set; }
+        public DateTime DetectedAt { get; set; } = DateTime.Now;
         public bool HasChanges { get; set; }
-        public List<UIElementSnapshot> AddedElements { get; set; }
-        public List<UIElementSnapshot> RemovedElements { get; set; }
-        // Používame vlastnú triedu namiesto tuple pre .NET Framework 4.8 compatibility
-        public List<ModifiedElementPair> ModifiedElements { get; set; }
-        public string ChangeDescription { get; set; }
+        public List<UIElementSnapshot> AddedElements { get; set; } = new List<UIElementSnapshot>();
+        public List<UIElementSnapshot> RemovedElements { get; set; } = new List<UIElementSnapshot>();
+        public List<(UIElementSnapshot Previous, UIElementSnapshot Current)> ModifiedElements { get; set; } = new List<(UIElementSnapshot, UIElementSnapshot)>();
+        public string ChangeDescription { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// Pair pre ModifiedElements - .NET Framework 4.8 compatible replacement pre tuple
-    /// </summary>
-    public class ModifiedElementPair
-    {
-        public ModifiedElementPair(UIElementSnapshot previous, UIElementSnapshot current)
-        {
-            Previous = previous;
-            Current = current;
-        }
-
-        public UIElementSnapshot Previous { get; set; }
-        public UIElementSnapshot Current { get; set; }
-    }
-
-    /// <summary>
-    /// Rozšírené informácie o UI elemente - .NET Framework 4.8 compatible
+    /// Rozšírené informácie o UI elemente
     /// </summary>
     public class UIElementInfo
     {
-        public UIElementInfo()
-        {
-            Name = string.Empty;
-            AutomationId = string.Empty;
-            ClassName = string.Empty;
-            ControlType = string.Empty;
-            X = 0;
-            Y = 0;
-            BoundingRectangle = Rect.Empty;
-            IsEnabled = false;
-            IsVisible = false;
-            ProcessId = 0;
-            WindowHandle = IntPtr.Zero;
-            AutomationElement = null;
-            ElementText = string.Empty;
-            PlaceholderText = string.Empty;
-            HelpText = string.Empty;
-            AccessKey = string.Empty;
-            IsTableCell = false;
-            TableCellIdentifier = string.Empty;
-            TableName = string.Empty;
-            TableRow = -1;
-            TableColumn = -1;
-            TableColumnName = string.Empty;
-            TableCellContent = string.Empty;
-            TableType = string.Empty;
-            TableInfo = string.Empty;
-        }
-
-        public string Name { get; set; }
-        public string AutomationId { get; set; }
-        public string ClassName { get; set; }
-        public string ControlType { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string AutomationId { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
+        public string ControlType { get; set; } = string.Empty;
         public int X { get; set; }
         public int Y { get; set; }
         public Rect BoundingRectangle { get; set; }
@@ -833,34 +686,34 @@ namespace AppCommander.W7_11.WPF.Core
         public AutomationElement AutomationElement { get; set; }
 
         // Extended properties
-        public string ElementText { get; set; }
-        public string PlaceholderText { get; set; }
-        public string HelpText { get; set; }
-        public string AccessKey { get; set; }
+        public string ElementText { get; set; } = string.Empty;
+        public string PlaceholderText { get; set; } = string.Empty;
+        public string HelpText { get; set; } = string.Empty;
+        public string AccessKey { get; set; } = string.Empty;
 
         // Table support
-        public bool IsTableCell { get; set; }
-        public string TableCellIdentifier { get; set; }
-        public string TableName { get; set; }
-        public int TableRow { get; set; }
-        public int TableColumn { get; set; }
-        public string TableColumnName { get; set; }
-        public string TableCellContent { get; set; }
-        public string TableType { get; set; }
-        public string TableInfo { get; set; }
+        public bool IsTableCell { get; set; } = false;
+        public string TableCellIdentifier { get; set; } = string.Empty;
+        public string TableName { get; set; } = string.Empty;
+        public int TableRow { get; set; } = -1;
+        public int TableColumn { get; set; } = -1;
+        public string TableColumnName { get; set; } = string.Empty;
+        public string TableCellContent { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public string TableInfo { get; set; } = string.Empty;
 
         public string GetUniqueIdentifier()
         {
             if (!string.IsNullOrEmpty(AutomationId))
-                return string.Format("AutoId_{0}", AutomationId);
+                return $"AutoId_{AutomationId}";
 
             if (!string.IsNullOrEmpty(Name))
-                return string.Format("Name_{0}", Name);
+                return $"Name_{Name}";
 
             if (!string.IsNullOrEmpty(ElementText))
-                return string.Format("Text_{0}", ElementText);
+                return $"Text_{ElementText}";
 
-            return string.Format("Class_{0}_Pos_{1}_{2}", ClassName, X, Y);
+            return $"Class_{ClassName}_Pos_{X}_{Y}";
         }
 
         public string GetTableCellBestIdentifier()
@@ -874,17 +727,17 @@ namespace AppCommander.W7_11.WPF.Core
             var parts = new List<string>();
 
             if (!string.IsNullOrEmpty(TableName))
-                parts.Add(string.Format("Table:{0}", CleanIdentifierText(TableName)));
+                parts.Add($"Table:{CleanIdentifierText(TableName)}");
 
             if (!string.IsNullOrEmpty(TableColumnName))
-                parts.Add(string.Format("Col:{0}", CleanIdentifierText(TableColumnName)));
+                parts.Add($"Col:{CleanIdentifierText(TableColumnName)}");
             else if (TableColumn >= 0)
-                parts.Add(string.Format("Col:{0}", TableColumn));
+                parts.Add($"Col:{TableColumn}");
 
             if (TableRow >= 0)
-                parts.Add(string.Format("Row:{0}", TableRow));
+                parts.Add($"Row:{TableRow}");
 
-            return parts.Count > 0 ? string.Join("_", parts.ToArray()) : GetUniqueIdentifier();
+            return parts.Count > 0 ? string.Join("_", parts) : GetUniqueIdentifier();
         }
 
         public string GetTableCellDisplayName()
@@ -897,16 +750,16 @@ namespace AppCommander.W7_11.WPF.Core
             if (!string.IsNullOrEmpty(TableName))
                 parts.Add(TableName);
 
-            string columnPart = !string.IsNullOrEmpty(TableColumnName) ? TableColumnName : string.Format("Col{0}", TableColumn);
+            string columnPart = !string.IsNullOrEmpty(TableColumnName) ? TableColumnName : $"Col{TableColumn}";
             parts.Add(columnPart);
 
             if (TableRow >= 0)
-                parts.Add(string.Format("R{0}", TableRow));
+                parts.Add($"R{TableRow}");
 
             if (!string.IsNullOrEmpty(TableCellContent) && TableCellContent.Length <= 15)
                 parts.Add(CleanIdentifierText(TableCellContent));
 
-            return string.Join("_", parts.ToArray());
+            return string.Join("_", parts);
         }
 
         public bool IsValidTableCell()
@@ -922,7 +775,6 @@ namespace AppCommander.W7_11.WPF.Core
             if (string.IsNullOrEmpty(text))
                 return string.Empty;
 
-            // .NET Framework 4.8 compatible regex replacement
             return System.Text.RegularExpressions.Regex.Replace(text, @"[^\w\d]", "_").Trim('_');
         }
 
@@ -930,44 +782,29 @@ namespace AppCommander.W7_11.WPF.Core
         {
             if (IsTableCell)
             {
-                return string.Format("TableCell: {0} at ({1}, {2}) in {3}", GetTableCellDisplayName(), X, Y, TableName);
+                return $"TableCell: {GetTableCellDisplayName()} at ({X}, {Y}) in {TableName}";
             }
 
-            return string.Format("{0}: {1} ({2}) at ({3}, {4})", ControlType, Name, ClassName, X, Y);
+            return $"{ControlType}: {Name} ({ClassName}) at ({X}, {Y})";
         }
     }
 
     /// <summary>
-    /// Štatistiky použitia UI elementov - .NET Framework 4.8 compatible
+    /// Štatistiky použitia UI elementov
     /// </summary>
     public class ElementUsageStats
     {
-        public ElementUsageStats()
-        {
-            ElementName = string.Empty;
-            UsageCount = 0;
-            Reliability = 1.0f;
-            ElementType = string.Empty;
-            ControlType = string.Empty;
-            ClickCount = 0;
-            KeyPressCount = 0;
-            TotalUsage = 0;
-            FirstUsed = DateTime.MinValue;
-            LastUsed = DateTime.MinValue;
-            ActionsPerformed = new List<string>();
-        }
-
-        public string ElementName { get; set; }
-        public int UsageCount { get; set; }
-        public float Reliability { get; set; }
-        public string ElementType { get; set; }
-        public string ControlType { get; set; }
+        public string ElementName { get; set; } = string.Empty;
+        public int UsageCount { get; set; } = 0;
+        public float Reliability { get; set; } = 1.0f;
+        public string ElementType { get; set; } = string.Empty;
+        public string ControlType { get; set; } = string.Empty;
         public int ClickCount { get; set; }
         public int KeyPressCount { get; set; }
         public int TotalUsage { get; set; }
         public DateTime FirstUsed { get; set; }
         public DateTime LastUsed { get; set; }
-        public List<string> ActionsPerformed { get; set; }
+        public List<string> ActionsPerformed { get; set; } = new List<string>();
 
         public void IncrementUsage(CommandType actionType)
         {
@@ -997,159 +834,9 @@ namespace AppCommander.W7_11.WPF.Core
         public override string ToString()
         {
             if (string.IsNullOrEmpty(ElementName))
-                return string.Format("Unknown ({0}): {1} uses", ControlType, TotalUsage);
+                return $"Unknown ({ControlType}): {TotalUsage} uses";
 
-            return string.Format("{0} ({1}): {2} uses", ElementName, ControlType, TotalUsage);
-        }
-    }
-
-    /// <summary>
-    /// Vylepšené tracking data pre okná - .NET Framework 4.8 compatible
-    /// </summary>
-    public class WindowTrackingData
-    {
-        public WindowTrackingData()
-        {
-            WindowHandle = IntPtr.Zero;
-            Title = string.Empty;
-            ProcessName = string.Empty;
-            ClassName = string.Empty;
-            WindowType = WindowType.MainWindow;
-            IsModal = false;
-            IsVisible = false;
-            DetectedAt = DateTime.Now;
-            LastUpdate = DateTime.Now;
-            IsTracked = true;
-            IsActive = true;
-            UIElements = new List<UIElementInfo>();
-        }
-
-        public WindowTrackingData(WindowTrackingInfo windowInfo)
-        {
-            if (windowInfo != null)
-            {
-                WindowHandle = windowInfo.WindowHandle;
-                Title = windowInfo.Title ?? string.Empty;
-                ProcessName = windowInfo.ProcessName ?? string.Empty;
-                ClassName = windowInfo.ClassName ?? string.Empty;
-                IsVisible = windowInfo.IsVisible;
-                DetectedAt = windowInfo.DetectedAt;
-                WindowType = windowInfo.WindowType;
-                IsModal = windowInfo.IsModal;
-                IsActive = windowInfo.IsActive;
-            }
-            else
-            {
-                WindowHandle = IntPtr.Zero;
-                Title = string.Empty;
-                ProcessName = string.Empty;
-                ClassName = string.Empty;
-                IsVisible = false;
-                DetectedAt = DateTime.Now;
-                WindowType = WindowType.MainWindow;
-                IsModal = false;
-                IsActive = true;
-            }
-
-            UIElements = new List<UIElementInfo>();
-            LastUpdate = DateTime.Now;
-            IsTracked = true;
-        }
-
-        // Window properties
-        public IntPtr WindowHandle { get; set; }
-        public string Title { get; set; }
-        public string ProcessName { get; set; }
-        public string ClassName { get; set; }
-        public WindowType WindowType { get; set; }
-        public bool IsModal { get; set; }
-        public bool IsVisible { get; set; }
-
-        // Tracking properties
-        public DateTime DetectedAt { get; set; }
-        public DateTime LastUpdate { get; set; }
-        public bool IsTracked { get; set; }
-        public bool IsActive { get; set; }
-
-        // UI Elements
-        public List<UIElementInfo> UIElements { get; set; }
-
-        public WindowTrackingInfo ToWindowTrackingInfo()
-        {
-            return new WindowTrackingInfo
-            {
-                WindowHandle = WindowHandle,
-                Title = Title,
-                ProcessName = ProcessName,
-                ClassName = ClassName,
-                IsVisible = IsVisible,
-                DetectedAt = DetectedAt,
-                WindowType = WindowType,
-                IsModal = IsModal,
-                IsActive = IsActive
-            };
-        }
-
-        public void UpdateTracking()
-        {
-            LastUpdate = DateTime.Now;
-        }
-
-        public void MarkAsInactive()
-        {
-            IsActive = false;
-            IsTracked = false;
-            UpdateTracking();
-        }
-    }
-
-    #endregion
-
-    #region Compatibility & Legacy Support
-
-    /// <summary>
-    /// Aliasy pre backward compatibility - označené ako obsolete
-    /// </summary>
-    [Obsolete("Use WindowAutoDetectedEventArgs instead")]
-    public class AutoWindowDetectedEventArgs : WindowAutoDetectedEventArgs
-    {
-        public AutoWindowDetectedEventArgs(IntPtr windowHandle, string description, string windowTitle, string processName, WindowType windowType)
-            : base(windowHandle, description, windowTitle, processName, windowType)
-        {
-        }
-    }
-
-    [Obsolete("Use NewWindowAppearedEventArgs instead")]
-    public class CustomWindowAppearedEventArgs : NewWindowAppearedEventArgs
-    {
-        public CustomWindowAppearedEventArgs(IntPtr windowHandle, string windowTitle, string processName, WindowType windowType)
-            : base(windowHandle, windowTitle, processName, windowType)
-        {
-        }
-    }
-
-    [Obsolete("Use WindowDisappearedEventArgs instead")]
-    public class CustomWindowDisappearedEventArgs : WindowDisappearedEventArgs
-    {
-        public CustomWindowDisappearedEventArgs(IntPtr windowHandle, string windowTitle, string processName)
-            : base(windowHandle, windowTitle, processName)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Event args pre WindowTracker - rozširuje base functionality
-    /// </summary>
-    public class WindowTrackerEventArgs : WindowActivatedEventArgs
-    {
-        public WindowTrackerEventArgs(IntPtr windowHandle, string windowTitle, string processName)
-            : base(windowHandle, windowTitle, processName)
-        {
-        }
-
-        public WindowTrackerEventArgs(WindowTrackingInfo windowInfo)
-            : base(windowInfo)
-        {
+            return $"{ElementName} ({ControlType}): {TotalUsage} uses";
         }
     }
 
@@ -1158,31 +845,20 @@ namespace AppCommander.W7_11.WPF.Core
     #region Service Classes - Placeholder Implementations
 
     /// <summary>
-    /// Automatický detektor okien - .NET Framework 4.8 compatible
+    /// Automatický detektor okien
     /// </summary>
     public class AutoWindowDetector : IDisposable
     {
-        public AutoWindowDetector()
-        {
-            EnableDialogDetection = true;
-            EnableMessageBoxDetection = true;
-            EnableChildWindowDetection = true;
-            EnableWinUI3Detection = true;
-            DetectionSensitivity = DetectionSensitivity.Medium;
-            _isDetecting = false;
-        }
+        public bool EnableDialogDetection { get; set; } = true;
+        public bool EnableMessageBoxDetection { get; set; } = true;
+        public bool EnableChildWindowDetection { get; set; } = true;
+        public bool EnableWinUI3Detection { get; set; } = true;
+        public DetectionSensitivity DetectionSensitivity { get; set; } = DetectionSensitivity.Medium;
 
-        public bool EnableDialogDetection { get; set; }
-        public bool EnableMessageBoxDetection { get; set; }
-        public bool EnableChildWindowDetection { get; set; }
-        public bool EnableWinUI3Detection { get; set; }
-        public DetectionSensitivity DetectionSensitivity { get; set; }
-
-        public event EventHandler<WindowAutoDetectedEventArgs> NewWindowDetected;
         public event EventHandler<WindowActivatedEventArgs> WindowActivated;
         public event EventHandler<WindowClosedEventArgs> WindowClosed;
 
-        private bool _isDetecting;
+        private bool _isDetecting = false;
 
         public void StartDetection(IntPtr primaryWindow, string targetProcess)
         {
@@ -1203,29 +879,20 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Skaner UI elementov - .NET Framework 4.8 compatible
+    /// Skaner UI elementov
     /// </summary>
     public class UIElementScanner : IDisposable
     {
-        public UIElementScanner()
-        {
-            ScanInterval = 750;
-            EnableDeepScanning = true;
-            EnableWinUI3ElementDetection = true;
-            MaxElementsPerScan = 100;
-            _isScanning = false;
-        }
-
-        public int ScanInterval { get; set; }
-        public bool EnableDeepScanning { get; set; }
-        public bool EnableWinUI3ElementDetection { get; set; }
-        public int MaxElementsPerScan { get; set; }
+        public int ScanInterval { get; set; } = 750;
+        public bool EnableDeepScanning { get; set; } = true;
+        public bool EnableWinUI3ElementDetection { get; set; } = true;
+        public int MaxElementsPerScan { get; set; } = 100;
 
         public event EventHandler<UIElementsChangedEventArgs> ElementsChanged;
         public event EventHandler<NewElementDetectedEventArgs> NewElementDetected;
         public event EventHandler<ElementDisappearedEventArgs> ElementDisappeared;
 
-        private bool _isScanning;
+        private bool _isScanning = false;
 
         public void StartScanning(IntPtr primaryWindow)
         {
@@ -1241,12 +908,12 @@ namespace AppCommander.W7_11.WPF.Core
 
         public void AddWindowToScan(IntPtr windowHandle)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format("➕ Added window to scan: {0}", windowHandle));
+            System.Diagnostics.Debug.WriteLine($"➕ Added window to scan: {windowHandle}");
         }
 
         public void SwitchPrimaryWindow(IntPtr newPrimaryWindow)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format("🔄 Switched primary scan window: {0}", newPrimaryWindow));
+            System.Diagnostics.Debug.WriteLine($"🔄 Switched primary scan window: {newPrimaryWindow}");
         }
 
         public void Dispose()
@@ -1256,26 +923,18 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Monitor okien - .NET Framework 4.8 compatible
+    /// Monitor okien
     /// </summary>
     public class WindowMonitor : IDisposable
     {
-        public WindowMonitor()
-        {
-            _targetProcesses = new List<string>();
-            _knownWindows = new HashSet<IntPtr>();
-            _isMonitoring = false;
-        }
-
         public event EventHandler<NewWindowAppearedEventArgs> WindowAppeared;
-        public event EventHandler<WindowDisappearedEventArgs> WindowDisappeared;
-        public event EventHandler<WindowTrackerEventArgs> WindowActivated;
+        public event EventHandler<WindowClosedEventArgs> WindowClosed;
 
-        private readonly List<string> _targetProcesses;
-        private readonly HashSet<IntPtr> _knownWindows;
-        private bool _isMonitoring;
+        private readonly List<string> _targetProcesses = new List<string>();
+        private readonly HashSet<IntPtr> _knownWindows = new HashSet<IntPtr>();
+        private bool _isMonitoring = false;
 
-        public void StartMonitoring(string targetProcess)
+        public void StartMonitoring(string targetProcess = "")
         {
             _isMonitoring = true;
             if (!string.IsNullOrEmpty(targetProcess))
@@ -1296,7 +955,7 @@ namespace AppCommander.W7_11.WPF.Core
             if (!_targetProcesses.Contains(processName))
             {
                 _targetProcesses.Add(processName);
-                System.Diagnostics.Debug.WriteLine(string.Format("📝 Added target process: {0}", processName));
+                System.Diagnostics.Debug.WriteLine($"📝 Added target process: {processName}");
             }
         }
 
@@ -1312,20 +971,15 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Detektor zmien elementov - .NET Framework 4.8 compatible
+    /// Detektor zmien elementov
     /// </summary>
     public class ElementChangeDetector : IDisposable
     {
-        public ElementChangeDetector()
-        {
-            _isDetecting = false;
-        }
-
         public event EventHandler<ElementAddedEventArgs> ElementAdded;
         public event EventHandler<ElementRemovedEventArgs> ElementRemoved;
         public event EventHandler<ElementModifiedEventArgs> ElementModified;
 
-        private bool _isDetecting;
+        private bool _isDetecting = false;
 
         public void StartDetection()
         {
@@ -1346,19 +1000,14 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Inteligentný analyzátor UI - .NET Framework 4.8 compatible
+    /// Inteligentný analyzátor UI
     /// </summary>
     public class SmartUIAnalyzer : IDisposable
     {
-        public SmartUIAnalyzer()
-        {
-            _isAnalyzing = false;
-        }
-
         public event EventHandler<PatternDetectedEventArgs> PatternDetected;
         public event EventHandler<AnomalyDetectedEventArgs> AnomalyDetected;
 
-        private bool _isAnalyzing;
+        private bool _isAnalyzing = false;
 
         public void StartAnalysis()
         {
@@ -1391,50 +1040,37 @@ namespace AppCommander.W7_11.WPF.Core
     #region Additional Event Args for Scanner
 
     /// <summary>
-    /// Event args pre zmeny UI elementov - .NET Framework 4.8 compatible
+    /// Event args pre zmeny UI elementov
     /// </summary>
     public sealed class UIElementsChangedEventArgs : EventArgs
     {
-        private readonly List<UIElementSnapshot> _newElements;
-        private readonly List<UIElementSnapshot> _previousElements;
-        private readonly IntPtr _windowHandle;
-        private readonly List<UIElementSnapshot> _addedElements;
-        private readonly List<UIElementSnapshot> _removedElements;
-        private readonly List<UIElementSnapshot> _modifiedElements;
-        private readonly DateTime _timestamp;
-
-        public UIElementsChangedEventArgs(IntPtr windowHandle, List<UIElementSnapshot> addedElements, List<UIElementSnapshot> removedElements, List<UIElementSnapshot> modifiedElements)
+        public UIElementsChangedEventArgs(
+            IntPtr windowHandle,
+            List<UIElementSnapshot> addedElements = null,
+            List<UIElementSnapshot> removedElements = null,
+            List<UIElementSnapshot> modifiedElements = null)
         {
-            _windowHandle = windowHandle;
-            _addedElements = addedElements ?? new List<UIElementSnapshot>();
-            _removedElements = removedElements ?? new List<UIElementSnapshot>();
-            _modifiedElements = modifiedElements ?? new List<UIElementSnapshot>();
-            _timestamp = DateTime.Now;
-            _newElements = new List<UIElementSnapshot>();
-            _previousElements = new List<UIElementSnapshot>();
+            WindowHandle = windowHandle;
+            AddedElements = addedElements ?? new List<UIElementSnapshot>();
+            RemovedElements = removedElements ?? new List<UIElementSnapshot>();
+            ModifiedElements = modifiedElements ?? new List<UIElementSnapshot>();
+            Timestamp = DateTime.Now;
         }
 
-        public List<UIElementSnapshot> NewElements { get { return _newElements; } }
-        public List<UIElementSnapshot> PreviousElements { get { return _previousElements; } }
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public List<UIElementSnapshot> AddedElements { get { return _addedElements; } }
-        public List<UIElementSnapshot> RemovedElements { get { return _removedElements; } }
-        public List<UIElementSnapshot> ModifiedElements { get { return _modifiedElements; } }
-        public DateTime Timestamp { get { return _timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public List<UIElementSnapshot> AddedElements { get; }
+        public List<UIElementSnapshot> RemovedElements { get; }
+        public List<UIElementSnapshot> ModifiedElements { get; }
+        public DateTime Timestamp { get; }
 
-        public bool HasChanges
-        {
-            get
-            {
-                return AddedElements.Count > 0 ||
-                       RemovedElements.Count > 0 ||
-                       ModifiedElements.Count > 0;
-            }
-        }
+        public bool HasChanges =>
+            AddedElements.Count > 0 ||
+            RemovedElements.Count > 0 ||
+            ModifiedElements.Count > 0;
     }
 
     /// <summary>
-    /// Event args pre nový detekovaný element - .NET Framework 4.8 compatible
+    /// Event args pre nový detekovaný element
     /// </summary>
     public sealed class NewElementDetectedEventArgs : UIElementEventArgsBase
     {
@@ -1443,33 +1079,45 @@ namespace AppCommander.W7_11.WPF.Core
         {
         }
 
-        public DateTime DetectedAt { get { return Timestamp; } }
+        public DateTime DetectedAt => Timestamp;
     }
 
     /// <summary>
-    /// Event args pre zmiznutý element - .NET Framework 4.8 compatible
+    /// Event args pre zmiznutý element
     /// </summary>
     public sealed class ElementDisappearedEventArgs : EventArgs
     {
-        private readonly IntPtr _windowHandle;
-        private readonly string _elementIdentifier;
-        private readonly UIElementSnapshot _lastKnownState;
-        private readonly DateTime _timestamp;
-
-        public ElementDisappearedEventArgs(IntPtr windowHandle, string elementIdentifier, UIElementSnapshot lastKnownState)
+        public ElementDisappearedEventArgs(
+            IntPtr windowHandle,
+            string elementIdentifier,
+            UIElementSnapshot lastKnownState = null)
         {
-            _windowHandle = windowHandle;
-            _elementIdentifier = elementIdentifier ?? string.Empty;
-            _lastKnownState = lastKnownState;
-            _timestamp = DateTime.Now;
+            WindowHandle = windowHandle;
+            ElementIdentifier = elementIdentifier ?? string.Empty;
+            LastKnownState = lastKnownState;
+            Timestamp = DateTime.Now;
         }
 
-        public IntPtr WindowHandle { get { return _windowHandle; } }
-        public string ElementIdentifier { get { return _elementIdentifier; } }
-        public UIElementSnapshot LastKnownState { get { return _lastKnownState; } }
-        public DateTime Timestamp { get { return _timestamp; } }
-        public DateTime DisappearedAt { get { return Timestamp; } }
+        public IntPtr WindowHandle { get; }
+        public string ElementIdentifier { get; }
+        public UIElementSnapshot LastKnownState { get; }
+        public DateTime Timestamp { get; }
+        public DateTime DisappearedAt => Timestamp;
     }
 
     #endregion
+
+
+    //public class WinUI3BridgeInfo // - nachádza sa už v triede DebugTestHelper.cs
+    //{
+    //    public System.Drawing.Point Position { get; set; }
+    //    public System.Drawing.Size Size { get; set; }
+    //    public bool IsVisible { get; set; }
+    //    public bool IsEnabled { get; set; }
+    //    public int ChildCount { get; set; }
+    //    public List<string> SupportedPatterns { get; set; } = new List<string>();
+    //    public List<WinUI3ElementInfo> MeaningfulElements { get; set; } = new List<WinUI3ElementInfo>();
+    //    public string ErrorMessage { get; set; } = "";
+    //}
+
 }

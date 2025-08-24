@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Automation;
-using AppCommander.W7_11.WPF.Core;
-using System.Runtime.InteropServices;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -29,6 +27,11 @@ namespace AppCommander.W7_11.WPF.Core
         private int currentCommandIndex = 0;
         private readonly Stack<LoopContext> loopStack;
 
+        // Configuration
+        public int DefaultDelayBetweenCommands { get; set; } = 100; // ms
+        public bool StopOnError { get; set; } = false;
+        public bool HighlightElements { get; set; } = true;
+
         // Events
         public event EventHandler<CommandExecutedEventArgs> CommandExecuted;
         public event EventHandler<PlaybackStateChangedEventArgs> PlaybackStateChanged;
@@ -42,252 +45,198 @@ namespace AppCommander.W7_11.WPF.Core
         public int CurrentCommandIndex => currentCommandIndex;
         public int TotalCommands => currentSequence?.Commands.Count ?? 0;
 
-        public bool PreferElementIdentifiers { get; set; } = true;
-        public bool EnableAdaptiveFinding { get; set; } = true;
-        public int MaxElementSearchAttempts { get; set; } = 3;
-
-        // Settings - zvýšené delays pre vyššiu spoľahlivosť
-        public int DefaultDelayBetweenCommands { get; set; } = 300; // Zvýšené z 200ms na 300ms
-        public bool StopOnError { get; set; } = true;
-        public bool HighlightTargetElements { get; set; } = true;
-        public IntPtr TargetWindow { get; set; } = IntPtr.Zero;
-        public int WindowFocusDelay { get; set; } = 200; // Nový delay pre focus okna
-        public int ElementSearchRetries { get; set; } = 3; // Počet pokusov pri hľadaní elementu
-
         public CommandPlayer()
         {
             actionSimulator = new ActionSimulator();
             loopStack = new Stack<LoopContext>();
-
-            // Nastavenia pre ActionSimulator pre vyššiu spoľahlivosť
-            actionSimulator.ClickDelay = 100; // Zvýšené z 50ms
-            actionSimulator.KeyDelay = 100;   // Zvýšené z 50ms  
-            actionSimulator.ActionDelay = 50; // Zvýšené z 10ms
+            System.Diagnostics.Debug.WriteLine("🎬 CommandPlayer initialized");
         }
 
-        public async Task PlaySequenceAsync(CommandSequence sequence, IntPtr targetWindow = default(IntPtr))
+        #region Public Methods - OPRAVENÉ IMPLEMENTÁCIE
+
+        internal void Pause()
         {
-            System.Diagnostics.Debug.WriteLine("PlaySequenceAsync started");
-
-            if (isPlaying)
-                throw new InvalidOperationException("Already playing a sequence");
-
-            if (sequence == null || sequence.Commands.Count == 0)
-                throw new ArgumentException("Sequence is empty or null");
-
-            System.Diagnostics.Debug.WriteLine($"Sequence has {sequence.Commands.Count} commands");
-
-            currentSequence = sequence;
-            currentCommandIndex = 0;
-            loopStack.Clear();
-
             try
             {
-                // Pokus o nájdenie cieľového okna s lepším error handlingom
-                await FindAndValidateTargetWindow(sequence, targetWindow);
+                if (!isPlaying || isPaused)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Cannot pause - not playing or already paused");
+                    return;
+                }
 
-                cancellationTokenSource = new CancellationTokenSource();
-                isPlaying = true;
-                isPaused = false;
-
-                NotifyPlaybackStateChanged(PlaybackState.Started);
-
-                System.Diagnostics.Debug.WriteLine("Starting sequence execution");
-                await ExecuteSequenceAsync(cancellationTokenSource.Token);
-
-                NotifyPlaybackCompleted(true, "Sequence completed successfully");
-            }
-            catch (OperationCanceledException)
-            {
-                System.Diagnostics.Debug.WriteLine("Playback was cancelled");
-                NotifyPlaybackCompleted(false, "Playback was cancelled");
+                isPaused = true;
+                NotifyPlaybackStateChanged(PlaybackState.Paused);
+                System.Diagnostics.Debug.WriteLine("⏸️ Playback paused");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in sequence execution: {ex.Message}");
-                NotifyPlaybackError(ex.Message, currentCommandIndex);
-
-                if (StopOnError)
-                {
-                    NotifyPlaybackCompleted(false, $"Stopped due to error: {ex.Message}");
-                }
-            }
-            finally
-            {
-                isPlaying = false;
-                isPaused = false;
-                cancellationTokenSource?.Dispose();
-                cancellationTokenSource = null;
-                NotifyPlaybackStateChanged(PlaybackState.Stopped);
+                System.Diagnostics.Debug.WriteLine($"❌ Error pausing playback: {ex.Message}");
+                NotifyPlaybackError($"Error pausing playback: {ex.Message}", currentCommandIndex);
             }
         }
 
-        /// <summary>
-        /// Pre-execution analýza príkazov
-        /// </summary>
-        public void AnalyzeCommandsBeforeExecution(CommandSequence sequence)
+        internal void Resume()
         {
-            if (sequence == null || TargetWindow == IntPtr.Zero) return;
-
-            System.Diagnostics.Debug.WriteLine("\n=== PRE-EXECUTION ANALYSIS ===");
-            System.Diagnostics.Debug.WriteLine($"Total commands: {sequence.Commands.Count}");
-
-            var clickCommands = sequence.Commands.Where(c =>
-                c.Type == CommandType.Click || c.Type == CommandType.DoubleClick ||
-                c.Type == CommandType.RightClick || c.Type == CommandType.SetText).ToList();
-
-            System.Diagnostics.Debug.WriteLine($"Commands requiring element finding: {clickCommands.Count}");
-
-            if (EnableAdaptiveFinding && clickCommands.Any())
+            try
             {
-                int foundCount = 0;
-                int winui3Count = 0;
+                if (!isPlaying || !isPaused)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Cannot resume - not playing or not paused");
+                    return;
+                }
 
-                foreach (var cmd in clickCommands)
+                isPaused = false;
+                NotifyPlaybackStateChanged(PlaybackState.Resumed);
+                System.Diagnostics.Debug.WriteLine("▶️ Playback resumed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error resuming playback: {ex.Message}");
+                NotifyPlaybackError($"Error resuming playback: {ex.Message}", currentCommandIndex);
+            }
+        }
+
+        internal void PlaySequence(CommandSequence sequence, int repeatCount = 1)
+        {
+            try
+            {
+                if (isPlaying)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Already playing a sequence");
+                    return;
+                }
+
+                if (sequence == null || !sequence.Commands.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ No sequence or empty sequence provided");
+                    return;
+                }
+
+                currentSequence = sequence;
+                currentCommandIndex = 0;
+                isPlaying = true;
+                isPaused = false;
+                loopStack.Clear();
+
+                cancellationTokenSource = new CancellationTokenSource();
+
+                System.Diagnostics.Debug.WriteLine($"🎬 Starting playback: {sequence.Name} (Repeat: {repeatCount}x)");
+                NotifyPlaybackStateChanged(PlaybackState.Started);
+
+                // Start playback asynchronously
+                Task.Run(async () =>
                 {
                     try
                     {
-                        var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, cmd);
-                        if (searchResult.IsSuccess)
+                        for (int iteration = 0; iteration < repeatCount; iteration++)
                         {
-                            foundCount++;
-                            System.Diagnostics.Debug.WriteLine($"  ✓ {cmd.ElementName} -> found via {searchResult.SearchMethod}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"  ✗ {cmd.ElementName} -> {searchResult.ErrorMessage}");
+                            if (cancellationTokenSource.Token.IsCancellationRequested)
+                                break;
+
+                            System.Diagnostics.Debug.WriteLine($"🔄 Starting iteration {iteration + 1}/{repeatCount}");
+
+                            currentCommandIndex = 0;
+                            await ExecuteSequenceAsync(cancellationTokenSource.Token);
+
+                            if (iteration < repeatCount - 1)
+                            {
+                                await Task.Delay(500, cancellationTokenSource.Token); // Delay between iterations
+                            }
                         }
 
-                        if (cmd.IsWinUI3Element) winui3Count++;
+                        CompletePlayback(true, $"Sequence completed successfully ({repeatCount} iterations)");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        CompletePlayback(false, "Playback was cancelled");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  ✗ {cmd.ElementName} -> Error: {ex.Message}");
+                        CompletePlayback(false, $"Playback failed: {ex.Message}");
                     }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error starting playback: {ex.Message}");
+                NotifyPlaybackError($"Error starting playback: {ex.Message}", 0);
+            }
+        }
+
+        internal void Stop()
+        {
+            try
+            {
+                if (!isPlaying)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Not currently playing");
+                    return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Elements found: {foundCount}/{clickCommands.Count}");
-                if (winui3Count > 0)
-                    System.Diagnostics.Debug.WriteLine($"WinUI3 elements: {winui3Count}");
+                cancellationTokenSource?.Cancel();
+                isPlaying = false;
+                isPaused = false;
+                currentCommandIndex = 0;
+                loopStack.Clear();
 
-                if (foundCount < clickCommands.Count)
+                NotifyPlaybackStateChanged(PlaybackState.Stopped);
+                System.Diagnostics.Debug.WriteLine("⏹️ Playback stopped");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error stopping playback: {ex.Message}");
+                NotifyPlaybackError($"Error stopping playback: {ex.Message}", currentCommandIndex);
+            }
+        }
+
+        internal void TestPlayback(CommandSequence sequence)
+        {
+            try
+            {
+                if (sequence == null || !sequence.Commands.Any())
                 {
-                    System.Diagnostics.Debug.WriteLine("⚠️  Some elements may not be found during execution - will fallback to coordinates");
+                    System.Diagnostics.Debug.WriteLine("⚠️ No sequence provided for testing");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"🧪 Testing playback for sequence: {sequence.Name}");
+
+                // Validate commands
+                var validationResult = ValidateSequence(sequence);
+                if (!validationResult.IsValid)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Sequence validation failed:");
+                    foreach (var error in validationResult.Errors)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  - {error}");
+                    }
+                    return;
+                }
+
+                // Test with first command only
+                if (sequence.Commands.Any())
+                {
+                    var testSequence = new CommandSequence
+                    {
+                        Name = $"Test_{sequence.Name}",
+                        Commands = new List<Command> { sequence.Commands.First() },
+                        TargetProcessName = sequence.TargetProcessName,
+                        TargetWindowTitle = sequence.TargetWindowTitle
+                    };
+
+                    PlaySequence(testSequence, 1);
                 }
             }
-
-            System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===\n");
-        }
-
-        private async Task FindAndValidateTargetWindow(CommandSequence sequence, IntPtr providedTargetWindow)
-        {
-            await Task.Run(() =>
+            catch (Exception ex)
             {
-                // Adaptívne vyhľadanie cieľového okna s retry logikou
-                if (sequence.AutoFindTarget && providedTargetWindow == IntPtr.Zero)
-                {
-                    System.Diagnostics.Debug.WriteLine("Attempting to find target window");
-                    System.Diagnostics.Debug.WriteLine($"TargetProcessName: '{sequence.TargetProcessName}'");
-                    System.Diagnostics.Debug.WriteLine($"TargetWindowTitle: '{sequence.TargetWindowTitle}'");
-
-                    if (!string.IsNullOrEmpty(sequence.TargetProcessName))
-                    {
-                        // Pokus 1: Smart search
-                        var searchResult = WindowTrackingInfo.SmartFindWindow(
-                            sequence.TargetProcessName,
-                            sequence.TargetWindowTitle,
-                            sequence.TargetWindowClass);
-
-                        if (searchResult.IsValid)
-                        {
-                            TargetWindow = searchResult.Handle;
-                            System.Diagnostics.Debug.WriteLine($"Found target window via {searchResult.MatchMethod}");
-                            NotifyPlaybackStateChanged(PlaybackState.Started,
-                                $"Found target window via {searchResult.MatchMethod}");
-                        }
-                        else
-                        {
-                            // Pokus 2: Čakanie na aplikáciu
-                            System.Diagnostics.Debug.WriteLine($"Window search failed, waiting for application: {sequence.TargetProcessName}");
-                            NotifyPlaybackStateChanged(PlaybackState.Started,
-                                $"Waiting for application: {sequence.TargetProcessName}");
-
-                            TargetWindow = WindowTrackingInfo.WaitForApplication(
-                                sequence.TargetProcessName,
-                                sequence.MaxWaitTimeSeconds);
-
-                            if (TargetWindow == IntPtr.Zero)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Target application '{sequence.TargetProcessName}' not found or not responding. " +
-                                    $"Please ensure the application is running and try again.");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("No target process name specified - using global mode");
-                        TargetWindow = IntPtr.Zero; // Global mode
-                    }
-                }
-                else
-                {
-                    TargetWindow = providedTargetWindow;
-                    System.Diagnostics.Debug.WriteLine($"Using provided target window: {providedTargetWindow}");
-                }
-
-                // Validácia target okna
-                if (TargetWindow != IntPtr.Zero)
-                {
-                    if (!IsWindow(TargetWindow) || !IsWindowVisible(TargetWindow))
-                    {
-                        System.Diagnostics.Debug.WriteLine("Target window is not valid or visible, switching to global mode");
-                        TargetWindow = IntPtr.Zero;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Target window validated successfully");
-
-                        // Aktualizuj príkazy na základe aktuálneho stavu okna
-                        System.Diagnostics.Debug.WriteLine("Updating commands for current window");
-                        AdaptiveElementFinder.UpdateCommandsForCurrentWindow(TargetWindow, currentSequence.Commands);
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("Operating in global mode - using stored coordinates");
-                }
-            });
+                System.Diagnostics.Debug.WriteLine($"❌ Error testing playback: {ex.Message}");
+                NotifyPlaybackError($"Error testing playback: {ex.Message}", 0);
+            }
         }
 
-        public void StopPlayback()
-        {
-            if (!isPlaying)
-                return;
+        #endregion
 
-            cancellationTokenSource?.Cancel();
-            System.Diagnostics.Debug.WriteLine("Playback stop requested");
-        }
-
-        public void PausePlayback()
-        {
-            if (!isPlaying || isPaused)
-                return;
-
-            isPaused = true;
-            NotifyPlaybackStateChanged(PlaybackState.Paused);
-            System.Diagnostics.Debug.WriteLine("Playback paused");
-        }
-
-        public void ResumePlayback()
-        {
-            if (!isPlaying || !isPaused)
-                return;
-
-            isPaused = false;
-            NotifyPlaybackStateChanged(PlaybackState.Resumed);
-            System.Diagnostics.Debug.WriteLine("Playback resumed");
-        }
+        #region Private Methods
 
         private async Task ExecuteSequenceAsync(CancellationToken cancellationToken)
         {
@@ -305,7 +254,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 try
                 {
-                    System.Diagnostics.Debug.WriteLine($"Executing command {currentCommandIndex + 1}/{currentSequence.Commands.Count}: {command}");
+                    System.Diagnostics.Debug.WriteLine($"Executing command {currentCommandIndex + 1}/{currentSequence.Commands.Count}: {command.Type} - {command.ElementName}");
 
                     await ExecuteCommandAsync(command, cancellationToken);
 
@@ -314,10 +263,12 @@ namespace AppCommander.W7_11.WPF.Core
                     {
                         await Task.Delay(DefaultDelayBetweenCommands, cancellationToken);
                     }
+
+                    NotifyCommandExecuted(command, true);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error executing command {currentCommandIndex + 1}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"❌ Error executing command {currentCommandIndex + 1}: {ex.Message}");
                     NotifyCommandExecuted(command, false, ex.Message);
 
                     if (StopOnError)
@@ -330,726 +281,552 @@ namespace AppCommander.W7_11.WPF.Core
 
         private async Task ExecuteCommandAsync(Command command, CancellationToken cancellationToken)
         {
-            bool success = false;
-            string errorMessage = string.Empty;
-
             try
             {
+                // Focus target window if specified
+                if (!string.IsNullOrEmpty(command.TargetWindow))
+                {
+                    await FocusTargetWindow(command);
+                }
+
                 switch (command.Type)
                 {
                     case CommandType.Click:
                     case CommandType.DoubleClick:
                     case CommandType.RightClick:
-                    case CommandType.MouseClick:
-                        success = await ExecuteMouseCommand(command);
+                        await ExecuteClickCommand(command, cancellationToken);
+                        break;
+
+                    case CommandType.TypeText:
+                        await ExecuteTypeCommand(command, cancellationToken);
                         break;
 
                     case CommandType.KeyPress:
-                        success = await ExecuteKeyCommand(command);
-                        break;
-
-                    case CommandType.SetText:
-                        success = await ExecuteSetTextCommand(command);
+                        await ExecuteKeyPressCommand(command, cancellationToken);
                         break;
 
                     case CommandType.Wait:
-                        success = await ExecuteWaitCommand(command, cancellationToken);
+                        await ExecuteWaitCommand(command, cancellationToken);
                         break;
 
-                    case CommandType.Loop:
-                        success = ExecuteLoopStart(command);
+                    case CommandType.LoopStart:
+                        ExecuteLoopStart(command);
                         break;
 
                     case CommandType.LoopEnd:
-                        success = ExecuteLoopEnd(command);
+                        await ExecuteLoopEnd(command, cancellationToken);
                         break;
 
                     default:
-                        throw new NotSupportedException($"Command type {command.Type} is not supported");
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Unknown command type: {command.Type}");
+                        break;
                 }
             }
             catch (Exception ex)
             {
-                success = false;
-                errorMessage = ex.Message;
-                System.Diagnostics.Debug.WriteLine($"Exception in ExecuteCommandAsync: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error in ExecuteCommandAsync: {ex.Message}");
+                throw;
             }
-
-            NotifyCommandExecuted(command, success, errorMessage);
         }
 
-        private async Task<bool> ExecuteMouseCommand(Command command)
+        private async Task ExecuteClickCommand(Command command, CancellationToken cancellationToken)
         {
-            System.Diagnostics.Debug.WriteLine($"ExecuteMouseCommand: {command.ElementName} (Type: {command.Type})");
-
-            // Ensure target window is focused if we have one
-            await EnsureWindowFocused();
-
-            UIElementInfo element = null;
-            int x = 0, y = 0;
-            string searchMethod = "None";
-
-            // DÔLEŽITÉ: Najprv skús originálne súradnice, ak sú validné
-            bool useOriginalCoordinates = false;
-            if (command.ElementX > 0 && command.ElementY > 0 &&
-                actionSimulator.IsPointOnScreen(command.ElementX, command.ElementY))
+            try
             {
-                x = command.ElementX;
-                y = command.ElementY;
-                useOriginalCoordinates = true;
-                searchMethod = "Original coordinates";
-                System.Diagnostics.Debug.WriteLine($"Using original click coordinates ({x}, {y}) - screen position valid");
-            }
+                UIElementInfo targetElement = null;
 
-            // Ak originálne súradnice nie sú dobré, skús nájsť element
-            if (!useOriginalCoordinates && TargetWindow != IntPtr.Zero)
-            {
-                for (int retry = 0; retry < ElementSearchRetries; retry++)
+                // Try to find element by table cell identifier first
+                if (command.IsTableCommand && !string.IsNullOrEmpty(command.TableCellIdentifier))
                 {
-                    var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, command);
+                    IntPtr targetHandle = FindTargetWindow(command);
+                    if (targetHandle != IntPtr.Zero)
+                    {
+                        targetElement = UIElementDetector.FindTableCellByIdentifier(
+                            targetHandle,
+                            command.TableCellIdentifier);
 
-                    if (searchResult.IsSuccess && searchResult.Element != null)
-                    {
-                        element = searchResult.Element;
-                        x = element.X;
-                        y = element.Y;
-                        searchMethod = searchResult.SearchMethod;
-
-                        System.Diagnostics.Debug.WriteLine($"Element found via {searchMethod} at ({x}, {y}) on retry {retry + 1}");
-                        break;
-                    }
-                    else if (retry < ElementSearchRetries - 1)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Element search failed on retry {retry + 1}, retrying...");
-                        await Task.Delay(100);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Element search failed after {ElementSearchRetries} retries: {searchResult.ErrorMessage}");
+                        if (targetElement != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ Found table cell: {command.TableCellIdentifier}");
+                        }
                     }
                 }
-            }
 
-            // Final fallback na uložené súradnice (ak nie sú už použité)
-            if (!useOriginalCoordinates && element == null)
-            {
-                x = command.ElementX;
-                y = command.ElementY;
-                searchMethod = "Stored coordinates (fallback)";
-
-                System.Diagnostics.Debug.WriteLine($"Using stored coordinates as final fallback ({x}, {y})");
-
-                if (x <= 0 || y <= 0)
+                // Fallback to element name search
+                if (targetElement == null && !string.IsNullOrEmpty(command.ElementName))
                 {
-                    var errorMsg = $"Could not find element '{command.ElementName}' and no valid coordinates stored. " +
-                        $"Element search failed after {ElementSearchRetries} retries.";
-                    System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
-                    throw new InvalidOperationException(errorMsg);
+                    IntPtr targetHandle = FindTargetWindow(command);
+                    if (targetHandle != IntPtr.Zero)
+                    {
+                        targetElement = UIElementDetector.FindElementByName(command.ElementName, targetHandle);
+                    }
                 }
-            }
 
-            // Validate coordinates are on screen
-            if (!actionSimulator.IsPointOnScreen(x, y))
-            {
-                var errorMsg = $"Coordinates ({x}, {y}) are outside screen bounds. " +
-                    $"Screen resolution may have changed since recording. " +
-                    $"Original recording coordinates: ({command.ElementX}, {command.ElementY})";
-                System.Diagnostics.Debug.WriteLine($"ERROR: {errorMsg}");
-                throw new InvalidOperationException(errorMsg);
-            }
-
-            System.Diagnostics.Debug.WriteLine($"About to {command.Type} at ({x}, {y}) using {searchMethod}");
-
-            // Highlight element if enabled
-            if (HighlightTargetElements && element != null)
-            {
-                HighlightElement(element);
-            }
-
-            // Execute mouse action based on command type with improved retry logic
-            for (int i = 0; i < command.RepeatCount; i++)
-            {
-                System.Diagnostics.Debug.WriteLine($"Executing {command.Type} #{i + 1}/{command.RepeatCount} at ({x}, {y})");
-
-                try
+                // Final fallback to coordinates
+                if (targetElement == null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Element not found, using coordinates: {command.ElementX}, {command.ElementY}");
+
+                    // Execute click at coordinates using ActionSimulator
                     switch (command.Type)
                     {
                         case CommandType.Click:
-                        case CommandType.MouseClick:
-                            actionSimulator.ClickAt(x, y);
+                            actionSimulator.ClickAt(command.ElementX, command.ElementY);
                             break;
                         case CommandType.DoubleClick:
-                            actionSimulator.DoubleClickAt(x, y);
+                            actionSimulator.DoubleClickAt(command.ElementX, command.ElementY);
                             break;
                         case CommandType.RightClick:
-                            actionSimulator.RightClickAt(x, y);
+                            actionSimulator.RightClickAt(command.ElementX, command.ElementY);
                             break;
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"Successfully executed {command.Type} #{i + 1} at ({x}, {y})");
-
-                    if (i < command.RepeatCount - 1)
-                        await Task.Delay(100); // Delay between repeats
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error executing {command.Type} #{i + 1}: {ex.Message}");
-                    throw;
-                }
-            }
+                    System.Diagnostics.Debug.WriteLine($"✅ Found element: {targetElement.Name}");
 
-            return true;
-        }
+                    // Execute click on element using coordinates
+                    int clickX = targetElement.X;
+                    int clickY = targetElement.Y;
 
-        private async Task<bool> ExecuteKeyCommand(Command command)
-        {
-            System.Diagnostics.Debug.WriteLine($"ExecuteKeyCommand: {command.Key} (Value: {command.Value})");
-
-            // Ensure target window is focused if we have one
-            await EnsureWindowFocused();
-
-            for (int i = 0; i < command.RepeatCount; i++)
-            {
-                System.Diagnostics.Debug.WriteLine($"Sending key #{i + 1}/{command.RepeatCount}: {command.Key}");
-
-                try
-                {
-                    // Add extra delay for each key to ensure it's processed
-                    await Task.Delay(50);
-
-                    actionSimulator.SendKey(command.Key);
-
-                    await Task.Delay(150); // Increased delay after key to ensure processing
-
-                    if (i < command.RepeatCount - 1)
-                        await Task.Delay(100); // Additional delay between repeats
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error sending key {command.Key}: {ex.Message}");
-                    throw;
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Successfully sent key: {command.Key}");
-            return true;
-        }
-
-        private async Task<bool> ExecuteSetTextCommand(Command command)
-        {
-            System.Diagnostics.Debug.WriteLine($"ExecuteSetTextCommand: '{command.Value}' to element '{command.ElementName}'");
-
-            // Ensure target window is focused
-            await EnsureWindowFocused();
-
-            UIElementInfo element = null;
-            string searchMethod = "None";
-
-            // Use adaptive element finder with retry logic
-            if (TargetWindow != IntPtr.Zero)
-            {
-                for (int retry = 0; retry < ElementSearchRetries; retry++)
-                {
-                    var searchResult = AdaptiveElementFinder.SmartFindElement(TargetWindow, command);
-
-                    if (searchResult.IsSuccess && searchResult.Element != null)
+                    switch (command.Type)
                     {
-                        element = searchResult.Element;
-                        searchMethod = searchResult.SearchMethod;
-                        System.Diagnostics.Debug.WriteLine($"Text element found via {searchMethod} on retry {retry + 1}");
-                        break;
-                    }
-                    else if (retry < ElementSearchRetries - 1)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Text element search failed on retry {retry + 1}, retrying...");
-                        await Task.Delay(100);
+                        case CommandType.Click:
+                            actionSimulator.ClickAt(clickX, clickY);
+                            break;
+                        case CommandType.DoubleClick:
+                            actionSimulator.DoubleClickAt(clickX, clickY);
+                            break;
+                        case CommandType.RightClick:
+                            actionSimulator.RightClickAt(clickX, clickY);
+                            break;
                     }
                 }
+
+                await Task.Delay(50, cancellationToken); // Small delay after click
             }
-
-            // Try to use automation pattern for text input
-            if (element?.AutomationElement != null)
+            catch (Exception ex)
             {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine("Attempting to use UI Automation patterns for text input");
+                throw new Exception($"Failed to execute click command: {ex.Message}");
+            }
+        }
 
-                    // Try ValuePattern first (for textboxes)
-                    if (element.AutomationElement.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
+        private async Task ExecuteTypeCommand(Command command, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(command.Value))
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ No text to type");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"⌨️ Typing text: {command.Value}");
+
+                // Simple text typing using SendKeys
+                foreach (char c in command.Value)
+                {
+                    SendKeys.SendWait(c.ToString());
+                    await Task.Delay(10, cancellationToken); // Small delay between characters
+                }
+
+                await Task.Delay(100, cancellationToken); // Delay after typing
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to execute type command: {ex.Message}");
+            }
+        }
+
+        private async Task ExecuteKeyPressCommand(Command command, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (command.KeyCode > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔑 Pressing key: {(Keys)command.KeyCode}");
+
+                    // Simple key press using SendKeys
+                    string keyToSend = GetSendKeysString((Keys)command.KeyCode);
+                    if (!string.IsNullOrEmpty(keyToSend))
                     {
-                        var value = valuePattern as ValuePattern;
-                        if (value != null && !value.Current.IsReadOnly)
+                        SendKeys.SendWait(keyToSend);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(command.Value))
+                {
+                    if (Enum.TryParse<Keys>(command.Value, out Keys key))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔑 Pressing key: {key}");
+                        string keyToSend = GetSendKeysString(key);
+                        if (!string.IsNullOrEmpty(keyToSend))
                         {
-                            System.Diagnostics.Debug.WriteLine("Using ValuePattern.SetValue()");
-                            value.SetValue(command.Value);
-                            await Task.Delay(100); // Give time for the value to be set
-                            return true;
+                            SendKeys.SendWait(keyToSend);
                         }
                     }
+                }
 
-                    // Try TextPattern as alternative
-                    if (element.AutomationElement.TryGetCurrentPattern(TextPattern.Pattern, out object textPattern))
+                await Task.Delay(50, cancellationToken); // Small delay after key press
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to execute key press command: {ex.Message}");
+            }
+        }
+
+        private async Task ExecuteWaitCommand(Command command, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (int.TryParse(command.Value, out int waitTime))
+                {
+                    System.Diagnostics.Debug.WriteLine($"⏱️ Waiting {waitTime}ms");
+                    await Task.Delay(waitTime, cancellationToken);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Invalid wait time, using default 1000ms");
+                    await Task.Delay(1000, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to execute wait command: {ex.Message}");
+            }
+        }
+
+        private void ExecuteLoopStart(Command command)
+        {
+            try
+            {
+                int iterations = 1;
+                if (int.TryParse(command.Value, out int parseResult))
+                {
+                    iterations = Math.Max(1, parseResult);
+                }
+
+                var loopContext = new LoopContext
+                {
+                    StartIndex = currentCommandIndex,
+                    Iterations = iterations,
+                    CurrentIteration = 0,
+                    LoopName = command.ElementName
+                };
+
+                loopStack.Push(loopContext);
+                System.Diagnostics.Debug.WriteLine($"🔄 Loop start: {iterations} iterations");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to execute loop start: {ex.Message}");
+            }
+        }
+
+        private async Task ExecuteLoopEnd(Command command, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (loopStack.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Loop end without matching loop start");
+                    return;
+                }
+
+                var loopContext = loopStack.Peek();
+                loopContext.CurrentIteration++;
+
+                System.Diagnostics.Debug.WriteLine($"🔄 Loop iteration {loopContext.CurrentIteration}/{loopContext.Iterations}");
+
+                if (loopContext.CurrentIteration < loopContext.Iterations)
+                {
+                    // Continue loop - jump back to start
+                    currentCommandIndex = loopContext.StartIndex;
+                    await Task.Delay(100, cancellationToken); // Small delay between loop iterations
+                }
+                else
+                {
+                    // Loop completed
+                    loopStack.Pop();
+                    System.Diagnostics.Debug.WriteLine($"✅ Loop completed: {loopContext.LoopName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to execute loop end: {ex.Message}");
+            }
+        }
+
+        private async Task FocusTargetWindow(Command command)
+        {
+            try
+            {
+                IntPtr targetHandle = FindTargetWindow(command);
+
+                if (targetHandle != IntPtr.Zero)
+                {
+                    if (IsWindow(targetHandle) && IsWindowVisible(targetHandle))
                     {
-                        System.Diagnostics.Debug.WriteLine("Using TextPattern with focus and keyboard input");
-                        element.AutomationElement.SetFocus();
-                        await Task.Delay(200);
-
-                        // Select all text and replace
-                        actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
-                        await Task.Delay(100);
-                        actionSimulator.SendText(command.Value);
-                        return true;
+                        SetForegroundWindow(targetHandle);
+                        await Task.Delay(200); // Give window time to focus
+                        System.Diagnostics.Debug.WriteLine("🎯 Window focus completed");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("⚠️ Target window is not valid or visible");
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"UI Automation failed: {ex.Message}, falling back to click and type");
+                    System.Diagnostics.Debug.WriteLine("⚠️ No target window handle available");
                 }
             }
-
-            // Fallback: Click element and type text
-            if (element != null)
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Fallback: clicking element at ({element.X}, {element.Y}) and typing text");
-                actionSimulator.ClickAt(element.X, element.Y);
-                await Task.Delay(200);
+                System.Diagnostics.Debug.WriteLine($"⚠️ Could not focus target window: {ex.Message}");
             }
-            else if (command.ElementX > 0 && command.ElementY > 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"Fallback: clicking stored coordinates ({command.ElementX}, {command.ElementY}) and typing text");
-                actionSimulator.ClickAt(command.ElementX, command.ElementY);
-                await Task.Delay(200);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    $"Cannot find text element '{command.ElementName}' and no coordinates stored.");
-            }
-
-            // Clear existing text and send new text
-            System.Diagnostics.Debug.WriteLine("Clearing existing text and sending new text");
-            actionSimulator.SendKeyCombo(Keys.Control, Keys.A);
-            await Task.Delay(100);
-            actionSimulator.SendText(command.Value);
-            await Task.Delay(100);
-
-            return true;
         }
 
-        private async Task<bool> ExecuteWaitCommand(Command command, CancellationToken cancellationToken)
+        private IntPtr FindTargetWindow(Command command)
         {
-            if (int.TryParse(command.Value, out int waitTime))
+            try
             {
-                System.Diagnostics.Debug.WriteLine($"Waiting for {waitTime}ms");
-                await Task.Delay(waitTime, cancellationToken);
-                return true;
-            }
-
-            throw new ArgumentException($"Invalid wait time: {command.Value}");
-        }
-
-        private bool ExecuteLoopStart(Command command)
-        {
-            System.Diagnostics.Debug.WriteLine($"Starting loop: {command.ElementName} with {command.RepeatCount} iterations");
-
-            var loopContext = new LoopContext
-            {
-                StartIndex = currentCommandIndex,
-                Iterations = command.RepeatCount,
-                CurrentIteration = 0,
-                LoopName = command.ElementName
-            };
-
-            loopStack.Push(loopContext);
-            return true;
-        }
-
-        private bool ExecuteLoopEnd(Command command)
-        {
-            if (loopStack.Count == 0)
-                throw new InvalidOperationException("LoopEnd without corresponding Loop start");
-
-            var loopContext = loopStack.Peek();
-            loopContext.CurrentIteration++;
-
-            System.Diagnostics.Debug.WriteLine($"Loop iteration {loopContext.CurrentIteration}/{loopContext.Iterations} completed");
-
-            if (loopContext.CurrentIteration < loopContext.Iterations)
-            {
-                // Continue loop - jump back to start
-                System.Diagnostics.Debug.WriteLine($"Jumping back to loop start at index {loopContext.StartIndex}");
-                currentCommandIndex = loopContext.StartIndex;
-            }
-            else
-            {
-                // Loop completed - remove from stack
-                System.Diagnostics.Debug.WriteLine($"Loop '{loopContext.LoopName}' completed");
-                loopStack.Pop();
-            }
-
-            return true;
-        }
-
-        private async Task EnsureWindowFocused()
-        {
-            if (TargetWindow != IntPtr.Zero)
-            {
-                try
+                // Simple approach - try to find window by process name
+                if (!string.IsNullOrEmpty(currentSequence.TargetProcessName))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Focusing target window: {TargetWindow}");
-                    SetForegroundWindow(TargetWindow);
-                    await Task.Delay(WindowFocusDelay); // Give time for focus to take effect
-                    System.Diagnostics.Debug.WriteLine("Window focus completed");
+                    var processes = System.Diagnostics.Process.GetProcessesByName(currentSequence.TargetProcessName);
+                    foreach (var process in processes)
+                    {
+                        if (process.MainWindowHandle != IntPtr.Zero)
+                        {
+                            return process.MainWindowHandle;
+                        }
+                    }
                 }
-                catch (Exception ex)
+
+                return IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error finding target window: {ex.Message}");
+                return IntPtr.Zero;
+            }
+        }
+
+        private string GetSendKeysString(Keys key)
+        {
+            // Convert Keys enum to SendKeys string format
+            switch (key)
+            {
+                case Keys.Enter: return "{ENTER}";
+                case Keys.Tab: return "{TAB}";
+                case Keys.Escape: return "{ESC}";
+                case Keys.Space: return " ";
+                case Keys.Back: return "{BACKSPACE}";
+                case Keys.Delete: return "{DELETE}";
+                case Keys.Home: return "{HOME}";
+                case Keys.End: return "{END}";
+                case Keys.PageUp: return "{PGUP}";
+                case Keys.PageDown: return "{PGDN}";
+                case Keys.Up: return "{UP}";
+                case Keys.Down: return "{DOWN}";
+                case Keys.Left: return "{LEFT}";
+                case Keys.Right: return "{RIGHT}";
+                case Keys.F1: return "{F1}";
+                case Keys.F2: return "{F2}";
+                case Keys.F3: return "{F3}";
+                case Keys.F4: return "{F4}";
+                case Keys.F5: return "{F5}";
+                case Keys.F6: return "{F6}";
+                case Keys.F7: return "{F7}";
+                case Keys.F8: return "{F8}";
+                case Keys.F9: return "{F9}";
+                case Keys.F10: return "{F10}";
+                case Keys.F11: return "{F11}";
+                case Keys.F12: return "{F12}";
+                default:
+                    // For regular characters, just return the character
+                    if (key >= Keys.A && key <= Keys.Z)
+                        return key.ToString().ToLower();
+                    if (key >= Keys.D0 && key <= Keys.D9)
+                        return ((int)(key - Keys.D0)).ToString();
+                    return string.Empty;
+            }
+        }
+
+        private ValidationResult ValidateSequence(CommandSequence sequence)
+        {
+            // Use existing ValidationResult from DebugTestHelper
+            IntPtr targetHandle = FindTargetWindow(sequence.Commands.FirstOrDefault() ?? new Command());
+            return DebugTestHelper.ValidateSequenceWithWinUI3(sequence, targetHandle);
+        }
+
+        private void CompletePlayback(bool success, string message)
+        {
+            try
+            {
+                isPlaying = false;
+                isPaused = false;
+                loopStack.Clear();
+
+                PlaybackCompleted?.Invoke(this, new PlaybackCompletedEventArgs
                 {
-                    System.Diagnostics.Debug.WriteLine($"Could not focus target window: {ex.Message}");
-                }
+                    Success = success,
+                    Message = message,
+                    CommandsExecuted = currentCommandIndex,
+                    TotalCommands = TotalCommands
+                });
+
+                NotifyPlaybackStateChanged(PlaybackState.Stopped, message);
+                System.Diagnostics.Debug.WriteLine($"🏁 Playback completed: {message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error completing playback: {ex.Message}");
+            }
+        }
+
+        private void NotifyCommandExecuted(Command command, bool success, string error = "")
+        {
+            try
+            {
+                CommandExecuted?.Invoke(this, new CommandExecutedEventArgs
+                {
+                    Command = command,
+                    Success = success,
+                    ErrorMessage = error,
+                    CommandIndex = currentCommandIndex,
+                    TotalCommands = TotalCommands
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error notifying command executed: {ex.Message}");
+            }
+        }
+
+        private void NotifyPlaybackStateChanged(PlaybackState state, string additionalInfo = "")
+        {
+            try
+            {
+                PlaybackStateChanged?.Invoke(this, new PlaybackStateChangedEventArgs
+                {
+                    State = state,
+                    CurrentIndex = currentCommandIndex,
+                    TotalCommands = TotalCommands,
+                    SequenceName = currentSequence?.Name ?? string.Empty,
+                    AdditionalInfo = additionalInfo
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error notifying playback state change: {ex.Message}");
+            }
+        }
+
+        private void NotifyPlaybackError(string error, int commandIndex)
+        {
+            try
+            {
+                PlaybackError?.Invoke(this, new PlaybackErrorEventArgs
+                {
+                    ErrorMessage = error,
+                    CommandIndex = commandIndex,
+                    Command = commandIndex < currentSequence?.Commands.Count ? currentSequence.Commands[commandIndex] : null
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error notifying playback error: {ex.Message}");
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                Stop();
+                cancellationTokenSource?.Dispose();
+                System.Diagnostics.Debug.WriteLine("🧹 CommandPlayer disposed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error disposing CommandPlayer: {ex.Message}");
+            }
+        }
+
+        #endregion
+    
+
+        #region Helper Classes and Enums
+
+        private void HighlightPosition(int x, int y)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 Highlighting position: ({x}, {y})");
+                // TODO: Implement visual highlighting if needed
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error highlighting position: {ex.Message}");
             }
         }
 
         private void HighlightElement(UIElementInfo element)
         {
-            // TODO: Implement element highlighting (e.g., draw red border around element)
-            // This could use Graphics overlay or Windows API to draw a temporary border
-            System.Diagnostics.Debug.WriteLine($"Highlighting element: {element.Name} at ({element.X}, {element.Y})");
-        }
-
-        private void NotifyCommandExecuted(Command command, bool success, string error = "")
-        {
-            CommandExecuted?.Invoke(this, new CommandExecutedEventArgs
-            {
-                Command = command,
-                Success = success,
-                ErrorMessage = error,
-                CommandIndex = currentCommandIndex,
-                TotalCommands = TotalCommands
-            });
-        }
-
-        private void NotifyPlaybackStateChanged(PlaybackState state, string additionalInfo = "")
-        {
-            PlaybackStateChanged?.Invoke(this, new PlaybackStateChangedEventArgs
-            {
-                State = state,
-                CurrentIndex = currentCommandIndex,
-                TotalCommands = TotalCommands,
-                SequenceName = currentSequence?.Name ?? string.Empty,
-                AdditionalInfo = additionalInfo
-            });
-        }
-
-        private void NotifyPlaybackError(string error, int commandIndex)
-        {
-            PlaybackError?.Invoke(this, new PlaybackErrorEventArgs
-            {
-                ErrorMessage = error,
-                CommandIndex = commandIndex,
-                Command = commandIndex < currentSequence.Commands.Count ? currentSequence.Commands[commandIndex] : null
-            });
-        }
-
-        private void NotifyPlaybackCompleted(bool success, string message)
-        {
-            PlaybackCompleted?.Invoke(this, new PlaybackCompletedEventArgs
-            {
-                Success = success,
-                Message = message,
-                CommandsExecuted = currentCommandIndex,
-                TotalCommands = TotalCommands
-            });
-        }
-
-        /// <summary>
-        /// Spustí sequence s opakovaním alebo nekonečnou slučkou
-        /// </summary>
-        /// <param name="sequence">Command sequence na spustenie</param>
-        /// <param name="targetWindow">Target window handle</param>
-        /// <param name="repeatCount">Počet opakovaní (-1 = infinite loop)</param>
-        /// <returns>Task</returns>
-        public async Task PlaySequenceWithRepeatAsync(CommandSequence sequence, IntPtr targetWindow, int repeatCount)
-        {
-            System.Diagnostics.Debug.WriteLine("PlaySequenceWithRepeatAsync started");
-
-            if (isPlaying)
-                throw new InvalidOperationException("Already playing a sequence");
-
-            if (sequence == null || sequence.Commands.Count == 0)
-                throw new ArgumentException("Sequence is empty or null");
-
-            bool isInfiniteLoop = repeatCount == -1;
-            int actualRepeatCount = isInfiniteLoop ? int.MaxValue : Math.Max(1, repeatCount);
-
-            System.Diagnostics.Debug.WriteLine($"Repeat playback: {(isInfiniteLoop ? "infinite loop" : $"{actualRepeatCount} iterations")}");
-            System.Diagnostics.Debug.WriteLine($"Sequence has {sequence.Commands.Count} commands");
-
-            currentSequence = sequence;
-            int globalCommandIndex = 0;
-            int executedIterations = 0;
-
             try
             {
-                // Pokus o nájdenie cieľového okna
-                await FindAndValidateTargetWindow(sequence, targetWindow);
-
-                cancellationTokenSource = new CancellationTokenSource();
-                isPlaying = true;
-                isPaused = false;
-
-                NotifyPlaybackStateChanged(PlaybackState.Started,
-                    isInfiniteLoop ? "Starting infinite loop" : $"Starting {actualRepeatCount} iterations");
-
-                // Hlavná slučka opakovaní
-                for (int iteration = 0; iteration < actualRepeatCount && !cancellationTokenSource.Token.IsCancellationRequested; iteration++)
-                {
-                    executedIterations = iteration + 1;
-
-                    System.Diagnostics.Debug.WriteLine($"=== ITERATION {executedIterations} {(isInfiniteLoop ? "(infinite)" : $"of {actualRepeatCount}")} ===");
-
-                    try
-                    {
-                        // Reset command index pre každú iteráciu
-                        currentCommandIndex = 0;
-                        loopStack.Clear();
-
-                        // Validácia target window pred každou iteráciou
-                        if (TargetWindow != IntPtr.Zero && (!IsWindow(TargetWindow) || !IsWindowVisible(TargetWindow)))
-                        {
-                            System.Diagnostics.Debug.WriteLine("Target window lost, attempting to re-find...");
-                            await FindAndValidateTargetWindow(sequence, IntPtr.Zero);
-
-                            if (TargetWindow == IntPtr.Zero)
-                            {
-                                throw new InvalidOperationException($"Target window lost after iteration {executedIterations - 1}");
-                            }
-                        }
-
-                        // Spustenie jednej iterácie
-                        await ExecuteSequenceIterationAsync(cancellationTokenSource.Token, executedIterations, actualRepeatCount);
-
-                        // Progress notification
-                        NotifyPlaybackStateChanged(PlaybackState.Started,
-                            isInfiniteLoop ? $"Completed iteration {executedIterations}" : $"Completed iteration {executedIterations}/{actualRepeatCount}");
-
-                        // Pauza medzi iteráciami (okrem poslednej)
-                        if (!isInfiniteLoop && iteration < actualRepeatCount - 1)
-                        {
-                            System.Diagnostics.Debug.WriteLine("Pausing between iterations...");
-                            await Task.Delay(500, cancellationTokenSource.Token); // 500ms pauza medzi iteráciami
-                        }
-                        else if (isInfiniteLoop)
-                        {
-                            await Task.Delay(200, cancellationTokenSource.Token); // Kratšia pauza pre infinite loop
-                        }
-
-                        // Handle pause during inter-iteration delay
-                        while (isPaused && !cancellationTokenSource.Token.IsCancellationRequested)
-                        {
-                            await Task.Delay(100, cancellationTokenSource.Token);
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Iteration {executedIterations} was cancelled");
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error in iteration {executedIterations}: {ex.Message}");
-
-                        // Pre infinite loop, loguj chybu ale pokračuj
-                        if (isInfiniteLoop)
-                        {
-                            NotifyPlaybackError($"Error in iteration {executedIterations}: {ex.Message}", currentCommandIndex);
-
-                            // Krátka pauza pred ďalšou iteráciou
-                            await Task.Delay(1000, cancellationTokenSource.Token);
-                            continue;
-                        }
-                        else
-                        {
-                            // Pre limited repeats, opýtaj sa užívateľa
-                            NotifyPlaybackError($"Error in iteration {executedIterations}/{actualRepeatCount}: {ex.Message}", currentCommandIndex);
-
-                            if (StopOnError)
-                            {
-                                throw new InvalidOperationException($"Stopped due to error in iteration {executedIterations}: {ex.Message}");
-                            }
-
-                            // Continue s ďalšou iteráciou ak StopOnError = false
-                            await Task.Delay(500, cancellationTokenSource.Token);
-                        }
-                    }
-                }
-
-                string completionMessage = cancellationTokenSource.Token.IsCancellationRequested
-                    ? $"Repeat playback stopped after {executedIterations} iterations"
-                    : isInfiniteLoop
-                        ? $"Infinite loop stopped after {executedIterations} iterations"
-                        : $"Repeat playback completed: {executedIterations} iterations executed";
-
-                NotifyPlaybackCompleted(true, completionMessage);
-                System.Diagnostics.Debug.WriteLine(completionMessage);
-            }
-            catch (OperationCanceledException)
-            {
-                System.Diagnostics.Debug.WriteLine($"Repeat playback was cancelled after {executedIterations} iterations");
-                NotifyPlaybackCompleted(false, $"Playback was cancelled after {executedIterations} iterations");
+                System.Diagnostics.Debug.WriteLine($"🎯 Highlighting element: {element.Name} at ({element.X}, {element.Y})");
+                // TODO: Implement visual highlighting if needed
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in repeat playback: {ex.Message}");
-                NotifyPlaybackError(ex.Message, currentCommandIndex);
-                NotifyPlaybackCompleted(false, $"Repeat playback failed after {executedIterations} iterations: {ex.Message}");
-            }
-            finally
-            {
-                isPlaying = false;
-                isPaused = false;
-                cancellationTokenSource?.Dispose();
-                cancellationTokenSource = null;
-                NotifyPlaybackStateChanged(PlaybackState.Stopped);
-
-                System.Diagnostics.Debug.WriteLine($"=== REPEAT PLAYBACK FINISHED ===");
-                System.Diagnostics.Debug.WriteLine($"Total iterations executed: {executedIterations}");
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error highlighting element: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Vykonáva jednu iteráciu sequence (pomocná metóda pre repeat logic)
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <param name="iterationNumber">Číslo aktuálnej iterácie</param>
-        /// <param name="totalIterations">Celkový počet iterácií (int.MaxValue pre infinite)</param>
-        /// <returns>Task</returns>
-        private async Task ExecuteSequenceIterationAsync(CancellationToken cancellationToken, int iterationNumber, int totalIterations)
+
+        public enum PlaybackState
         {
-            System.Diagnostics.Debug.WriteLine($"Starting sequence iteration {iterationNumber}");
-
-            while (currentCommandIndex < currentSequence.Commands.Count)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Handle pause
-                while (isPaused)
-                {
-                    await Task.Delay(50, cancellationToken);
-                }
-
-                var command = currentSequence.Commands[currentCommandIndex];
-
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Iter {iterationNumber}] Executing command {currentCommandIndex + 1}/{currentSequence.Commands.Count}: {command}");
-
-                    await ExecuteCommandAsync(command, cancellationToken);
-
-                    // Default delay between commands
-                    if (DefaultDelayBetweenCommands > 0)
-                    {
-                        await Task.Delay(DefaultDelayBetweenCommands, cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Iter {iterationNumber}] Error executing command {currentCommandIndex + 1}: {ex.Message}");
-                    NotifyCommandExecuted(command, false, $"Iteration {iterationNumber}: {ex.Message}");
-
-                    if (StopOnError)
-                        throw;
-                }
-
-                currentCommandIndex++;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Sequence iteration {iterationNumber} completed successfully");
+            Started,
+            Stopped,
+            Paused,
+            Resumed
         }
 
-        /// <summary>
-        /// Aktualizuje progress information pre repeat playback
-        /// </summary>
-        /// <param name="currentIteration">Aktuálna iterácia</param>
-        /// <param name="totalIterations">Celkový počet iterácií</param>
-        /// <param name="isInfinite">Či je to infinite loop</param>
-        public void UpdateRepeatProgress(int currentIteration, int totalIterations, bool isInfinite)
+        // Event argument classes
+        public class CommandExecutedEventArgs : EventArgs
         {
-            string progressInfo = isInfinite
-                ? $"Infinite loop - iteration {currentIteration}"
-                : $"Progress: {currentIteration}/{totalIterations} iterations";
-
-            NotifyPlaybackStateChanged(PlaybackState.Started, progressInfo);
+            public Command Command { get; set; }
+            public bool Success { get; set; }
+            public string ErrorMessage { get; set; } = string.Empty;
+            public int CommandIndex { get; set; }
+            public int TotalCommands { get; set; }
         }
 
-        internal void Pause()
+        public class PlaybackStateChangedEventArgs : EventArgs
         {
-            throw new NotImplementedException();
+            public PlaybackState State { get; set; }
+            public int CurrentIndex { get; set; }
+            public int TotalCommands { get; set; }
+            public string SequenceName { get; set; } = string.Empty;
+            public string AdditionalInfo { get; set; } = string.Empty;
         }
 
-        internal void Resume()
+        public class PlaybackErrorEventArgs : EventArgs
         {
-            throw new NotImplementedException();
+            public string ErrorMessage { get; set; } = string.Empty;
+            public int CommandIndex { get; set; }
+            public Command Command { get; set; }
         }
 
-        internal void PlaySequence(CommandSequence sequence, int repeatCount)
+        public class PlaybackCompletedEventArgs : EventArgs
         {
-            throw new NotImplementedException();
-        }
-
-        internal void Stop()
-        {
-            throw new NotImplementedException();
+            public bool Success { get; set; }
+            public string Message { get; set; } = string.Empty;
+            public int CommandsExecuted { get; set; }
+            public int TotalCommands { get; set; }
         }
     }
-
-    // Helper classes
-    internal class LoopContext
-    {
-        public int StartIndex { get; set; }
-        public int Iterations { get; set; }
-        public int CurrentIteration { get; set; }
-        public string LoopName { get; set; }
-    }
-
-    public enum PlaybackState
-    {
-        Started,
-        Stopped,
-        Paused,
-        Resumed
-    }
-
-    // Event argument classes
-    public class CommandExecutedEventArgs : EventArgs
-    {
-        public Command Command { get; set; }
-        public bool Success { get; set; }
-        public string ErrorMessage { get; set; } = string.Empty;
-        public int CommandIndex { get; set; }
-        public int TotalCommands { get; set; }
-    }
-
-    public class PlaybackStateChangedEventArgs : EventArgs
-    {
-        public PlaybackState State { get; set; }
-        public int CurrentIndex { get; set; }
-        public int TotalCommands { get; set; }
-        public string SequenceName { get; set; } = string.Empty;
-        public string AdditionalInfo { get; set; } = string.Empty;
-    }
-
-    public class PlaybackErrorEventArgs : EventArgs
-    {
-        public string ErrorMessage { get; set; } = string.Empty;
-        public int CommandIndex { get; set; }
-        public Command Command { get; set; }
-    }
-
-    public class PlaybackCompletedEventArgs : EventArgs
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public int CommandsExecuted { get; set; }
-        public int TotalCommands { get; set; }
-    }
+    #endregion
 }
