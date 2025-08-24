@@ -629,7 +629,28 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     var context = windowContexts[e.WindowHandle];
                     var previousCount = context.UIElements.Count;
-                    context.UIElements = e.NewElements ?? new List<UIElementInfo>();
+
+// error on this line in OnUIElementsChanged:  // context.UIElements = e.NewElements ?? new List<UIElementInfo>();
+
+                    // to convert List<UIElementSnapshot> to List<UIElementInfo>:
+              //      context.UIElements = e.NewElements != null
+                       // ? e.NewElements.Select(snapshot => new UIElementInfo
+                       // {
+                            //Name = snapshot.Name,
+                           // AutomationId = snapshot.AutomationId,
+                         //   ClassName = snapshot.ClassName,
+                       //     ControlType = snapshot.ControlType,
+                     //       X = snapshot.X,
+                   //         Y = snapshot.Y,
+                 //           IsEnabled = snapshot.IsEnabled,
+               //             IsVisible = snapshot.IsVisible,
+             //               ElementText = snapshot.Text,
+           //                 // Add other property mappings as needed
+         //               }).ToList()
+       //                 : new List<UIElementInfo>();
+     //               context.UIElements = e.NewElements ?? new List<UIElementInfo>();
+
+
                     context.LastUIUpdate = DateTime.Now;
 
                     System.Diagnostics.Debug.WriteLine($"🔄 UI elements changed in: {context.WindowTitle}");

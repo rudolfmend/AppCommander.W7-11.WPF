@@ -180,10 +180,10 @@ namespace AppCommander.W7_11.WPF
 
         private string GetSequenceName()
         {
-            string sequenceName = txtSequenceName?.ToString();
+            string sequenceName = txtSequenceName?.Text; 
             return string.IsNullOrWhiteSpace(sequenceName)
                 ? $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}"
-                : sequenceName;
+                : sequenceName.Trim();
         }
 
         private bool HandleExistingRecording()
@@ -512,7 +512,7 @@ namespace AppCommander.W7_11.WPF
         {
             Dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Nové okno detekované: {e.Window.Title}");
+                System.Diagnostics.Debug.WriteLine($"Nové okno detekované: {e.WindowInfo.Title}");
                 // Handle new window detection
             });
         }
@@ -521,7 +521,7 @@ namespace AppCommander.W7_11.WPF
         {
             Dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Okno zatvorené: {e.Window.Title}");
+                System.Diagnostics.Debug.WriteLine($"Okno zatvorené: {e.WindowInfo.Title}");
                 // Handle window closure
             });
         }
@@ -530,7 +530,8 @@ namespace AppCommander.W7_11.WPF
         {
             Dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Okno aktivované: {e.Window.Title}");
+                var windowTitle = e.WindowInfo?.Title ?? e.WindowTitle ?? "Unknown Window";
+                System.Diagnostics.Debug.WriteLine($"Okno aktivované: {windowTitle}");
                 // Handle window activation
             });
         }

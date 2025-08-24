@@ -175,6 +175,15 @@
         <StackPanel Grid.Row="2" Margin="5">
             <GroupBox Header="Enhanced Recording &amp; Auto-Detection" Style="{StaticResource GroupBoxStyle}">
                 <StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Sequence Name:" VerticalAlignment="Center" 
+                          FontWeight="Bold" Width="100" FontSize="11"/>
+                        <TextBox Name="txtSequenceName" Width="250" Height="25" 
+                         Text="My_Recording" VerticalAlignment="Center" 
+                         ToolTip="Enter name for the recording sequence"/>
+                    </StackPanel>
+                    
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
