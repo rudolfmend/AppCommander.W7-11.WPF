@@ -806,17 +806,17 @@ namespace AppCommander.W7_11.WPF.Core
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
     }
 
-    public class WinUI3BridgeInfo
-    {
-        public System.Drawing.Point Position { get; set; }
-        public System.Drawing.Size Size { get; set; }
-        public bool IsVisible { get; set; }
-        public bool IsEnabled { get; set; }
-        public int ChildCount { get; set; }
-        public List<string> SupportedPatterns { get; set; } = new List<string>();
-        public List<WinUI3ElementInfo> MeaningfulElements { get; set; } = new List<WinUI3ElementInfo>();
-        public string ErrorMessage { get; set; } = "";
-    }
+    //public class WinUI3BridgeInfo
+    //{
+        //public System.Drawing.Point Position { get; set; }
+        //public System.Drawing.Size Size { get; set; }
+        //public bool IsVisible { get; set; }
+        //public bool IsEnabled { get; set; }
+        //public int ChildCount { get; set; }
+        //public List<string> SupportedPatterns { get; set; } = new List<string>();
+        //public List<WinUI3ElementInfo> MeaningfulElements { get; set; } = new List<WinUI3ElementInfo>();
+        //public string ErrorMessage { get; set; } = "";
+    //}
 
     //public class WinUI3ElementInfo
     //{

@@ -627,36 +627,24 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (windowContexts.ContainsKey(e.WindowHandle))
                 {
-                    var context = windowContexts[e.WindowHandle];
-                    var previousCount = context.UIElements.Count;
+                    // Namiesto duplicitnej konverzie:
+                    var convertedPrevious = e.PreviousElements?.Select(snapshot => new UIElementInfo { /* konverzia */ }).ToList();
+                    var convertedNew = context.UIElements; // už konvertované vyššie
 
-// error on this line in OnUIElementsChanged:  // context.UIElements = e.NewElements ?? new List<UIElementInfo>();
-
-                    // to convert List<UIElementSnapshot> to List<UIElementInfo>:
-              //      context.UIElements = e.NewElements != null
-                       // ? e.NewElements.Select(snapshot => new UIElementInfo
-                       // {
-                            //Name = snapshot.Name,
-                           // AutomationId = snapshot.AutomationId,
-                         //   ClassName = snapshot.ClassName,
-                       //     ControlType = snapshot.ControlType,
-                     //       X = snapshot.X,
-                   //         Y = snapshot.Y,
-                 //           IsEnabled = snapshot.IsEnabled,
-               //             IsVisible = snapshot.IsVisible,
-             //               ElementText = snapshot.Text,
-           //                 // Add other property mappings as needed
-         //               }).ToList()
-       //                 : new List<UIElementInfo>();
-     //               context.UIElements = e.NewElements ?? new List<UIElementInfo>();
-
+                    UIElementsUpdated?.Invoke(this, new UIElementsUpdatedEventArgs
+                    {
+                        WindowHandle = e.WindowHandle,
+                        PreviousElements = convertedPrevious,
+                        NewElements = convertedNew,
+                        Context = context
+                    });
 
                     context.LastUIUpdate = DateTime.Now;
 
                     System.Diagnostics.Debug.WriteLine($"🔄 UI elements changed in: {context.WindowTitle}");
                     System.Diagnostics.Debug.WriteLine($"   Previous: {previousCount}, New: {context.UIElements.Count}");
 
-                    // Ak je povolené auto-update, aktualizuj existujúce príkazy
+                    // If auto-update is enabled, update existing commands
                     if (AutoUpdateExistingCommands && e.WindowHandle == targetWindow)
                     {
                         UpdateExistingCommandsWithNewElements(e.NewElements);
@@ -666,8 +654,30 @@ namespace AppCommander.W7_11.WPF.Core
                     UIElementsUpdated?.Invoke(this, new UIElementsUpdatedEventArgs
                     {
                         WindowHandle = e.WindowHandle,
-                        PreviousElements = e.PreviousElements,
-                        NewElements = e.NewElements,
+                        PreviousElements = e.PreviousElements?.Select(snapshot => new UIElementInfo
+                        {
+                            Name = snapshot.Name,
+                            AutomationId = snapshot.AutomationId,
+                            ClassName = snapshot.ClassName,
+                            ControlType = snapshot.ControlType,
+                            X = snapshot.X,
+                            Y = snapshot.Y,
+                            IsEnabled = snapshot.IsEnabled,
+                            IsVisible = snapshot.IsVisible,
+                            ElementText = snapshot.Text
+                        }).ToList(),
+                        NewElements = e.NewElements?.Select(snapshot => new UIElementInfo
+                        {
+                            Name = snapshot.Name,
+                            AutomationId = snapshot.AutomationId,
+                            ClassName = snapshot.ClassName,
+                            ControlType = snapshot.ControlType,
+                            X = snapshot.X,
+                            Y = snapshot.Y,
+                            IsEnabled = snapshot.IsEnabled,
+                            IsVisible = snapshot.IsVisible,
+                            ElementText = snapshot.Text
+                        }).ToList(),
                         Context = context
                     });
                 }
@@ -1071,7 +1081,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Aktualizuje existujúce príkazy s novými elementami
         /// </summary>
-        private void UpdateExistingCommandsWithNewElements(List<UIElementInfo> newElements)
+        private void UpdateExistingCommandsWithNewElements(List<UIElementSnapshot> newElements)
         {
             if (newElements == null) return;
 
@@ -1099,20 +1109,20 @@ namespace AppCommander.W7_11.WPF.Core
 
                     if (updatedCount > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"🔄 Updated {updatedCount} commands with better element matches");
+                        System.Diagnostics.Debug.WriteLine($"Updated {updatedCount} commands with better element matches");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error updating existing commands: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error updating existing commands: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Nájde lepší element match pre príkaz
         /// </summary>
-        private UIElementInfo FindBetterElementMatch(Command command, List<UIElementInfo> availableElements)
+        private UIElementSnapshot FindBetterElementMatch(Command command, List<UIElementSnapshot> availableElements)
         {
             try
             {
@@ -1146,7 +1156,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Aktualizuje príkaz s lepším elementom
         /// </summary>
-        private void UpdateCommandWithBetterElement(Command command, UIElementInfo betterElement)
+        private void UpdateCommandWithBetterElement(Command command, UIElementSnapshot betterElement)
         {
             try
             {
@@ -1667,6 +1677,23 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error disposing CommandRecorder: {ex.Message}");
             }
+        }
+
+        public void AddWaitCommand(int waitTime)
+        {
+            if (!IsRecording)
+                return;
+
+            var waitCommand = new Command(commandCounter++, "Wait_Command", CommandType.Wait, 0, 0)
+            {
+                Value = waitTime.ToString(),
+                TargetWindow = GetWindowTitle(targetWindow),
+                TargetProcess = targetProcessName,
+                Timestamp = DateTime.Now,
+                ElementName = $"Wait_{waitTime}ms"
+            };
+
+            AddCommand(waitCommand);
         }
 
         #endregion

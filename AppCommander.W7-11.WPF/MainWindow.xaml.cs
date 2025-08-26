@@ -442,7 +442,7 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
                 {
                     _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    txtTargetInfo.Text = $"{dialog.SelectedWindow.ProcessName} - {dialog.SelectedWindow.Title}";
+                    lblTargetWindow.Content = $"{dialog.SelectedWindow.ProcessName} - {dialog.SelectedWindow.Title}";
 
                     UpdateUI();
 
@@ -1008,9 +1008,9 @@ namespace AppCommander.W7_11.WPF
                 bool isRecording = _recorder?.IsRecording == true;
                 bool isPlaying = _player?.IsPlaying == true;
 
-                btnRecord.Content = isRecording ? "⏹ Stop Recording" : "🔴 Record";
+                btnStartRecording.Content = isRecording ? "⏹ Stop Recording" : "🔴 Record";
 
-                // PRIDANÉ: Debug informácie
+                // Debug informácie
                 bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
                 bool shouldEnableRecord = hasTargetWindow || isRecording;
 
@@ -1020,9 +1020,9 @@ namespace AppCommander.W7_11.WPF
                 System.Diagnostics.Debug.WriteLine($"Is Recording: {isRecording}");
                 System.Diagnostics.Debug.WriteLine($"Should Enable Record: {shouldEnableRecord}");
 
-                btnRecord.IsEnabled = shouldEnableRecord;
+                btnStartRecording.IsEnabled = shouldEnableRecord;
 
-                System.Diagnostics.Debug.WriteLine($"btnRecord.IsEnabled set to: {btnRecord.IsEnabled}");
+                System.Diagnostics.Debug.WriteLine($"btnRecord.IsEnabled set to: {btnStartRecording.IsEnabled}");
                 System.Diagnostics.Debug.WriteLine($"====================");
 
                 btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
@@ -1034,7 +1034,7 @@ namespace AppCommander.W7_11.WPF
                 string commandText = loopCount > 0 ?
                     $"Commands: {_commands.Count} ({loopCount} loops)" :
                     $"Commands: {_commands.Count}";
-                lblCommandCount.Text = commandText;
+                txtCommandCount.Text = commandText;
 
                 // Update window title
                 string title = "AppCommander";
@@ -1058,7 +1058,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                lblStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
+                txtStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
                 Debug.WriteLine($"📊 Status: {message}");
             }
             catch (Exception ex)

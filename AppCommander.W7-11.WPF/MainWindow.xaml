@@ -367,6 +367,12 @@
                 <TextBlock Name="txtSequenceInfo" Text="Ready to record" 
                            FontSize="10" Foreground="Gray"/>
             </StatusBarItem>
+
+            <StatusBarItem Grid.Column="4">
+                <TextBlock Name="lblRecordingStatus" Text="Not Recording" 
+               FontSize="10" Foreground="Gray"/>
+            </StatusBarItem>
+            
         </StatusBar>
     </Grid>
 </Window>
