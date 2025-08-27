@@ -131,6 +131,87 @@ namespace AppCommander.W7_11.WPF.Core
         public string ErrorMessage { get; set; } = "";
     }
 
+    // Pridajte tieto definície do SharedClasses.cs alebo do samostatného súboru:
+
+    namespace AppCommander.W7_11.WPF.Core
+    {
+        /// <summary>
+        /// Reprezentuje pár modifikovaných elementov (predošlý a aktuálny)
+        /// </summary>
+        public class ModifiedElementPair
+        {
+            public UIElementSnapshot Previous { get; set; }
+            public UIElementSnapshot Current { get; set; }
+
+            public ModifiedElementPair(UIElementSnapshot previous, UIElementSnapshot current)
+            {
+                Previous = previous;
+                Current = current;
+            }
+
+            // Konštrukcia z tuple
+            public static implicit operator ModifiedElementPair((UIElementSnapshot Previous, UIElementSnapshot Current) tuple)
+            {
+                return new ModifiedElementPair(tuple.Previous, tuple.Current);
+            }
+        }
+
+        /// <summary>
+        /// Sada zmien v UI
+        /// </summary>
+        public class UIChangeSet
+        {
+            public UISnapshot PreviousSnapshot { get; set; }
+            public UISnapshot CurrentSnapshot { get; set; }
+            public DateTime DetectedAt { get; set; }
+            public bool HasChanges { get; set; }
+
+            public List<UIElementSnapshot> AddedElements { get; set; } = new List<UIElementSnapshot>();
+            public List<UIElementSnapshot> RemovedElements { get; set; } = new List<UIElementSnapshot>();
+            public List<ModifiedElementPair> ModifiedElements { get; set; } = new List<ModifiedElementPair>();
+        }
+
+        /// <summary>
+        /// UI Snapshot pre zachytenie stavu UI v danom čase
+        /// </summary>
+        public class UISnapshot
+        {
+            public IntPtr WindowHandle { get; set; }
+            public DateTime CapturedAt { get; set; }
+            public List<UIElementSnapshot> Elements { get; set; } = new List<UIElementSnapshot>();
+        }
+
+        /// <summary>
+        /// Stav okna pre automatické monitorovanie
+        /// </summary>
+        public class WindowState
+        {
+            public IntPtr WindowHandle { get; set; }
+            public string Title { get; set; } = "";
+            public string ProcessName { get; set; } = "";
+            public WindowTrackingPrioritySharedClasses Priority { get; set; }
+            public DateTime AddedAt { get; set; }
+            public DateTime LastActivated { get; set; }
+            public DateTime? ClosedAt { get; set; }
+            public DateTime LastChangeDetected { get; set; }
+            public bool IsActive { get; set; } = true;
+            public UISnapshot LastUISnapshot { get; set; }
+            public List<UIChangeSet> ChangeHistory { get; set; } = new List<UIChangeSet>();
+        }
+
+        /// <summary>
+        /// Priorita sledovania okna pre SharedClasses
+        /// </summary>
+        public enum WindowTrackingPrioritySharedClasses
+        {
+            Low,
+            Medium,
+            High,
+            Critical,
+            Primary
+        }
+    }
+
     /// <summary>
     /// WinUI3 Element informácie s pozíciou - .NET Framework 4.8 compatible
     /// </summary>

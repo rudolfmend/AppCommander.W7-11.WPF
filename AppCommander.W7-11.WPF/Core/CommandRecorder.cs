@@ -144,7 +144,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"🎬 Starting recording: {sequenceName}");
+                System.Diagnostics.Debug.WriteLine(string.Format("Starting recording: {0}", sequenceName));
 
                 // Initialize new sequence
                 currentSequence = new CommandSequence(sequenceName);
@@ -166,28 +166,29 @@ namespace AppCommander.W7_11.WPF.Core
                     currentSequence.MaxWaitTimeSeconds = 30;
 
                     // Pridaj primary target do sledovaných okien
-                    trackedWindows[targetWindow] = $"{targetProcessName} - {currentSequence.TargetWindowTitle}";
+                    trackedWindows[targetWindow] = string.Format("{0} - {1}", targetProcessName, currentSequence.TargetWindowTitle);
 
-                    System.Diagnostics.Debug.WriteLine($"Recording target: {targetProcessName} - {currentSequence.TargetWindowTitle}");
+                    System.Diagnostics.Debug.WriteLine(string.Format("Recording target: {0} - {1}", targetProcessName, currentSequence.TargetWindowTitle));
                 }
 
-                // **Spusti automatické služby**
+                // Spusti automatické služby
                 StartAutomaticServices(targetWindowHandle);
 
-                // **Vytvor počiatočný kontext okna**
+                // Vytvor počiatočný kontext okna
                 CreateInitialWindowContext(targetWindowHandle);
 
                 // Start global hooks
                 globalHook.StartHooking();
                 isRecording = true;
 
-                RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs(true, false, sequenceName));
+                if (RecordingStateChanged != null)
+                    RecordingStateChanged(this, new RecordingStateChangedEventArgs(true, false, sequenceName));
 
-                System.Diagnostics.Debug.WriteLine("✅ Recording started successfully");
+                System.Diagnostics.Debug.WriteLine("Recording started successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error starting recording: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(string.Format("Error starting recording: {0}", ex.Message));
                 throw;
             }
         }
@@ -197,7 +198,59 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         public void StartRecording(IntPtr targetWindowHandle)
         {
-            StartRecording($"Recording_{DateTime.Now:yyyyMMdd_HHmmss}", targetWindowHandle);
+            StartRecording(string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now), targetWindowHandle);
+        }
+
+        // OPRAVA 5: Oprava AnalyzeCommandPatterns metódy pre .NET 4.8
+        private void AnalyzeCommandPatterns()
+        {
+            try
+            {
+                if (currentSequence != null && currentSequence.Commands != null && currentSequence.Commands.Count >= 3)
+                {
+                    // .NET 4.8 kompatibilný spôsob namiesto TakeLast(3)
+                    var commandCount = currentSequence.Commands.Count;
+                    var recentCommands = new List<Command>();
+                    for (int i = Math.Max(0, commandCount - 3); i < commandCount; i++)
+                    {
+                        recentCommands.Add(currentSequence.Commands[i]);
+                    }
+
+                    // Detekuj opakujúce sa akcie
+                    var allClicks = true;
+                    foreach (var cmd in recentCommands)
+                    {
+                        if (cmd.Type != CommandType.Click)
+                        {
+                            allClicks = false;
+                            break;
+                        }
+                    }
+
+                    if (allClicks)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Pattern detected: Multiple clicks sequence");
+                    }
+
+                    // Detekuj form filling pattern
+                    var hasSetText = false;
+                    var hasClick = false;
+                    foreach (var cmd in recentCommands)
+                    {
+                        if (cmd.Type == CommandType.SetText) hasSetText = true;
+                        if (cmd.Type == CommandType.Click) hasClick = true;
+                    }
+
+                    if (hasSetText && hasClick)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Pattern detected: Form filling workflow");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(string.Format("Error analyzing command patterns: {0}", ex.Message));
+            }
         }
 
         /// <summary>
@@ -390,15 +443,22 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Trigger event pre UI
-                WindowAutoDetected?.Invoke(this, new WindowAutoDetectedEventArgs(
-                    e.WindowInfo?.WindowHandle ?? IntPtr.Zero,
-                    $"Auto-detected: {e.WindowInfo?.Title ?? "Unknown"}",
-                    e.WindowInfo?.Title,
-                    e.WindowInfo?.ProcessName,
-                    e.WindowInfo?.WindowType ?? WindowType.MainWindow)
+                if (WindowAutoDetected != null)
                 {
-                    WindowInfo = e.WindowInfo
-                });
+                    var windowHandle = (e.WindowInfo != null) ? e.WindowInfo.WindowHandle : IntPtr.Zero;
+                    var title = (e.WindowInfo != null) ? e.WindowInfo.Title : "Unknown";
+                    var processName = (e.WindowInfo != null) ? e.WindowInfo.ProcessName : null;
+                    var windowType = (e.WindowInfo != null) ? e.WindowInfo.WindowType : WindowType.MainWindow;
+
+                    var eventArgs = new WindowAutoDetectedEventArgs(
+                        windowHandle,
+                        string.Format("Auto-detected: {0}", title),
+                        title,
+                        processName,
+                        windowType);
+
+                    WindowAutoDetected(this, eventArgs);
+                }
             }
             catch (Exception ex)
             {
@@ -627,22 +687,36 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (windowContexts.ContainsKey(e.WindowHandle))
                 {
-                    // Namiesto duplicitnej konverzie:
-                    var convertedPrevious = e.PreviousElements?.Select(snapshot => new UIElementInfo { /* konverzia */ }).ToList();
-                    var convertedNew = context.UIElements; // už konvertované vyššie
+                    var context = windowContexts[e.WindowHandle]; // PRIDANÉ - definícia context
+                    var previousCount = (context.UIElements != null) ? context.UIElements.Count : 0; // PRIDANÉ - definícia previousCount
 
-                    UIElementsUpdated?.Invoke(this, new UIElementsUpdatedEventArgs
+                    // Konvertuj nové elementy
+                    var newElements = new List<UIElementInfo>();
+                    if (e.NewElements != null)
                     {
-                        WindowHandle = e.WindowHandle,
-                        PreviousElements = convertedPrevious,
-                        NewElements = convertedNew,
-                        Context = context
-                    });
+                        foreach (var snapshot in e.NewElements)
+                        {
+                            newElements.Add(new UIElementInfo
+                            {
+                                Name = snapshot.Name,
+                                AutomationId = snapshot.AutomationId,
+                                ClassName = snapshot.ClassName,
+                                ControlType = snapshot.ControlType,
+                                X = snapshot.X,
+                                Y = snapshot.Y,
+                                IsEnabled = snapshot.IsEnabled,
+                                IsVisible = snapshot.IsVisible,
+                                ElementText = snapshot.Text
+                            });
+                        }
+                    }
 
+                    // Aktualizuj kontext
+                    context.UIElements = newElements;
                     context.LastUIUpdate = DateTime.Now;
 
-                    System.Diagnostics.Debug.WriteLine($"🔄 UI elements changed in: {context.WindowTitle}");
-                    System.Diagnostics.Debug.WriteLine($"   Previous: {previousCount}, New: {context.UIElements.Count}");
+                    System.Diagnostics.Debug.WriteLine(string.Format("UI elements changed in: {0}", context.WindowTitle));
+                    System.Diagnostics.Debug.WriteLine(string.Format("   Previous: {0}, New: {1}", previousCount, context.UIElements.Count));
 
                     // If auto-update is enabled, update existing commands
                     if (AutoUpdateExistingCommands && e.WindowHandle == targetWindow)
@@ -650,41 +724,42 @@ namespace AppCommander.W7_11.WPF.Core
                         UpdateExistingCommandsWithNewElements(e.NewElements);
                     }
 
-                    // Trigger event
-                    UIElementsUpdated?.Invoke(this, new UIElementsUpdatedEventArgs
+                    // Trigger event - konvertuj predchádzajúce elementy
+                    var previousElements = new List<UIElementInfo>();
+                    if (e.PreviousElements != null)
                     {
-                        WindowHandle = e.WindowHandle,
-                        PreviousElements = e.PreviousElements?.Select(snapshot => new UIElementInfo
+                        foreach (var snapshot in e.PreviousElements)
                         {
-                            Name = snapshot.Name,
-                            AutomationId = snapshot.AutomationId,
-                            ClassName = snapshot.ClassName,
-                            ControlType = snapshot.ControlType,
-                            X = snapshot.X,
-                            Y = snapshot.Y,
-                            IsEnabled = snapshot.IsEnabled,
-                            IsVisible = snapshot.IsVisible,
-                            ElementText = snapshot.Text
-                        }).ToList(),
-                        NewElements = e.NewElements?.Select(snapshot => new UIElementInfo
+                            previousElements.Add(new UIElementInfo
+                            {
+                                Name = snapshot.Name,
+                                AutomationId = snapshot.AutomationId,
+                                ClassName = snapshot.ClassName,
+                                ControlType = snapshot.ControlType,
+                                X = snapshot.X,
+                                Y = snapshot.Y,
+                                IsEnabled = snapshot.IsEnabled,
+                                IsVisible = snapshot.IsVisible,
+                                ElementText = snapshot.Text
+                            });
+                        }
+                    }
+
+                    if (UIElementsUpdated != null)
+                    {
+                        UIElementsUpdated(this, new UIElementsUpdatedEventArgs
                         {
-                            Name = snapshot.Name,
-                            AutomationId = snapshot.AutomationId,
-                            ClassName = snapshot.ClassName,
-                            ControlType = snapshot.ControlType,
-                            X = snapshot.X,
-                            Y = snapshot.Y,
-                            IsEnabled = snapshot.IsEnabled,
-                            IsVisible = snapshot.IsVisible,
-                            ElementText = snapshot.Text
-                        }).ToList(),
-                        Context = context
-                    });
+                            WindowHandle = e.WindowHandle,
+                            PreviousElements = previousElements,
+                            NewElements = newElements, // Použij už konvertované elementy
+                            Context = context
+                        });
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error handling UI elements change: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(string.Format("Error handling UI elements change: {0}", ex.Message));
             }
         }
 
@@ -811,6 +886,8 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"❌ Error updating element usage: {ex.Message}");
             }
         }
+
+
 
         #endregion
 
@@ -1252,42 +1329,6 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        /// <summary>
-        /// Analyzuje patterns v príkazoch
-        /// </summary>
-        private void AnalyzeCommandPatterns()
-        {
-            // Implementácia analýzy patterns
-            // Napríklad: detekcia opakujúcich sa sekvencií, common UI flows, atď.
-            try
-            {
-                if (currentSequence?.Commands?.Count >= 3)
-                {
-                    // Analyzuj posledné 3 príkazy pre patterns
-
-                    //var recentCommands = currentSequence.Commands.TakeLast(3).ToList();
-                    var recentCommands = currentSequence.Commands.OrderByDescending(c => c.Timestamp).Take(3).ToList();
-
-                    // Detekuj opakujúce sa akcie
-                    if (recentCommands.All(c => c.Type == CommandType.Click))
-                    {
-                        System.Diagnostics.Debug.WriteLine("🔮 Pattern detected: Multiple clicks sequence");
-                    }
-
-                    // Detekuj form filling pattern
-                    if (recentCommands.Any(c => c.Type == CommandType.SetText) &&
-                        recentCommands.Any(c => c.Type == CommandType.Click))
-                    {
-                        System.Diagnostics.Debug.WriteLine("🔮 Pattern detected: Form filling workflow");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error analyzing command patterns: {ex.Message}");
-            }
-        }
-
         #endregion
 
         #region Analysis Methods
@@ -1690,7 +1731,7 @@ namespace AppCommander.W7_11.WPF.Core
                 TargetWindow = GetWindowTitle(targetWindow),
                 TargetProcess = targetProcessName,
                 Timestamp = DateTime.Now,
-                ElementName = $"Wait_{waitTime}ms"
+                ElementName = string.Format("Wait_{0}ms", waitTime)
             };
 
             AddCommand(waitCommand);
@@ -1763,46 +1804,6 @@ namespace AppCommander.W7_11.WPF.Core
         public List<UIElementInfo> NewElements { get; set; }
         public WindowContext Context { get; set; }
     }
-
-    ///// <summary>
-    ///// Event args pre UI elementy changed
-    ///// </summary>
-    //public class UIElementsChangedEventArgs : EventArgs
-    //{
-    //    public IntPtr WindowHandle { get; set; }
-    //    public List<UIElementInfo> NewElements { get; set; }
-    //    public List<UIElementInfo> PreviousElements { get; set; }
-    //}
-
-    ///// <summary>
-    ///// Event args pre nový UI element
-    ///// </summary>
-    //public class NewElementDetectedEventArgs : EventArgs
-    //{
-    //    public IntPtr WindowHandle { get; set; }
-    //    public UIElementInfo Element { get; set; }
-    //    public string DetectionMethod { get; set; }
-    //}
-
-    ///// <summary>
-    ///// Event args pre key press
-    ///// </summary>
-    //public class KeyPressedEventArgs : EventArgs
-    //{
-    //    public System.Windows.Forms.Keys Key { get; set; }
-    //    public DateTime Timestamp { get; set; } = DateTime.Now;
-    //}
-
-    ///// <summary>
-    ///// Event args pre mouse click
-    ///// </summary>
-    //public class MouseClickedEventArgs : EventArgs
-    //{
-    //    public int X { get; set; }
-    //    public int Y { get; set; }
-    //    public System.Windows.Forms.MouseButtons Button { get; set; }
-    //    public DateTime Timestamp { get; set; } = DateTime.Now;
-    //}
 
     #endregion
 }

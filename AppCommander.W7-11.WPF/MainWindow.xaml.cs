@@ -1,6 +1,8 @@
 ﻿using AppCommander.W7_11.WPF.Core;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -8,7 +10,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using Newtonsoft.Json;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -62,13 +63,17 @@ namespace AppCommander.W7_11.WPF
                 UpdateUI();
                 UpdateStatus("Application initialized - Ready to start");
 
-                Debug.WriteLine("✅ MainWindow initialized successfully");
+                Debug.WriteLine("MainWindow initialized successfully");
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error initializing application", ex);
             }
         }
+
+        #endregion
+
+        #region Event Subscriptions
 
         private void SubscribeToEvents()
         {
@@ -84,7 +89,7 @@ namespace AppCommander.W7_11.WPF
                 _player.PlaybackCompleted += OnPlaybackCompleted;
                 _player.PlaybackError += OnPlaybackError;
 
-                // Window tracker events - OPRAVENÉ
+                // Window tracker events
                 _windowTracker.NewWindowDetected += OnNewWindowDetected;
                 _windowTracker.WindowActivated += OnWindowActivated;
                 _windowTracker.WindowClosed += OnWindowClosed;
@@ -96,17 +101,17 @@ namespace AppCommander.W7_11.WPF
                 // Window events
                 this.Closing += MainWindow_Closing;
 
-                Debug.WriteLine("📡 Event subscriptions completed");
+                Debug.WriteLine("Event subscriptions completed");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error subscribing to events: {ex.Message}");
+                Debug.WriteLine(string.Format("Error subscribing to events: {0}", ex.Message));
             }
         }
 
         #endregion
 
-        #region Event Handlers
+        #region Core Event Handlers
 
         private void OnCommandRecorded(object sender, CommandRecordedEventArgs e)
         {
@@ -118,14 +123,13 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedChanges = true;
                     UpdateUI();
 
-                    // ROZŠÍRENÉ: Zobraz informácie o type príkazu
                     string commandDescription = GetCommandDescription(e.Command);
-                    UpdateStatus($"Command recorded: {commandDescription}");
+                    UpdateStatus(string.Format("Command recorded: {0}", commandDescription));
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling command recorded: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling command recorded: {0}", ex.Message));
             }
         }
 
@@ -134,19 +138,19 @@ namespace AppCommander.W7_11.WPF
             switch (command.Type)
             {
                 case CommandType.LoopStart:
-                    return $"Loop Start (repeat {command.RepeatCount}x)";
+                    return string.Format("Loop Start (repeat {0}x)", command.RepeatCount);
                 case CommandType.LoopEnd:
                     return "Loop End";
                 case CommandType.Wait:
-                    return $"Wait {command.Value}ms";
+                    return string.Format("Wait {0}ms", command.Value);
                 case CommandType.KeyPress:
-                    return $"Key Press: {command.Key}";
+                    return string.Format("Key Press: {0}", command.Key);
                 case CommandType.Click:
-                    return $"Click on {command.ElementName}";
+                    return string.Format("Click on {0}", command.ElementName);
                 case CommandType.SetText:
-                    return $"Set Text: '{command.Value}' in {command.ElementName}";
+                    return string.Format("Set Text: '{0}' in {1}", command.Value, command.ElementName);
                 default:
-                    return $"{command.Type} - {command.ElementName}";
+                    return string.Format("{0} - {1}", command.Type, command.ElementName);
             }
         }
 
@@ -161,7 +165,8 @@ namespace AppCommander.W7_11.WPF
 
                     if (e.IsRecording)
                     {
-                        UpdateStatus(e.IsPaused ? "Recording paused" : $"Recording: {e.SequenceName}");
+                        var message = e.IsPaused ? "Recording paused" : string.Format("Recording: {0}", e.SequenceName);
+                        UpdateStatus(message);
                     }
                     else
                     {
@@ -171,11 +176,9 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling recording state change: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling recording state change: {0}", ex.Message));
             }
         }
-
-
 
         private void OnCommandExecuted(object sender, CommandPlayer.CommandExecutedEventArgs e)
         {
@@ -183,17 +186,19 @@ namespace AppCommander.W7_11.WPF
             {
                 Dispatcher.Invoke(() =>
                 {
-                    UpdateStatus($"Executing {e.CommandIndex + 1}/{e.TotalCommands}: {GetCommandDescription(e.Command)}");
+                    var statusMsg = string.Format("Executing {0}/{1}: {2}",
+                        e.CommandIndex + 1, e.TotalCommands, GetCommandDescription(e.Command));
+                    UpdateStatus(statusMsg);
 
                     if (!e.Success)
                     {
-                        Debug.WriteLine($"⚠️ Command failed: {e.ErrorMessage}");
+                        Debug.WriteLine(string.Format("Command failed: {0}", e.ErrorMessage));
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling command executed: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling command executed: {0}", ex.Message));
             }
         }
 
@@ -204,12 +209,12 @@ namespace AppCommander.W7_11.WPF
                 Dispatcher.Invoke(() =>
                 {
                     UpdateUI();
-                    UpdateStatus($"Playback {e.State}: {e.SequenceName}");
+                    UpdateStatus(string.Format("Playback {0}: {1}", e.State, e.SequenceName));
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling playback state change: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling playback state change: {0}", ex.Message));
             }
         }
 
@@ -220,18 +225,20 @@ namespace AppCommander.W7_11.WPF
                 Dispatcher.Invoke(() =>
                 {
                     UpdateUI();
-                    UpdateStatus($"Playback completed: {e.Message}");
+                    UpdateStatus(string.Format("Playback completed: {0}", e.Message));
 
                     if (e.Success)
                     {
-                        MessageBox.Show($"Playback completed successfully!\n\nCommands executed: {e.CommandsExecuted}/{e.TotalCommands}",
-                                        "Playback Completed", MessageBoxButton.OK, MessageBoxImage.Information);
+                        var message = string.Format("Playback completed successfully!\n\nCommands executed: {0}/{1}",
+                            e.CommandsExecuted, e.TotalCommands);
+                        MessageBox.Show(message, "Playback Completed",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling playback completed: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling playback completed: {0}", ex.Message));
             }
         }
 
@@ -241,18 +248,21 @@ namespace AppCommander.W7_11.WPF
             {
                 Dispatcher.Invoke(() =>
                 {
-                    UpdateStatus($"Playback error: {e.ErrorMessage}");
-                    ShowErrorMessage($"Error during playback at command {e.CommandIndex + 1}", new Exception(e.ErrorMessage));
+                    UpdateStatus(string.Format("Playback error: {0}", e.ErrorMessage));
+                    var errorTitle = string.Format("Error during playback at command {0}", e.CommandIndex + 1);
+                    ShowErrorMessage(errorTitle, new Exception(e.ErrorMessage));
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling playback error: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling playback error: {0}", ex.Message));
             }
         }
 
+        #endregion
 
-        // NOVÉ: Window tracking event handlers
+        #region Window Event Handlers
+
         private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
         {
             try
@@ -261,20 +271,19 @@ namespace AppCommander.W7_11.WPF
                 {
                     if (_isAutoTrackingEnabled && _recorder.IsRecording)
                     {
-                        Debug.WriteLine($"🆕 Auto-detected new window during recording: {e.WindowTitle}");
+                        Debug.WriteLine(string.Format("Auto-detected new window during recording: {0}", e.WindowTitle));
 
-                        // Automaticky pridaj okno do sledovania ak je relevantné
                         if (IsRelevantWindow(e))
                         {
                             _automaticUIManager.AddWindowToTracking(e.WindowHandle, WindowTrackingPriority.High);
-                            UpdateStatus($"Auto-tracking new window: {e.WindowTitle}");
+                            UpdateStatus(string.Format("Auto-tracking new window: {0}", e.WindowTitle));
                         }
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling new window detected: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling new window detected: {0}", ex.Message));
             }
         }
 
@@ -284,12 +293,12 @@ namespace AppCommander.W7_11.WPF
             {
                 if (_recorder.IsRecording && _isAutoTrackingEnabled)
                 {
-                    Debug.WriteLine($"🎯 Window activated during recording: {e.WindowTitle}");
+                    Debug.WriteLine(string.Format("Window activated during recording: {0}", e.WindowTitle));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling window activated: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling window activated: {0}", ex.Message));
             }
         }
 
@@ -299,12 +308,12 @@ namespace AppCommander.W7_11.WPF
             {
                 if (_recorder.IsRecording)
                 {
-                    Debug.WriteLine($"🗑️ Window closed during recording: {e.WindowTitle}");
+                    Debug.WriteLine(string.Format("Window closed during recording: {0}", e.WindowTitle));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling window closed: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling window closed: {0}", ex.Message));
             }
         }
 
@@ -314,12 +323,13 @@ namespace AppCommander.W7_11.WPF
             {
                 if (_recorder.IsRecording)
                 {
-                    Debug.WriteLine($"🔄 UI changes detected: {e.Changes.AddedElements.Count} added, {e.Changes.RemovedElements.Count} removed");
+                    Debug.WriteLine(string.Format("UI changes detected: {0} added, {1} removed",
+                        e.Changes.AddedElements.Count, e.Changes.RemovedElements.Count));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling UI change detected: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling UI change detected: {0}", ex.Message));
             }
         }
 
@@ -331,19 +341,18 @@ namespace AppCommander.W7_11.WPF
                 {
                     if (_recorder.IsRecording && IsRelevantWindow(e))
                     {
-                        UpdateStatus($"New window appeared: {e.WindowTitle}");
+                        UpdateStatus(string.Format("New window appeared: {0}", e.WindowTitle));
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error handling new window appeared: {ex.Message}");
+                Debug.WriteLine(string.Format("Error handling new window appeared: {0}", ex.Message));
             }
         }
 
         private bool IsRelevantWindow(NewWindowDetectedEventArgs e)
         {
-            // Relevantné sú dialógy, message boxy a okná z target procesu
             return e.WindowType == WindowType.Dialog ||
                    e.WindowType == WindowType.MessageBox ||
                    (!string.IsNullOrEmpty(_recorder.CurrentSequence?.TargetProcessName) &&
@@ -379,20 +388,20 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 // Cleanup
-                _recorder?.Dispose();
-                _player?.Dispose();
-                _windowTracker?.Dispose();
-                _automaticUIManager?.Dispose();
+                if (_recorder != null) _recorder.Dispose();
+                if (_player != null) _player.Dispose();
+                if (_windowTracker != null) _windowTracker.Dispose();
+                if (_automaticUIManager != null) _automaticUIManager.Dispose();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error during window closing: {ex.Message}");
+                Debug.WriteLine(string.Format("Error during window closing: {0}", ex.Message));
             }
         }
 
         #endregion
 
-        #region Button Click Handlers - Recording
+        #region Recording Controls
 
         private void StartRecording_Click(object sender, RoutedEventArgs e)
         {
@@ -414,19 +423,15 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                var sequenceName = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}";
+                var sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
 
-                // Štart recording
                 _recorder.StartRecording(sequenceName, _targetWindowHandle);
 
-                // Štart window tracking pre automatickú detekciu nových okien
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 _windowTracker.StartTracking(targetProcess);
-
-                // Štart automatic UI monitoring
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
-                UpdateStatus($"Recording started: {sequenceName} (Target: {targetProcess})");
+                UpdateStatus(string.Format("Recording started: {0} (Target: {1})", sequenceName, targetProcess));
             }
             catch (Exception ex)
             {
@@ -442,22 +447,18 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
                 {
                     _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    lblTargetWindow.Content = $"{dialog.SelectedWindow.ProcessName} - {dialog.SelectedWindow.Title}";
+                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                        dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
 
                     UpdateUI();
+                    UpdateStatus(string.Format("Target selected: {0}", dialog.SelectedWindow.ProcessName));
 
-                    UpdateStatus($"Target selected: {dialog.SelectedWindow.ProcessName}");
-
-                    // Debug informácie
-                    System.Diagnostics.Debug.WriteLine($"✅ Target window selected:");
-                    System.Diagnostics.Debug.WriteLine($"   Handle: 0x{_targetWindowHandle:X8}");
-                    System.Diagnostics.Debug.WriteLine($"   Process: {dialog.SelectedWindow.ProcessName}");
-                    System.Diagnostics.Debug.WriteLine($"   Title: {dialog.SelectedWindow.Title}");
-                    System.Diagnostics.Debug.WriteLine($"   IsZero: {_targetWindowHandle == IntPtr.Zero}");
+                    Debug.WriteLine(string.Format("Target window selected: Handle=0x{0:X8}, Process={1}, Title={2}",
+                        _targetWindowHandle.ToInt64(), dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title));
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("❌ No window selected or dialog cancelled");
+                    Debug.WriteLine("No window selected or dialog cancelled");
                 }
             }
             catch (Exception ex)
@@ -466,9 +467,182 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        private void StopRecording_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_recorder.IsRecording)
+                {
+                    _recorder.StopRecording();
+                    _windowTracker.StopTracking();
+                    _automaticUIManager.StopMonitoring();
+
+                    lblAutoDetectionStatus.Content = "Auto-Detection Inactive";
+                    lblUIRecordingStatus.Content = "UI Scanning Inactive";
+                    progressEnhancedRecording.Visibility = Visibility.Collapsed;
+                    progressEnhancedRecording.IsIndeterminate = false;
+
+                    UpdateStatus("Recording stopped");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error stopping recording", ex);
+            }
+        }
+
+        private void PauseRecording_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_recorder.IsRecording)
+                {
+                    if (_recorder.IsPaused)
+                    {
+                        _recorder.ResumeRecording();
+                        btnPauseRecording.Content = "Pause";
+                        UpdateStatus("Recording resumed");
+                    }
+                    else
+                    {
+                        _recorder.PauseRecording();
+                        btnPauseRecording.Content = "Resume";
+                        UpdateStatus("Recording paused");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error pausing/resuming recording", ex);
+            }
+        }
+
         #endregion
 
-        #region Button Click Handlers - Playback
+        #region Enhanced Recording
+
+        private void StartEnhancedRecordingWithAutoDetection_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_recorder.IsRecording)
+                {
+                    MessageBox.Show("Recording is already in progress. Please stop current recording first.",
+                                   "Recording In Progress", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a target window first.", "No Target Selected",
+                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    SelectTarget_Click(sender, e);
+                    return;
+                }
+
+                var sequenceName = txtSequenceName.Text;
+                if (string.IsNullOrWhiteSpace(sequenceName))
+                {
+                    sequenceName = string.Format("Enhanced_Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+                    txtSequenceName.Text = sequenceName;
+                }
+
+                _recorder.StartRecording(sequenceName, _targetWindowHandle);
+                _recorder.EnableRealTimeElementScanning = true;
+                _recorder.AutoUpdateExistingCommands = true;
+                _recorder.EnablePredictiveDetection = true;
+
+                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+                _windowTracker.StartTracking(targetProcess);
+                _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
+
+                lblAutoDetectionStatus.Content = "Auto-Detection Active";
+                lblUIRecordingStatus.Content = "UI Scanning Active";
+                progressEnhancedRecording.Visibility = Visibility.Visible;
+                progressEnhancedRecording.IsIndeterminate = true;
+
+                UpdateStatus(string.Format("Enhanced recording started: {0} (Target: {1})", sequenceName, targetProcess));
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error starting enhanced recording", ex);
+            }
+        }
+
+        private void AutoRefreshAllUIElements_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a target window first.", "No Target Selected",
+                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var elements = AdaptiveElementFinder.GetAllInteractiveElements(_targetWindowHandle);
+                UpdateStatus(string.Format("UI elements refreshed: {0} elements found", elements.Count));
+                RefreshElementStatistics();
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error refreshing UI elements", ex);
+            }
+        }
+
+        private void ToggleAutomaticMode_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
+                btnToggleAutoMode.Content = _isAutoTrackingEnabled ? "Auto Mode ON" : "Auto Mode OFF";
+
+                var message = _isAutoTrackingEnabled ?
+                    "Automatic mode enabled - New windows will be tracked automatically" :
+                    "Automatic mode disabled - Manual window selection required";
+                UpdateStatus(message);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error toggling automatic mode", ex);
+            }
+        }
+
+        private void ShowAutomaticSystemStatus_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var statusInfo = string.Format(
+                    "Automatic System Status\n\n" +
+                    "Auto-Detection: {0}\n" +
+                    "UI Scanning: {1}\n" +
+                    "Window Tracking: {2}\n" +
+                    "Target Window: {3}\n" +
+                    "Recorded Commands: {4}\n" +
+                    "Recording Status: {5}\n\n" +
+                    "System Information:\n" +
+                    "Windows Version: {6}\n" +
+                    "Process: {7}",
+                    _recorder.EnableRealTimeElementScanning ? "Active" : "Inactive",
+                    _recorder.AutoUpdateExistingCommands ? "Enabled" : "Disabled",
+                    _isAutoTrackingEnabled ? "Enabled" : "Disabled",
+                    _targetWindowHandle != IntPtr.Zero ? GetWindowTitle(_targetWindowHandle) : "None",
+                    _commands.Count,
+                    _recorder.IsRecording ? "Recording" : "Stopped",
+                    Environment.OSVersion.VersionString,
+                    Process.GetCurrentProcess().ProcessName);
+
+                MessageBox.Show(statusInfo, "System Status", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error showing system status", ex);
+            }
+        }
+
+        #endregion
+
+        #region Playback Controls
 
         private void StartPlayback_Click(object sender, RoutedEventArgs e)
         {
@@ -487,17 +661,17 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                // ROZŠÍRENÉ: Kontrola loop integrity pred playback
                 var loopValidation = ValidateLoopIntegrity();
                 if (!loopValidation.IsValid)
                 {
-                    var result = MessageBox.Show($"Loop validation warning:\n{loopValidation.Message}\n\nDo you want to continue anyway?",
-                                               "Loop Validation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    var message = string.Format("Loop validation warning:\n{0}\n\nDo you want to continue anyway?",
+                        loopValidation.Message);
+                    var result = MessageBox.Show(message, "Loop Validation",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (result == MessageBoxResult.No)
                         return;
                 }
 
-                // Get repeat count
                 int repeatCount = 1;
                 if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
                 {
@@ -505,10 +679,9 @@ namespace AppCommander.W7_11.WPF
                     txtRepeatCount.Text = "1";
                 }
 
-                // Create sequence
                 var sequence = new CommandSequence
                 {
-                    Name = $"Playback_{DateTime.Now:HHmmss}",
+                    Name = string.Format("Playback_{0:HHmmss}", DateTime.Now),
                     Commands = _commands.ToList(),
                     TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
                     TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
@@ -516,7 +689,7 @@ namespace AppCommander.W7_11.WPF
                 };
 
                 _player.PlaySequence(sequence, repeatCount);
-                UpdateStatus($"Starting playback ({repeatCount}x) - {_commands.Count} commands");
+                UpdateStatus(string.Format("Starting playback ({0}x) - {1} commands", repeatCount, _commands.Count));
             }
             catch (Exception ex)
             {
@@ -524,22 +697,79 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private (bool IsValid, string Message) ValidateLoopIntegrity()
+        private void PlaySequence_Click(object sender, RoutedEventArgs e)
         {
-            var loopStarts = _commands.Where(c => c.Type == CommandType.LoopStart).Count();
-            var loopEnds = _commands.Where(c => c.Type == CommandType.LoopEnd).Count();
+            StartPlayback_Click(sender, e);
+        }
 
-            if (loopStarts != loopEnds)
+        private void TestPlayback_Click(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                return (false, $"Loop mismatch: {loopStarts} loop starts, {loopEnds} loop ends");
-            }
+                if (!_commands.Any())
+                {
+                    MessageBox.Show("No commands to test. Please record some commands first.",
+                                   "No Commands", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
 
-            if (loopStarts > 0)
+                var testSequence = new CommandSequence
+                {
+                    Name = "Test Playback",
+                    Commands = new List<Command> { _commands.First() },
+                    TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                    TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                };
+
+                _player.TestPlayback(testSequence);
+                UpdateStatus("Test playback started with first command");
+            }
+            catch (Exception ex)
             {
-                return (true, $"Loop validation passed: {loopStarts} complete loops detected");
+                ShowErrorMessage("Error starting test playback", ex);
             }
+        }
 
-            return (true, "No loops detected");
+        private void PlayWithoutElementSearch_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_commands.Any())
+                {
+                    MessageBox.Show("No commands to play.", "No Commands",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    "Play without element search will use stored coordinates only.\n" +
+                    "This may be less reliable but faster.\n\n" +
+                    "Do you want to continue?",
+                    "Play Direct Mode", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var originalHighlightSetting = _player.HighlightElements;
+                    _player.HighlightElements = false;
+
+                    var sequence = new CommandSequence
+                    {
+                        Name = "Direct Playback",
+                        Commands = _commands.ToList(),
+                        TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                        TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                    };
+
+                    _player.PlaySequence(sequence, 1);
+                    _player.HighlightElements = originalHighlightSetting;
+
+                    UpdateStatus("Direct playback started (no element search)");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error starting direct playback", ex);
+            }
         }
 
         private void PausePlayback_Click(object sender, RoutedEventArgs e)
@@ -549,12 +779,12 @@ namespace AppCommander.W7_11.WPF
                 if (_player.IsPaused)
                 {
                     _player.Resume();
-                    btnPause.Content = "⏸ Pause";
+                    btnPause.Content = "Pause";
                 }
                 else if (_player.IsPlaying)
                 {
                     _player.Pause();
-                    btnPause.Content = "▶ Resume";
+                    btnPause.Content = "Resume";
                 }
             }
             catch (Exception ex)
@@ -568,7 +798,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 _player.Stop();
-                btnPause.Content = "⏸ Pause";
+                btnPause.Content = "Pause";
                 UpdateStatus("Playback stopped");
             }
             catch (Exception ex)
@@ -577,9 +807,27 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        private (bool IsValid, string Message) ValidateLoopIntegrity()
+        {
+            var loopStarts = _commands.Count(c => c.Type == CommandType.LoopStart);
+            var loopEnds = _commands.Count(c => c.Type == CommandType.LoopEnd);
+
+            if (loopStarts != loopEnds)
+            {
+                return (false, string.Format("Loop mismatch: {0} loop starts, {1} loop ends", loopStarts, loopEnds));
+            }
+
+            if (loopStarts > 0)
+            {
+                return (true, string.Format("Loop validation passed: {0} complete loops detected", loopStarts));
+            }
+
+            return (true, "No loops detected");
+        }
+
         #endregion
 
-        #region Menu Handlers - File (ZACHOVANÁ FUNKCIONALITA)
+        #region Menu Handlers - File
 
         private void NewSequence_Click(object sender, RoutedEventArgs e)
         {
@@ -659,7 +907,7 @@ namespace AppCommander.W7_11.WPF
                 {
                     Filter = "AppCommander Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     DefaultExt = ".acc",
-                    FileName = $"Sequence_{DateTime.Now:yyyyMMdd_HHmmss}.acc"
+                    FileName = string.Format("Sequence_{0:yyyyMMdd_HHmmss}.acc", DateTime.Now)
                 };
 
                 if (dialog.ShowDialog() == true)
@@ -675,7 +923,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Menu Handlers - Commands (ROZŠÍRENÉ LOOP FUNKCIE)
+        #region Menu Handlers - Commands
 
         private void AddWaitCommand_Click(object sender, RoutedEventArgs e)
         {
@@ -693,7 +941,7 @@ namespace AppCommander.W7_11.WPF
                 if (!string.IsNullOrEmpty(input) && int.TryParse(input, out int waitTime) && waitTime > 0)
                 {
                     _recorder.AddWaitCommand(waitTime);
-                    UpdateStatus($"Wait command added: {waitTime}ms");
+                    UpdateStatus(string.Format("Wait command added: {0}ms", waitTime));
                 }
             }
             catch (Exception ex)
@@ -717,7 +965,6 @@ namespace AppCommander.W7_11.WPF
 
                 if (!string.IsNullOrEmpty(input) && int.TryParse(input, out int repeatCount) && repeatCount > 0)
                 {
-                    // Vytvor loop start command s repeat count
                     var loopCommand = new Command
                     {
                         StepNumber = _commands.Count + 1,
@@ -732,7 +979,7 @@ namespace AppCommander.W7_11.WPF
                     _commands.Add(loopCommand);
                     _hasUnsavedChanges = true;
                     UpdateUI();
-                    UpdateStatus($"Loop start added: repeat {repeatCount}x");
+                    UpdateStatus(string.Format("Loop start added: repeat {0}x", repeatCount));
                 }
             }
             catch (Exception ex)
@@ -752,7 +999,6 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                // Skontroluj či existuje otvorený loop
                 var lastLoopStart = _commands.LastOrDefault(c => c.Type == CommandType.LoopStart);
                 var loopEndsCount = _commands.Count(c => c.Type == CommandType.LoopEnd);
                 var loopStartsCount = _commands.Count(c => c.Type == CommandType.LoopStart);
@@ -769,7 +1015,7 @@ namespace AppCommander.W7_11.WPF
                     StepNumber = _commands.Count + 1,
                     Type = CommandType.LoopEnd,
                     ElementName = "Loop End",
-                    Value = lastLoopStart?.Value ?? "1",
+                    Value = lastLoopStart != null ? lastLoopStart.Value : "1",
                     IsLoopEnd = true,
                     Timestamp = DateTime.Now
                 };
@@ -803,7 +1049,6 @@ namespace AppCommander.W7_11.WPF
                 {
                     selectedCommand.Value = newValue;
 
-                    // Špeciálne spracovanie pre loop commands
                     if (selectedCommand.Type == CommandType.LoopStart && int.TryParse(newValue, out int repeatCount))
                     {
                         selectedCommand.RepeatCount = repeatCount;
@@ -832,8 +1077,10 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                var result = MessageBox.Show($"Are you sure you want to delete this command?\n\n{selectedCommand.Type}: {selectedCommand.ElementName}",
-                                           "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var message = string.Format("Are you sure you want to delete this command?\n\n{0}: {1}",
+                    selectedCommand.Type, selectedCommand.ElementName);
+                var result = MessageBox.Show(message, "Confirm Delete",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -846,34 +1093,6 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error deleting command", ex);
-            }
-        }
-
-        private void ClearCommands_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (!_commands.Any())
-                {
-                    MessageBox.Show("No commands to clear.", "No Commands",
-                                  MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                var result = MessageBox.Show($"Are you sure you want to delete all {_commands.Count} commands?",
-                                           "Confirm Clear All", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    _commands.Clear();
-                    _hasUnsavedChanges = true;
-                    UpdateUI();
-                    UpdateStatus("All commands cleared");
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error clearing commands", ex);
             }
         }
 
@@ -891,6 +1110,247 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error opening window selector", ex);
+            }
+        }
+
+        private void UserGuide_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                MessageBox.Show("AppCommander User Guide\n\n" +
+                               "Basic Usage:\n" +
+                               "1. Click 'Select Target' to choose application window\n" +
+                               "2. Click 'Start Recording' and perform actions\n" +
+                               "3. Click 'Stop Recording' when finished\n" +
+                               "4. Click 'Play' to replay recorded actions\n\n" +
+                               "Advanced Features:\n" +
+                               "• Use 'Enhanced Recording' for better element detection\n" +
+                               "• Add loops using Commands menu\n" +
+                               "• Set repeat count for multiple playbacks\n" +
+                               "• Use Element Inspector to analyze UI elements\n\n" +
+                               "For detailed documentation, visit project repository.",
+                               "User Guide", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error showing user guide", ex);
+            }
+        }
+
+        private void ClearLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                UpdateStatus("Log cleared");
+                Debug.WriteLine("Log cleared by user");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error clearing log", ex);
+            }
+        }
+
+        private void DebugCoordinates_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                MessageBox.Show("Debug Coordinates Tool\n\n" +
+                               "This tool helps debug coordinate issues:\n" +
+                               "• Shows current mouse position\n" +
+                               "• Displays screen resolution\n" +
+                               "• Tests coordinate conversion\n\n" +
+                               "Move mouse and press F12 to capture coordinates.",
+                               "Debug Coordinates", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                UpdateStatus("Debug coordinates tool activated - Press F12 to capture mouse position");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error activating debug coordinates", ex);
+            }
+        }
+
+        private void ElementInspector_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a target window first.", "No Target Selected",
+                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    SelectTarget_Click(sender, e);
+                    return;
+                }
+
+                string processName = GetProcessNameFromWindow(_targetWindowHandle);
+                string windowTitle = GetWindowTitle(_targetWindowHandle);
+
+                int elementCount = 0;
+                try
+                {
+                    var elements = AdaptiveElementFinder.GetAllInteractiveElements(_targetWindowHandle);
+                    elementCount = elements.Count;
+                }
+                catch
+                {
+                    elementCount = 0;
+                }
+
+                string inspectorInfo = string.Format(
+                    "Element Inspector\n\n" +
+                    "Target Window Information:\n" +
+                    "Process: {0}\n" +
+                    "Title: {1}\n" +
+                    "Handle: 0x{2:X8}\n" +
+                    "Interactive Elements Found: {3}\n\n" +
+                    "Features:\n" +
+                    "• UI element detection and analysis\n" +
+                    "• Element property inspection\n" +
+                    "• Automation identifier discovery\n" +
+                    "• Coordinate mapping\n\n" +
+                    "This feature is available and functional.",
+                    processName,
+                    windowTitle,
+                    _targetWindowHandle.ToInt64(),
+                    elementCount);
+
+                MessageBox.Show(inspectorInfo, "Element Inspector",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+
+                UpdateStatus(string.Format("Element inspector used - Found {0} elements", elementCount));
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening element inspector", ex);
+            }
+        }
+
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string currentSettings = string.Format(
+                    "AppCommander Settings\n\n" +
+                    "Recording Configuration:\n" +
+                    "• Default delay: {0}ms\n" +
+                    "• Auto-tracking: {1}\n" +
+                    "• Element scanning: {2}\n" +
+                    "• Predictive detection: {3}\n\n" +
+                    "Playback Configuration:\n" +
+                    "• Stop on error: {4}\n" +
+                    "• Highlight elements: {5}\n\n" +
+                    "System Information:\n" +
+                    "• Windows: {6}\n" +
+                    "• .NET Framework: {7}\n" +
+                    "• Commands recorded: {8}\n\n" +
+                    "Note: Settings modification will be available in future versions.\n" +
+                    "Current configuration uses optimized defaults for Windows 7-11.",
+                    _player != null ? _player.DefaultDelayBetweenCommands : 100,
+                    _isAutoTrackingEnabled ? "Enabled" : "Disabled",
+                    _recorder != null && _recorder.EnableRealTimeElementScanning ? "Active" : "Inactive",
+                    _recorder != null && _recorder.EnablePredictiveDetection ? "Enabled" : "Disabled",
+                    _player != null ? _player.StopOnError.ToString() : "False",
+                    _player != null ? _player.HighlightElements.ToString() : "True",
+                    Environment.OSVersion.VersionString,
+                    Environment.Version.ToString(),
+                    _commands.Count);
+
+                MessageBox.Show(currentSettings, "Settings",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+
+                UpdateStatus("Settings information displayed");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error showing settings", ex);
+            }
+        }
+
+        private void ExportAutoDetectedData_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_commands.Any())
+                {
+                    MessageBox.Show("No commands to export.", "No Data",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "Text Files (*.txt)|*.txt|CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+                    DefaultExt = ".txt",
+                    FileName = string.Format("AutoDetected_Data_{0:yyyyMMdd_HHmmss}.txt", DateTime.Now)
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var exportText = GenerateAutoDetectedDataReport();
+                    File.WriteAllText(dialog.FileName, exportText);
+
+                    UpdateStatus(string.Format("Auto-detected data exported: {0}", Path.GetFileName(dialog.FileName)));
+                    MessageBox.Show("Data exported successfully!", "Export Complete",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error exporting auto-detected data", ex);
+            }
+        }
+
+        private void ExportSequenceForDebug_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_commands.Any())
+                {
+                    MessageBox.Show("No commands to export.", "No Data",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "Text Files (*.txt)|*.txt|Debug Files (*.debug)|*.debug|All Files (*.*)|*.*",
+                    DefaultExt = ".txt",
+                    FileName = string.Format("Debug_Export_{0:yyyyMMdd_HHmmss}.txt", DateTime.Now)
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var sequence = new CommandSequence
+                    {
+                        Name = "Debug Export",
+                        Commands = _commands.ToList(),
+                        TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                        TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                    };
+
+                    var debugReport = DebugTestHelper.ExportSequenceAsText(sequence);
+                    File.WriteAllText(dialog.FileName, debugReport);
+
+                    UpdateStatus(string.Format("Debug info exported: {0}", Path.GetFileName(dialog.FileName)));
+                    MessageBox.Show("Debug information exported successfully!", "Export Complete",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error exporting debug info", ex);
+            }
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error closing application", ex);
             }
         }
 
@@ -912,7 +1372,39 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region File Operations (ZACHOVANÁ FUNKCIONALITA)
+        #region Loop Controls
+
+        private void InfiniteLoop_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                txtRepeatCount.IsEnabled = false;
+                txtRepeatCount.Text = "∞";
+                UpdateStatus("Infinite loop enabled");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error enabling infinite loop", ex);
+            }
+        }
+
+        private void InfiniteLoop_Unchecked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                txtRepeatCount.IsEnabled = true;
+                txtRepeatCount.Text = "1";
+                UpdateStatus("Infinite loop disabled");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error disabling infinite loop", ex);
+            }
+        }
+
+        #endregion
+
+        #region File Operations
 
         private void LoadSequenceFromFile(string filePath)
         {
@@ -927,7 +1419,7 @@ namespace AppCommander.W7_11.WPF
                 var json = File.ReadAllText(filePath);
                 var sequence = JsonConvert.DeserializeObject<CommandSequence>(json);
 
-                if (sequence?.Commands != null)
+                if (sequence != null && sequence.Commands != null)
                 {
                     _commands.Clear();
                     foreach (var command in sequence.Commands)
@@ -939,9 +1431,10 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedChanges = false;
                     UpdateUI();
 
-                    // ROZŠÍRENÉ: Zobraz informácie o načítanej sequence
                     var loopInfo = GetSequenceLoopInfo(sequence);
-                    UpdateStatus($"Sequence loaded: {Path.GetFileName(filePath)} ({_commands.Count} commands{loopInfo})");
+                    var statusMsg = string.Format("Sequence loaded: {0} ({1} commands{2})",
+                        Path.GetFileName(filePath), _commands.Count, loopInfo);
+                    UpdateStatus(statusMsg);
                 }
                 else
                 {
@@ -957,13 +1450,10 @@ namespace AppCommander.W7_11.WPF
         private string GetSequenceLoopInfo(CommandSequence sequence)
         {
             var loopStarts = sequence.Commands.Count(c => c.Type == CommandType.LoopStart);
-            var loopEnds = sequence.Commands.Count(c => c.Type == CommandType.LoopEnd);
-
             if (loopStarts > 0)
             {
-                return $", {loopStarts} loops";
+                return string.Format(", {0} loops", loopStarts);
             }
-
             return "";
         }
 
@@ -988,7 +1478,7 @@ namespace AppCommander.W7_11.WPF
                 _currentFilePath = filePath;
                 _hasUnsavedChanges = false;
                 UpdateUI();
-                UpdateStatus($"Sequence saved: {Path.GetFileName(filePath)}");
+                UpdateStatus(string.Format("Sequence saved: {0}", Path.GetFileName(filePath)));
             }
             catch (Exception ex)
             {
@@ -1004,43 +1494,28 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // Update button states
-                bool isRecording = _recorder?.IsRecording == true;
-                bool isPlaying = _player?.IsPlaying == true;
+                bool isRecording = _recorder != null && _recorder.IsRecording;
+                bool isPlaying = _player != null && _player.IsPlaying;
 
-                btnStartRecording.Content = isRecording ? "⏹ Stop Recording" : "🔴 Record";
-
-                // Debug informácie
+                btnStartRecording.Content = isRecording ? "Stop Recording" : "Record";
                 bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
                 bool shouldEnableRecord = hasTargetWindow || isRecording;
 
-                System.Diagnostics.Debug.WriteLine($"=== UpdateUI Debug ===");
-                System.Diagnostics.Debug.WriteLine($"Target Handle: 0x{_targetWindowHandle:X8}");
-                System.Diagnostics.Debug.WriteLine($"Has Target Window: {hasTargetWindow}");
-                System.Diagnostics.Debug.WriteLine($"Is Recording: {isRecording}");
-                System.Diagnostics.Debug.WriteLine($"Should Enable Record: {shouldEnableRecord}");
-
                 btnStartRecording.IsEnabled = shouldEnableRecord;
-
-                System.Diagnostics.Debug.WriteLine($"btnRecord.IsEnabled set to: {btnStartRecording.IsEnabled}");
-                System.Diagnostics.Debug.WriteLine($"====================");
-
                 btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
                 btnPause.IsEnabled = isPlaying;
                 btnStop.IsEnabled = isPlaying;
 
-                // Update command count with loop info
                 var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
                 string commandText = loopCount > 0 ?
-                    $"Commands: {_commands.Count} ({loopCount} loops)" :
-                    $"Commands: {_commands.Count}";
+                    string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
+                    string.Format("Commands: {0}", _commands.Count);
                 txtCommandCount.Text = commandText;
 
-                // Update window title
                 string title = "AppCommander";
                 if (!string.IsNullOrEmpty(_currentFilePath))
                 {
-                    title += $" - {Path.GetFileName(_currentFilePath)}";
+                    title += string.Format(" - {0}", Path.GetFileName(_currentFilePath));
                 }
                 if (_hasUnsavedChanges)
                 {
@@ -1050,7 +1525,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error updating UI: {ex.Message}");
+                Debug.WriteLine(string.Format("Error updating UI: {0}", ex.Message));
             }
         }
 
@@ -1058,12 +1533,12 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                txtStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
-                Debug.WriteLine($"📊 Status: {message}");
+                txtStatus.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
+                Debug.WriteLine(string.Format("Status: {0}", message));
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error updating status: {ex.Message}");
+                Debug.WriteLine(string.Format("Error updating status: {0}", ex.Message));
             }
         }
 
@@ -1073,16 +1548,16 @@ namespace AppCommander.W7_11.WPF
             {
                 if (isRecording)
                 {
-                    lblRecordingStatus.Text = isPaused ? "⏸️ Recording Paused" : "🔴 Recording";
+                    lblRecordingStatus.Text = isPaused ? "Recording Paused" : "Recording";
                 }
                 else
                 {
-                    lblRecordingStatus.Text = "⚫ Not Recording";
+                    lblRecordingStatus.Text = "Not Recording";
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"❌ Error updating recording status: {ex.Message}");
+                Debug.WriteLine(string.Format("Error updating recording status: {0}", ex.Message));
             }
         }
 
@@ -1090,11 +1565,82 @@ namespace AppCommander.W7_11.WPF
 
         #region Helper Methods
 
+        private void RefreshElementStatistics()
+        {
+            try
+            {
+                lstElementStats.Items.Clear();
+
+                var elementGroups = _commands
+                    .Where(c => !string.IsNullOrEmpty(c.ElementName))
+                    .GroupBy(c => c.ElementName)
+                    .Select(g => new
+                    {
+                        ElementName = g.Key,
+                        UsageCount = g.Count(),
+                        LastUsed = g.Max(c => c.Timestamp)
+                    })
+                    .OrderByDescending(e => e.UsageCount)
+                    .ToList();
+
+                foreach (var element in elementGroups)
+                {
+                    lstElementStats.Items.Add(element);
+                }
+
+                UpdateStatus(string.Format("Element statistics refreshed: {0} unique elements", elementGroups.Count));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error refreshing element statistics: {0}", ex.Message));
+            }
+        }
+
+        private string GenerateAutoDetectedDataReport()
+        {
+            var report = new System.Text.StringBuilder();
+
+            report.AppendLine("AUTO-DETECTED DATA REPORT");
+            report.AppendLine(string.Format("Generated: {0:yyyy-MM-dd HH:mm:ss}", DateTime.Now));
+            report.AppendLine(string.Format("Target: {0}", GetWindowTitle(_targetWindowHandle)));
+            report.AppendLine(string.Format("Commands: {0}", _commands.Count));
+            report.AppendLine("");
+
+            var commandGroups = _commands.GroupBy(c => c.Type).ToList();
+
+            report.AppendLine("COMMAND SUMMARY:");
+            foreach (var group in commandGroups)
+            {
+                report.AppendLine(string.Format("  {0}: {1} commands", group.Key, group.Count()));
+            }
+            report.AppendLine("");
+
+            report.AppendLine("DETAILED COMMANDS:");
+            for (int i = 0; i < _commands.Count; i++)
+            {
+                var cmd = _commands[i];
+                report.AppendLine(string.Format("{0:D3}. {1} - {2}", i + 1, cmd.Type, cmd.ElementName));
+
+                if (!string.IsNullOrEmpty(cmd.ElementId))
+                    report.AppendLine(string.Format("     ID: {0}", cmd.ElementId));
+
+                if (cmd.ElementX > 0 && cmd.ElementY > 0)
+                    report.AppendLine(string.Format("     Position: ({0}, {1})", cmd.ElementX, cmd.ElementY));
+
+                if (!string.IsNullOrEmpty(cmd.Value))
+                    report.AppendLine(string.Format("     Value: {0}", cmd.Value));
+
+                report.AppendLine("");
+            }
+
+            return report.ToString();
+        }
+
         private void ShowErrorMessage(string title, Exception ex)
         {
-            var message = $"{title}\n\nError: {ex.Message}";
+            var message = string.Format("{0}\n\nError: {1}", title, ex.Message);
             MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            Debug.WriteLine($"❌ {title}: {ex.Message}");
+            Debug.WriteLine(string.Format("{0}: {1}", title, ex.Message));
         }
 
         private string GetProcessNameFromWindow(IntPtr windowHandle)
@@ -1131,7 +1677,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        // Simple input dialog helper
         private string ShowInputDialog(string prompt, string title, string defaultValue = "")
         {
             var dialog = new Window

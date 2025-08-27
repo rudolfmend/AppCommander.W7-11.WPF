@@ -392,25 +392,11 @@ namespace AppCommander.W7_11.WPF.Core
                 // OPRAVENÉ: Použitie GroupBy na zvládnutie duplicitných hashov
                 var previousElements = previous.Elements
                     .GroupBy(e => e.Hash)
-                    .ToDictionary(g => g.Key, g => g.First()); // Vezmi prvý element z každej skupiny
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 var currentElements = current.Elements
                     .GroupBy(e => e.Hash)
-                    .ToDictionary(g => g.Key, g => g.First()); // Vezmi prvý element z každej skupiny
-
-                // Loguj duplicity ak existují
-                var previousDuplicates = previous.Elements.GroupBy(e => e.Hash).Where(g => g.Count() > 1);
-                var currentDuplicates = current.Elements.GroupBy(e => e.Hash).Where(g => g.Count() > 1);
-
-                foreach (var duplicate in previousDuplicates)
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚠️ Previous snapshot duplicate hash: {duplicate.Key} ({duplicate.Count()} elements)");
-                }
-
-                foreach (var duplicate in currentDuplicates)
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚠️ Current snapshot duplicate hash: {duplicate.Key} ({duplicate.Count()} elements)");
-                }
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 // Nájdi pridané elementy
                 changeSet.AddedElements = currentElements.Values
@@ -422,8 +408,8 @@ namespace AppCommander.W7_11.WPF.Core
                     .Where(e => !currentElements.ContainsKey(e.Hash))
                     .ToList();
 
-                // Nájdi modifikované elementy (rovnaký ID ale iný hash)
-                changeSet.ModifiedElements = new List<(UIElementSnapshot Previous, UIElementSnapshot Current)>();
+                // OPRAVENÉ: Nájdi modifikované elementy a konvertuj ich na ModifiedElementPair
+                changeSet.ModifiedElements = new List<ModifiedElementPair>();
 
                 foreach (var currentElement in currentElements.Values)
                 {
@@ -434,7 +420,8 @@ namespace AppCommander.W7_11.WPF.Core
 
                     if (previousElement != null)
                     {
-                        changeSet.ModifiedElements.Add((previousElement, currentElement));
+                        // OPRAVENÉ: Vytvor ModifiedElementPair namiesto tuple
+                        changeSet.ModifiedElements.Add(new ModifiedElementPair(previousElement, currentElement));
                     }
                 }
 
@@ -446,13 +433,14 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error in CompareUISnapshots: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in CompareUISnapshots: {ex.Message}");
 
                 // Fallback - vráť prázdny changeset
                 changeSet.HasChanges = false;
                 return changeSet;
             }
         }
+
 
         /// <summary>
         /// Spracuje detekované UI zmeny
