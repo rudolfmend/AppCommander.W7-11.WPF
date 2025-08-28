@@ -94,6 +94,7 @@ namespace AppCommander.W7_11.WPF.Core
         public bool IsModal { get; set; }
         public DateTime LastActivated { get; set; }
         public WindowTrackingPrioritySharedClasses Priority { get; set; }
+        public bool IsEnabled { get; set; } = true; 
 
         public override string ToString()
         {

@@ -751,7 +751,7 @@ namespace AppCommander.W7_11.WPF.Core
                         {
                             WindowHandle = e.WindowHandle,
                             PreviousElements = previousElements,
-                            NewElements = newElements, // Použij už konvertované elementy
+                            NewElements = newElements, 
                             Context = context
                         });
                     }
@@ -776,10 +776,25 @@ namespace AppCommander.W7_11.WPF.Core
                 if (e.Element != null && windowContexts.ContainsKey(e.WindowHandle))
                 {
                     var context = windowContexts[e.WindowHandle];
-                    if (!context.UIElements.Any(el => el.AutomationId == e.Element.AutomationId &&
-                                                      el.Name == e.Element.Name))
+
+                    // Konvertuj UIElementSnapshot na UIElementInfo
+                    var elementInfo = new UIElementInfo
                     {
-                        context.UIElements.Add(e.Element);
+                        Name = e.Element.Name,
+                        AutomationId = e.Element.AutomationId,
+                        ClassName = e.Element.ClassName,
+                        ControlType = e.Element.ControlType,
+                        X = e.Element.X,
+                        Y = e.Element.Y,
+                        IsEnabled = e.Element.IsEnabled,
+                        IsVisible = e.Element.IsVisible,
+                        ElementText = e.Element.Text
+                    };
+
+                    if (!context.UIElements.Any(el => el.AutomationId == elementInfo.AutomationId &&
+                                                      el.Name == elementInfo.Name))
+                    {
+                        context.UIElements.Add(elementInfo); // Pridaj skonvertovaný element
                         context.LastUIUpdate = DateTime.Now;
                     }
                 }
