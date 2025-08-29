@@ -133,9 +133,9 @@
                         <Button Name="btnStartRecording" Content="🔴 Start Recording" 
                                 Style="{StaticResource PrimaryButtonStyle}" 
                                 Click="StartRecording_Click" Margin="0,0,10,0"/>
-                        <Button Name="btnStopRecording" Content="⏹ Stop" 
+                        <!--<Button Name="btnStopRecording" Content="⏹ Stop" 
                                 Style="{StaticResource SecondaryButtonStyle}" 
-                                Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                                Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>-->
                         <Button Name="btnPauseRecording" Content="⏸ Pause" 
                                 Style="{StaticResource SecondaryButtonStyle}" 
                                 Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
