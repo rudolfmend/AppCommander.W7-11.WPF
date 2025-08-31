@@ -251,7 +251,7 @@ namespace AppCommander.W7_11.WPF
             if (testButton != null) testButton.IsEnabled = false;
             if (testResultLabel != null)
             {
-                testResultLabel.Content = "Testujem rýchlosť...";
+                testResultLabel.Text = "Testujem rýchlosť...";
                 testResultLabel.Visibility = Visibility.Visible;
             }
 
@@ -272,15 +272,15 @@ namespace AppCommander.W7_11.WPF
                 var totalTime = DateTime.Now.Subtract(startTime);
                 if (testResultLabel != null)
                 {
-                    testResultLabel.Content = $"Test dokončený za {totalTime.TotalSeconds:F1}s (3 príkazy)";
+                    testResultLabel.Text = $"Test dokončený za {totalTime.TotalSeconds:F1}s (3 príkazy)";
                     testResultLabel.Foreground = new SolidColorBrush(Colors.Green);
                 }
             }
             catch (Exception ex)
             {
                 if (testResultLabel != null)
-                {
-                    testResultLabel.Content = $"Test zlyhal: {ex.Message}";
+                {   
+                    testResultLabel.Text = $"Test zlyhal: {ex.Message}";
                     testResultLabel.Foreground = new SolidColorBrush(Colors.Red);
                 }
             }
@@ -288,6 +288,11 @@ namespace AppCommander.W7_11.WPF
             {
                 if (testButton != null) testButton.IsEnabled = true;
             }
+        }
+
+        internal void UpdateExecutionStatus(CommandExecutionInfo executionInfo)
+        {
+            throw new NotImplementedException();
         }
     }
 

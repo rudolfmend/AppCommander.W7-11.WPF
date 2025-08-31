@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
+using System.Windows.Forms;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -41,7 +42,7 @@ namespace AppCommander.W7_11.WPF.Core
         private readonly Dictionary<int, CommandExecutionInfo> executionStates;
         private readonly WindowTracker windowTracker;
         private readonly AutomaticUIManager uiManager;
-        private readonly Timer stateMonitorTimer;
+        private readonly System.Threading.Timer stateMonitorTimer;
         private ExecutionSettings settings;
 
         public event EventHandler<CommandExecutionInfo> CommandStateChanged;
@@ -55,7 +56,7 @@ namespace AppCommander.W7_11.WPF.Core
             this.settings = new ExecutionSettings();
 
             // Timer na monitorovanie stavu príkazov
-            this.stateMonitorTimer = new Timer(MonitorExecutionStates, null, Timeout.Infinite, Timeout.Infinite);
+            this.stateMonitorTimer = new System.Threading.Timer(MonitorExecutionStates, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         /// <summary>
@@ -166,8 +167,8 @@ namespace AppCommander.W7_11.WPF.Core
                 try
                 {
                     // Použije existujúcu logiku AdaptiveElementFinder
-                    var searchResult = AdaptiveElementFinder.SmartFindElement(
-                        windowTracker.GetActiveWindow(), command);
+                    var activeWindow = windowTracker.GetAllWindows().FirstOrDefault();
+                    var searchResult = AdaptiveElementFinder.SmartFindElement(activeWindow, command);
 
                     if (searchResult.IsSuccess)
                     {

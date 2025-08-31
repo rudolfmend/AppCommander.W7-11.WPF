@@ -207,7 +207,7 @@
                              Width="8" Height="8" 
                              Fill="Green" 
                              Margin="0,0,5,0"/>
-                    <TextBlock x:Name="speedLabel" Text="Normálna" FontSize="10" Foreground="Gray"/>
+                    <TextBlock x:Name="statusSpeedLabel" Text="Normálna" FontSize="10" Foreground="Gray"/>
                 </StackPanel>
             </Grid>
 

@@ -1533,7 +1533,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                txtStatus.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
+                txtStatusBar.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
                 Debug.WriteLine(string.Format("Status: {0}", message));
             }
             catch (Exception ex)
@@ -1548,11 +1548,11 @@ namespace AppCommander.W7_11.WPF
             {
                 if (isRecording)
                 {
-                    lblRecordingStatus.Text = isPaused ? "Recording Paused" : "Recording";
+                    lblStatusBarRecording.Text = isPaused ? "Recording Paused" : "Recording";
                 }
                 else
                 {
-                    lblRecordingStatus.Text = "Not Recording";
+                    lblStatusBarRecording.Text = "Not Recording";
                 }
             }
             catch (Exception ex)

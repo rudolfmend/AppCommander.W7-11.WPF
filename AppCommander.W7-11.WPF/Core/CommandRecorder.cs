@@ -1,6 +1,4 @@
-﻿// CommandRecorder.cs - Kompletná opravená verzia bez konfliktov
-using AppCommander.W7_11.WPF.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -72,6 +71,10 @@ namespace AppCommander.W7_11.WPF.Core
         public bool IsPaused => isPaused;
         public CommandSequence CurrentSequence => currentSequence;
         public Dictionary<string, ElementUsageStats> ElementStats => new Dictionary<string, ElementUsageStats>(elementStats);
+
+        public EventHandler<ExecutionSpeedChangedEventArgs> OnExecutionSpeedChanged { get; private set; }
+        public EventHandler<string> OnExecutionSpeedAdjusted { get; private set; }
+        public EventHandler<CommandExecutionInfo> OnCommandStateChanged { get; private set; }
 
         #endregion
 
@@ -151,6 +154,273 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         #endregion
+
+        #region ExecutionSpeedControl - event handler
+
+        ///// <summary>
+        ///// Event handler pre zmeny stavu príkazov
+        ///// </summary>
+        //private void OnCommandStateChanged(object sender, CommandExecutionInfo executionInfo)
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"🔄 Command {executionInfo.StepNumber}: {executionInfo.State}");
+
+        //    // Aktualizuj UI indikátor
+        //    UpdateExecutionStatusUI(executionInfo);
+
+        //    // Ak je command failed, pridaj do logu
+        //    if (executionInfo.State == CommandExecutionState.Failed)
+        //    {
+        //        LogExecutionFailure(executionInfo);
+        //    }
+        //}
+
+        ///// <summary>
+        ///// Event handler pre automatické prispôsobenie rýchlosti
+        ///// </summary>
+        //private void OnExecutionSpeedAdjusted(object sender, string reason)
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"⚡ Execution speed adjusted: {reason}");
+
+        //    // Aktualizuj UI
+        //    if (speedControl != null)
+        //    {
+        //        // Update usages of 'speedControl' to use the correct type (no cast needed)
+        //        // Example: In OnExecutionSpeedAdjusted, this line is now valid:
+        //        speedControl.UpdateSpeedIndicator(reason);
+        //    }
+        //}
+
+        //// Add this method to fix CS0103: The name 'OnExecutionSpeedChanged' does not exist in the current context
+
+        ///// <summary>
+        ///// Event handler for manual execution speed changes
+        ///// </summary>
+        //private void OnExecutionSpeedChanged(object sender, ExecutionSpeedChangedEventArgs e)
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"🎛️ Speed manually changed to: {e.Speed}");
+
+        //    // Save settings
+        //    SaveExecutionSettings(e.Settings);
+        //}
+
+        /// <summary>
+        /// Vykonaj sequence s kontrolou rýchlosti
+        /// </summary>
+        public async Task<bool> ExecuteSequenceWithSpeedControl(CommandSequence sequence,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🚀 Starting sequence execution with {sequence.Commands.Count} commands");
+
+                bool allCommandsSucceeded = true;
+                int successfulCommands = 0;
+
+                foreach (var command in sequence.Commands)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        System.Diagnostics.Debug.WriteLine("⏹️ Execution cancelled by user");
+                        break;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"▶️ Executing command {command.StepNumber}: {command.Type}");
+
+                    // Použije execution manager pre riadené vykonávanie
+                    bool success = await executionManager.ExecuteCommandWithWait(command, cancellationToken);
+
+                    if (success)
+                    {
+                        successfulCommands++;
+                    }
+                    else
+                    {
+                        allCommandsSucceeded = false;
+                        System.Diagnostics.Debug.WriteLine($"❌ Command {command.StepNumber} failed");
+
+                        // Rozhodnutie či pokračovať alebo prerušiť
+                        if (!ShouldContinueAfterFailure(command, sequence))
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"✅ Sequence execution completed: {successfulCommands}/{sequence.Commands.Count} successful");
+
+                return allCommandsSucceeded;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Sequence execution error: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Rozhodne či pokračovať po neúspešnom príkaze
+        /// </summary>
+        private bool ShouldContinueAfterFailure(Command failedCommand, CommandSequence sequence)
+        {
+            // Pre kritické príkazy (napr. login) nepokračuj
+            if (failedCommand.Type == CommandType.SetText &&
+                (failedCommand.ElementName?.ToLower().Contains("password") == true ||
+                 failedCommand.ElementName?.ToLower().Contains("login") == true))
+            {
+                return false;
+            }
+
+            // Pre ostatné príkazy pokračuj
+            return true;
+        }
+
+        ///// <summary>
+        ///// Aktualizuj UI status
+        ///// </summary>
+        //private void UpdateExecutionStatusUI(CommandExecutionInfo executionInfo)
+        //{
+        //    // Dispatch na UI thread ak je potrebné
+        //    Application.Current?.Dispatcher.InvokeAsync(() =>
+        //    {
+        //        // Aktualizuj progress bar alebo status label
+        //        if (speedControl != null)
+        //        {
+        //            speedControl.UpdateExecutionStatus(executionInfo);
+        //        }
+        //    });
+        //}
+
+        /// <summary>
+        /// Zaloguj chybu vykonania
+        /// </summary>
+        private void LogExecutionFailure(CommandExecutionInfo executionInfo)
+        {
+            var logEntry = new
+            {
+                Timestamp = DateTime.Now,
+                StepNumber = executionInfo.StepNumber,
+                State = executionInfo.State,
+                Duration = executionInfo.Duration,
+                ErrorMessage = executionInfo.ErrorMessage
+            };
+
+            // Pridaj do execution log
+            executionLog.Add(logEntry);
+
+            // Možnosť exportu do súboru pre debugging
+            if (executionLog.Count % 10 == 0) // každých 10 chýb
+            {
+                ExportExecutionLog();
+            }
+        }
+
+        private List<object> executionLog = new List<object>();
+        private AutomaticUIManager automaticUIManager;
+
+        /// <summary>;
+        /// Export execution log pre analýzu
+        /// </summary>
+        private void ExportExecutionLog()
+        {
+            try
+            {
+                var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CommandRecorder", "ExecutionLogs");
+
+                Directory.CreateDirectory(logPath);
+
+                var fileName = $"execution_log_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+                var filePath = Path.Combine(logPath, fileName);
+
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(executionLog, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(filePath, json);
+
+                System.Diagnostics.Debug.WriteLine($"📄 Execution log exported: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Failed to export execution log: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ulož nastavenia execution managera
+        /// </summary>
+        private void SaveExecutionSettings(ExecutionSettings settings)
+        {
+            try
+            {
+                var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CommandRecorder", "execution_settings.json");
+
+                Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
+
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(settingsPath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Failed to save execution settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Načítaj nastavenia execution managera
+        /// </summary>
+        private ExecutionSettings LoadExecutionSettings()
+        {
+            try
+            {
+                var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CommandRecorder", "execution_settings.json");
+
+                if (File.Exists(settingsPath))
+                {
+                    var json = File.ReadAllText(settingsPath);
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<ExecutionSettings>(json);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Failed to load execution settings: {ex.Message}");
+            }
+
+            // Vráť default nastavenia
+            return new ExecutionSettings();
+        }
+
+        /// <summary>
+        /// Získaj execution speed control pre integráciu do hlavného UI
+        /// </summary>
+        public ExecutionSpeedControl GetExecutionSpeedControl()
+        {
+            return speedControl;
+        }
+
+        /// <summary>
+        /// Testovacie metódy pre debugging
+        /// </summary>
+        public async Task TestExecutionSpeed()
+        {
+            var testCommands = new List<Command>
+        {
+            new Command { StepNumber = 1, Type = CommandType.Click, ElementName = "TestButton1" },
+            new Command { StepNumber = 2, Type = CommandType.SetText, ElementName = "TestTextBox", Value = "Test" },
+            new Command { StepNumber = 3, Type = CommandType.Click, ElementName = "TestButton2" }
+        };
+
+            var sequence = new CommandSequence { Commands = testCommands };
+
+            System.Diagnostics.Debug.WriteLine("🧪 Starting execution speed test");
+            var startTime = DateTime.Now;
+
+            await ExecuteSequenceWithSpeedControl(sequence);
+
+            var totalTime = DateTime.Now.Subtract(startTime);
+            System.Diagnostics.Debug.WriteLine($"🧪 Test completed in {totalTime.TotalSeconds:F2} seconds");
+        }
+
+        #endregion // ExecutionSpeedControl
 
         #region Recording Methods
 
@@ -1840,268 +2110,4 @@ namespace AppCommander.W7_11.WPF.Core
         public WindowContext Context { get; set; }
     }
     #endregion // Event Args Classes - Len tie ktoré nie sú definované inde
-
-#region ExecutionSpeedControl - event handler
-
-    /// <summary>
-    /// Event handler pre zmeny stavu príkazov
-    /// </summary>
-    private void OnCommandStateChanged(object sender, CommandExecutionInfo executionInfo)
-        {
-            System.Diagnostics.Debug.WriteLine($"🔄 Command {executionInfo.StepNumber}: {executionInfo.State}");
-
-            // Aktualizuj UI indikátor
-            UpdateExecutionStatusUI(executionInfo);
-
-            // Ak je command failed, pridaj do logu
-            if (executionInfo.State == CommandExecutionState.Failed)
-            {
-                LogExecutionFailure(executionInfo);
-            }
-        }
-
-        /// <summary>
-        /// Event handler pre automatické prispôsobenie rýchlosti
-        /// </summary>
-        private void OnExecutionSpeedAdjusted(object sender, string reason)
-        {
-            System.Diagnostics.Debug.WriteLine($"⚡ Execution speed adjusted: {reason}");
-
-            // Aktualizuj UI
-            if (speedControl != null)
-            {
-                speedControl.UpdateSpeedIndicator(reason);
-            }
-        }
-
-        /// <summary>
-        /// Event handler pre manuálne zmeny rýchlosti
-        /// </summary>
-        private void OnExecutionSpeedChanged(object sender, ExecutionSpeedChangedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine($"🎛️ Speed manually changed to: {e.Speed}");
-
-            // Ulož nastavenia
-            SaveExecutionSettings(e.Settings);
-        }
-
-        /// <summary>
-        /// Vykonaj sequence s kontrolou rýchlosti
-        /// </summary>
-        public async Task<bool> ExecuteSequenceWithSpeedControl(CommandSequence sequence,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"🚀 Starting sequence execution with {sequence.Commands.Count} commands");
-
-                bool allCommandsSucceeded = true;
-                int successfulCommands = 0;
-
-                foreach (var command in sequence.Commands)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        System.Diagnostics.Debug.WriteLine("⏹️ Execution cancelled by user");
-                        break;
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"▶️ Executing command {command.StepNumber}: {command.Type}");
-
-                    // Použije execution manager pre riadené vykonávanie
-                    bool success = await executionManager.ExecuteCommandWithWait(command, cancellationToken);
-
-                    if (success)
-                    {
-                        successfulCommands++;
-                    }
-                    else
-                    {
-                        allCommandsSucceeded = false;
-                        System.Diagnostics.Debug.WriteLine($"❌ Command {command.StepNumber} failed");
-
-                        // Rozhodnutie či pokračovať alebo prerušiť
-                        if (!ShouldContinueAfterFailure(command, sequence))
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"✅ Sequence execution completed: {successfulCommands}/{sequence.Commands.Count} successful");
-
-                return allCommandsSucceeded;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Sequence execution error: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Rozhodne či pokračovať po neúspešnom príkaze
-        /// </summary>
-        private bool ShouldContinueAfterFailure(Command failedCommand, CommandSequence sequence)
-        {
-            // Pre kritické príkazy (napr. login) nepokračuj
-            if (failedCommand.Type == CommandType.SetText &&
-                (failedCommand.ElementName?.ToLower().Contains("password") == true ||
-                 failedCommand.ElementName?.ToLower().Contains("login") == true))
-            {
-                return false;
-            }
-
-            // Pre ostatné príkazy pokračuj
-            return true;
-        }
-
-        /// <summary>
-        /// Aktualizuj UI status
-        /// </summary>
-        private void UpdateExecutionStatusUI(CommandExecutionInfo executionInfo)
-        {
-            // Dispatch na UI thread ak je potrebné
-            Application.Current?.Dispatcher.InvokeAsync(() =>
-            {
-                // Aktualizuj progress bar alebo status label
-                if (speedControl != null)
-                {
-                    speedControl.UpdateExecutionStatus(executionInfo);
-                }
-            });
-        }
-
-        /// <summary>
-        /// Zaloguj chybu vykonania
-        /// </summary>
-        private void LogExecutionFailure(CommandExecutionInfo executionInfo)
-        {
-            var logEntry = new
-            {
-                Timestamp = DateTime.Now,
-                StepNumber = executionInfo.StepNumber,
-                State = executionInfo.State,
-                Duration = executionInfo.Duration,
-                ErrorMessage = executionInfo.ErrorMessage
-            };
-
-            // Pridaj do execution log
-            executionLog.Add(logEntry);
-
-            // Možnosť exportu do súboru pre debugging
-            if (executionLog.Count % 10 == 0) // každých 10 chýb
-            {
-                ExportExecutionLog();
-            }
-        }
-
-        private List<object> executionLog = new List<object>();
-
-        /// <summary>
-        /// Export execution log pre analýzu
-        /// </summary>
-        private void ExportExecutionLog()
-        {
-            try
-            {
-                var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "CommandRecorder", "ExecutionLogs");
-
-                Directory.CreateDirectory(logPath);
-
-                var fileName = $"execution_log_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-                var filePath = Path.Combine(logPath, fileName);
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(executionLog, Newtonsoft.Json.Formatting.Indented);
-                File.WriteAllText(filePath, json);
-
-                System.Diagnostics.Debug.WriteLine($"📄 Execution log exported: {filePath}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Failed to export execution log: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Ulož nastavenia execution managera
-        /// </summary>
-        private void SaveExecutionSettings(ExecutionSettings settings)
-        {
-            try
-            {
-                var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "CommandRecorder", "execution_settings.json");
-
-                Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
-                File.WriteAllText(settingsPath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Failed to save execution settings: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Načítaj nastavenia execution managera
-        /// </summary>
-        private ExecutionSettings LoadExecutionSettings()
-        {
-            try
-            {
-                var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "CommandRecorder", "execution_settings.json");
-
-                if (File.Exists(settingsPath))
-                {
-                    var json = File.ReadAllText(settingsPath);
-                    return Newtonsoft.Json.JsonConvert.DeserializeObject<ExecutionSettings>(json);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Failed to load execution settings: {ex.Message}");
-            }
-
-            // Vráť default nastavenia
-            return new ExecutionSettings();
-        }
-
-        /// <summary>
-        /// Získaj execution speed control pre integráciu do hlavného UI
-        /// </summary>
-        public ExecutionSpeedControl GetExecutionSpeedControl()
-        {
-            return speedControl;
-        }
-
-        /// <summary>
-        /// Testovacie metódy pre debugging
-        /// </summary>
-        public async Task TestExecutionSpeed()
-        {
-            var testCommands = new List<Command>
-        {
-            new Command { StepNumber = 1, Type = CommandType.Click, ElementName = "TestButton1" },
-            new Command { StepNumber = 2, Type = CommandType.SetText, ElementName = "TestTextBox", Value = "Test" },
-            new Command { StepNumber = 3, Type = CommandType.Click, ElementName = "TestButton2" }
-        };
-
-            var sequence = new CommandSequence { Commands = testCommands };
-
-            System.Diagnostics.Debug.WriteLine("🧪 Starting execution speed test");
-            var startTime = DateTime.Now;
-
-            await ExecuteSequenceWithSpeedControl(sequence);
-
-            var totalTime = DateTime.Now.Subtract(startTime);
-            System.Diagnostics.Debug.WriteLine($"🧪 Test completed in {totalTime.TotalSeconds:F2} seconds");
-        }
-
-        #endregion // ExecutionSpeedControl
-
-    }
 }

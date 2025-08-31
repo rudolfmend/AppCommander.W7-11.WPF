@@ -70,6 +70,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Menu Bar -->
@@ -134,9 +135,6 @@
                         <Button Name="btnStartRecording" Content="🔴 Start Recording" 
                                 Style="{StaticResource PrimaryButtonStyle}" 
                                 Click="StartRecording_Click" Margin="0,0,10,0"/>
-                        <!--<Button Name="btnStopRecording" Content="⏹ Stop" 
-                                Style="{StaticResource SecondaryButtonStyle}" 
-                                Click="StopRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>-->
                         <Button Name="btnPauseRecording" Content="⏸ Pause" 
                                 Style="{StaticResource SecondaryButtonStyle}" 
                                 Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
@@ -176,7 +174,6 @@
         <StackPanel Grid.Row="2" Margin="5">
             <GroupBox Header="Enhanced Recording &amp; Auto-Detection" Style="{StaticResource GroupBoxStyle}">
                 <StackPanel>
-
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="Sequence Name:" VerticalAlignment="Center" 
                           FontWeight="Bold" Width="100" FontSize="11"/>
@@ -184,7 +181,7 @@
                          Text="My_Recording" VerticalAlignment="Center" 
                          ToolTip="Enter name for the recording sequence"/>
                     </StackPanel>
-                    
+
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -337,13 +334,35 @@
             </StackPanel>
         </Grid>
 
+        <!-- Execution Speed Control Panel -->
+        <GroupBox Grid.Row="4" Header="Execution Speed Control" Style="{StaticResource GroupBoxStyle}" Margin="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Speed control will be available when implemented" 
+                          Grid.Column="0" VerticalAlignment="Center" FontStyle="Italic" Foreground="Gray"/>
+
+                <TextBlock Name="txtExecutionSpeedInfo" Text="Normal Speed" 
+                          Grid.Column="1" VerticalAlignment="Center" Margin="10,0"/>
+
+                <Button Name="btnSpeedSettings" Content="⚙ Speed Settings" 
+                        Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="5,0,0,0"/>
+            </Grid>
+        </GroupBox>
+
         <!-- Status Bar -->
-        <StatusBar Grid.Row="4" Background="#FFF3F2F1" Height="30">
+        <StatusBar Grid.Row="5" Background="#FFF3F2F1" Height="30">
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -353,7 +372,7 @@
             </StatusBar.ItemsPanel>
 
             <StatusBarItem Grid.Column="0">
-                <TextBlock Name="txtStatus" Text="Ready" FontWeight="Bold" 
+                <TextBlock Name="txtStatusBar" Text="Ready" FontWeight="Bold" 
                            Foreground="#FF0078D4" FontSize="12"/>
             </StatusBarItem>
 
@@ -370,79 +389,9 @@
             </StatusBarItem>
 
             <StatusBarItem Grid.Column="4">
-                <TextBlock Name="lblRecordingStatus" Text="Not Recording" 
-               FontSize="10" Foreground="Gray"/>
+                <TextBlock Name="lblStatusBarRecording" Text="Not Recording" 
+                           FontSize="10" Foreground="Gray"/>
             </StatusBarItem>
-
-            <!-- Namiesto vkladania ExecutionSpeedControl do StatusBar, pridajte ho tu -->
-            <Grid Grid.Row="3" Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="2*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="5"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Commands Panel -->
-                <GroupBox Grid.Row="0" Grid.Column="0" Header="Recorded Commands" Style="{StaticResource GroupBoxStyle}">
-                    <!-- Existujúci obsah... -->
-                </GroupBox>
-
-                <!-- Splitter -->
-                <GridSplitter Grid.Row="0" Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#FFCCCCCC"/>
-
-                <!-- Side Panel -->
-                <StackPanel Grid.Row="0" Grid.Column="2">
-                    <!-- Existujúci obsah... -->
-                </StackPanel>
-
-                <!-- Speed Control Panel - pridané tu namiesto v StatusBar -->
-                <GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Header="Execution Speed Control" Margin="5">
-                    <local:ExecutionSpeedControl x:Name="executionSpeedControl" Margin="5"/>
-                </GroupBox>
-            </Grid>
-
-            <!-- Status Bar - bez ExecutionSpeedControl -->
-            <StatusBar Grid.Row="4" Background="#FFF3F2F1" Height="30">
-                <StatusBar.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                        </Grid>
-                    </ItemsPanelTemplate>
-                </StatusBar.ItemsPanel>
-
-                <StatusBarItem Grid.Column="0">
-                    <TextBlock Name="txtStatus" Text="Ready" FontWeight="Bold" 
-                   Foreground="#FF0078D4" FontSize="12"/>
-                </StatusBarItem>
-
-                <Separator Grid.Column="1"/>
-
-                <StatusBarItem Grid.Column="2">
-                    <TextBlock Name="txtTarget" Text="No target selected" 
-                   FontSize="10" Foreground="Gray"/>
-                </StatusBarItem>
-
-                <StatusBarItem Grid.Column="3">
-                    <TextBlock Name="txtSequenceInfo" Text="Ready to record" 
-                   FontSize="10" Foreground="Gray"/>
-                </StatusBarItem>
-
-                <StatusBarItem Grid.Column="4">
-                    <TextBlock Name="lblRecordingStatus" Text="Not Recording" 
-                   FontSize="10" Foreground="Gray"/>
-                </StatusBarItem>
-            </StatusBar>
-
         </StatusBar>
     </Grid>
 </Window>
