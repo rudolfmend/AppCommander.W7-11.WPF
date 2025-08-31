@@ -122,6 +122,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="ExecutionSpeedControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -138,6 +142,7 @@
     <Compile Include="Core\AdaptiveElementFinder.cs" />
     <Compile Include="Core\AutomaticUIManager.cs" />
     <Compile Include="Core\Command.cs" />
+    <Compile Include="Core\CommandExecutionManager.cs" />
     <Compile Include="Core\CommandPlayer.cs" />
     <Compile Include="Core\CommandRecorder.cs" />
     <Compile Include="Core\DebugTestHelper.cs" />
@@ -149,6 +154,9 @@
     <Compile Include="Core\WindowTracker.cs" />
     <Compile Include="EditCommandWindow.xaml.cs">
       <DependentUpon>EditCommandWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ExecutionSpeedControl.xaml.cs">
+      <DependentUpon>ExecutionSpeedControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
