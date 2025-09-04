@@ -7,9 +7,10 @@
 			 Manufacturer="Rudolf Mendzezof"
 			 UpgradeCode="12345678-1234-1234-1234-123456789012">
 
-		<Package InstallerVersion="200"
+		<Package InstallerVersion="500"
 				 Compressed="yes"
 				 InstallScope="perMachine"
+				 Platform="x64"
 				 Description="AppCommander - Automation tool for Windows applications" />
 
 		<Media Id="1" Cabinet="AppCommander.cab" EmbedCab="yes" />
@@ -24,7 +25,7 @@
 	<!-- Adresáre -->
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
-			<Directory Id="ProgramFilesFolder">
+			<Directory Id="ProgramFiles64Folder">
 				<Directory Id="INSTALLFOLDER" Name="AppCommander" />
 			</Directory>
 		</Directory>
@@ -33,26 +34,28 @@
 	<!-- Komponenty -->
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- Hlavný executable - použij plnú cestu -->
-			<!--<Component Id="MainExecutable" Guid="*">
+
+			<!-- Hlavný exe -->
+			<Component Id="MainExecutable" Guid="*" Win64="yes">
 				<File Id="AppCommanderExe"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe"
-					  KeyPath="yes" />-->
-			<!--</Component>-->
+					  KeyPath="yes" />
+			</Component>
 
-			<!-- Newtonsoft.Json DLL - použij plnú cestu -->
-			<Component Id="NewtonsoftJson" Guid="*">
+			<!-- Newtonsoft.Json DLL -->
+			<Component Id="NewtonsoftJson" Guid="*" Win64="yes">
 				<File Id="NewtonsoftJsonDll"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Newtonsoft.Json.dll"
 					  KeyPath="yes" />
 			</Component>
 
 			<!-- App.config ak existuje -->
-			<!--<Component Id="AppConfig" Guid="*">
+			<Component Id="AppConfig" Guid="*" Win64="yes">
 				<File Id="AppConfigFile"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe.config"
-					  KeyPath="yes" />-->
-			<!--</Component>-->
+					  KeyPath="yes" />
+			</Component>
+
 		</ComponentGroup>
 	</Fragment>
 </Wix>
