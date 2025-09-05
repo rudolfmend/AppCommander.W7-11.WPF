@@ -231,8 +231,9 @@ namespace AppCommander.W7_11.WPF
                     {
                         var message = string.Format("Playback completed successfully!\n\nCommands executed: {0}/{1}",
                             e.CommandsExecuted, e.TotalCommands);
-                        MessageBox.Show(message, "Playback Completed",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        //MessageBox.Show(message, "Playback Completed",
+                        //    MessageBoxButton.OK, MessageBoxImage.Information);
+                        Debug.WriteLine($"{message}");
                     }
                 });
             }
