@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AppCommander - Automation Tool" 
         Height="800" Width="1200" 
-        MinHeight="600" MinWidth="900"
+        MinHeight="500" MinWidth="960"
         Icon="appcommander_icon.ico"
         WindowStartupLocation="CenterScreen" FontSize="18" FontFamily="MS Reference Sans Serif">
 
@@ -122,7 +122,7 @@
             <GroupBox Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition MinWidth="398"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
@@ -184,23 +184,23 @@
 
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition MinWidth="336"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Enhanced Controls -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button Name="btnStartEnhancedRecording" Content="※ Enhanced Recording" 
+                            <Button Name="btnStartEnhancedRecording" Content="Enhanced Record." 
                                     Click="StartEnhancedRecordingWithAutoDetection_Click" 
                                     Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,5,0"/>
-                            <Button Name="btnAutoRefreshElements" Content="↻ Refresh UI" 
+                            <Button x:Name="btnAutoRefreshElements" Content="↻ Refresh UI" 
                                     Click="AutoRefreshAllUIElements_Click" 
-                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,5,0"/>
+                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,0"/>
                         </StackPanel>
 
                         <!-- Auto Mode Controls -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Name="btnToggleAutoMode" Content="🎯 Auto Mode" 
                                     Click="ToggleAutomaticMode_Click" 
                                     Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,5,0"/>
