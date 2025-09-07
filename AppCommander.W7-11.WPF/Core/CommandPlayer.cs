@@ -520,22 +520,34 @@ namespace AppCommander.W7_11.WPF.Core
                 if (command.KeyCode > 0)
                 {
                     var key = (Keys)command.KeyCode;
-                    System.Diagnostics.Debug.WriteLine("Pressing key: " + key);
+                    System.Diagnostics.Debug.WriteLine($"Pressing key: {key} (Code: {command.KeyCode})");
                     keyToSend = GetSendKeysString(key);
                 }
                 else if (!string.IsNullOrEmpty(command.Value))
                 {
-                    Keys key;
-                    if (Enum.TryParse<Keys>(command.Value, out key))
+                    // **OPRAVA: Spracuj SHIFT kombinacie z Value stringu**
+                    keyToSend = ParseKeyValueWithShift(command.Value);
+
+                    // Ak sa nepodarilo spracovať ako SHIFT kombinaciu, skús štandardne
+                    if (string.IsNullOrEmpty(keyToSend))
                     {
-                        System.Diagnostics.Debug.WriteLine("Pressing key: " + key);
-                        keyToSend = GetSendKeysString(key);
+                        Keys key;
+                        if (Enum.TryParse<Keys>(command.Value, out key))
+                        {
+                            System.Diagnostics.Debug.WriteLine("Pressing key: " + key);
+                            keyToSend = GetSendKeysString(key);
+                        }
                     }
                 }
 
                 if (!string.IsNullOrEmpty(keyToSend))
                 {
+                    System.Diagnostics.Debug.WriteLine($"Sending keys: {keyToSend}");
                     SendKeys.SendWait(keyToSend);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Could not process key command: {command.Value} (KeyCode: {command.KeyCode})");
                 }
 
                 await Task.Delay(50, cancellationToken);
@@ -543,6 +555,138 @@ namespace AppCommander.W7_11.WPF.Core
             catch (Exception ex)
             {
                 throw new Exception("Failed to execute key press command: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Spracuje SHIFT kombinacie z Value stringu
+        /// </summary>
+        private string ParseKeyValueWithShift(string value)
+        {
+            if (string.IsNullOrEmpty(value) || !value.Contains("Shift"))
+                return null;
+
+            try
+            {
+                // Formát: "B, Shift" alebo "D7, Shift"
+                var parts = value.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2 || parts[1] != "Shift")
+                    return null;
+
+                var baseKeyStr = parts[0];
+
+                // Pre písmená: SHIFT+písmeno = veľké písmeno
+                if (baseKeyStr.Length == 1 && char.IsLetter(baseKeyStr[0]))
+                {
+                    return "+" + baseKeyStr.ToUpper(); // SendKeys formát: +A pre SHIFT+A
+                }
+
+                // Pre číslice: SHIFT+číslica = symbol
+                if (baseKeyStr.StartsWith("D") && baseKeyStr.Length == 2)
+                {
+                    var digit = baseKeyStr[1];
+                    return "+" + digit; // SendKeys formát: +1 pre SHIFT+1 (!)
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Unknown SHIFT combination: {value}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing SHIFT value '{value}': {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Rozšírená metóda pre mapovanie klávesov s SHIFT podporou
+        /// </summary>
+        private string GetSendKeysString(Keys key)
+        {
+            // **OPRAVA: Spracuj SHIFT flag v Keys hodnote**
+            if ((key & Keys.Shift) == Keys.Shift)
+            {
+                var baseKey = key & ~Keys.Shift; // Odstráň SHIFT flag
+                return ProcessShiftKey(baseKey);
+            }
+
+            // Štandardné klávesy bez SHIFT
+            switch (key)
+            {
+                case Keys.Enter: return "{ENTER}";
+                case Keys.Tab: return "{TAB}";
+                case Keys.Escape: return "{ESC}";
+                case Keys.Space: return " ";
+                case Keys.Back: return "{BACKSPACE}";
+                case Keys.Delete: return "{DELETE}";
+                case Keys.Home: return "{HOME}";
+                case Keys.End: return "{END}";
+                case Keys.PageUp: return "{PGUP}";
+                case Keys.PageDown: return "{PGDN}";
+                case Keys.Up: return "{UP}";
+                case Keys.Down: return "{DOWN}";
+                case Keys.Left: return "{LEFT}";
+                case Keys.Right: return "{RIGHT}";
+                case Keys.F1: return "{F1}";
+                case Keys.F2: return "{F2}";
+                case Keys.F3: return "{F3}";
+                case Keys.F4: return "{F4}";
+                case Keys.F5: return "{F5}";
+                case Keys.F6: return "{F6}";
+                case Keys.F7: return "{F7}";
+                case Keys.F8: return "{F8}";
+                case Keys.F9: return "{F9}";
+                case Keys.F10: return "{F10}";
+                case Keys.F11: return "{F11}";
+                case Keys.F12: return "{F12}";
+                default:
+                    // Písmená (malé)
+                    if (key >= Keys.A && key <= Keys.Z)
+                        return key.ToString().ToLower();
+                    // Číslice
+                    if (key >= Keys.D0 && key <= Keys.D9)
+                        return ((int)(key - Keys.D0)).ToString();
+                    return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Spracuje klávesy so SHIFT flagom
+        /// </summary>
+        private string ProcessShiftKey(Keys baseKey)
+        {
+            System.Diagnostics.Debug.WriteLine($"Processing SHIFT + {baseKey}");
+
+            // Písmená so SHIFT = veľké písmená
+            if (baseKey >= Keys.A && baseKey <= Keys.Z)
+            {
+                return "+" + baseKey.ToString(); // SendKeys: +A pre SHIFT+A
+            }
+
+            // Číslice so SHIFT = symboly
+            if (baseKey >= Keys.D0 && baseKey <= Keys.D9)
+            {
+                var digit = (int)(baseKey - Keys.D0);
+                return "+" + digit.ToString(); // SendKeys: +1 pre SHIFT+1
+            }
+
+            // Špeciálne symboly so SHIFT
+            switch (baseKey)
+            {
+                case Keys.OemMinus: return "_";        // SHIFT+- = _
+                case Keys.Oemplus: return "+";         // SHIFT+= = +
+                case Keys.OemOpenBrackets: return "{"; // SHIFT+[ = {
+                case Keys.Oem6: return "}";            // SHIFT+] = }
+                case Keys.Oem5: return "|";            // SHIFT+\ = |
+                case Keys.Oem1: return ":";            // SHIFT+; = :
+                case Keys.Oem7: return "\"";           // SHIFT+' = "
+                case Keys.Oemcomma: return "<";        // SHIFT+, = <
+                case Keys.OemPeriod: return ">";       // SHIFT+. = >
+                case Keys.OemQuestion: return "?";     // SHIFT+/ = ?
+                case Keys.Oemtilde: return "~";        // SHIFT+` = ~
+                default:
+                    System.Diagnostics.Debug.WriteLine($"Unhandled SHIFT+{baseKey}");
+                    return string.Empty;
             }
         }
 
@@ -686,45 +830,6 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 System.Diagnostics.Debug.WriteLine("Error finding target window: " + ex.Message);
                 return IntPtr.Zero;
-            }
-        }
-
-        private string GetSendKeysString(Keys key)
-        {
-            switch (key)
-            {
-                case Keys.Enter: return "{ENTER}";
-                case Keys.Tab: return "{TAB}";
-                case Keys.Escape: return "{ESC}";
-                case Keys.Space: return " ";
-                case Keys.Back: return "{BACKSPACE}";
-                case Keys.Delete: return "{DELETE}";
-                case Keys.Home: return "{HOME}";
-                case Keys.End: return "{END}";
-                case Keys.PageUp: return "{PGUP}";
-                case Keys.PageDown: return "{PGDN}";
-                case Keys.Up: return "{UP}";
-                case Keys.Down: return "{DOWN}";
-                case Keys.Left: return "{LEFT}";
-                case Keys.Right: return "{RIGHT}";
-                case Keys.F1: return "{F1}";
-                case Keys.F2: return "{F2}";
-                case Keys.F3: return "{F3}";
-                case Keys.F4: return "{F4}";
-                case Keys.F5: return "{F5}";
-                case Keys.F6: return "{F6}";
-                case Keys.F7: return "{F7}";
-                case Keys.F8: return "{F8}";
-                case Keys.F9: return "{F9}";
-                case Keys.F10: return "{F10}";
-                case Keys.F11: return "{F11}";
-                case Keys.F12: return "{F12}";
-                default:
-                    if (key >= Keys.A && key <= Keys.Z)
-                        return key.ToString().ToLower();
-                    if (key >= Keys.D0 && key <= Keys.D9)
-                        return ((int)(key - Keys.D0)).ToString();
-                    return string.Empty;
             }
         }
 

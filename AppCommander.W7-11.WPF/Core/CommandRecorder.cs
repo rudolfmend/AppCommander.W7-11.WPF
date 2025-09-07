@@ -51,6 +51,11 @@ namespace AppCommander.W7_11.WPF.Core
         public bool EnableWinUI3Analysis { get; set; } = true;
         public bool EnableDetailedLogging { get; set; } = true;
 
+        private bool isShiftPressed = false;
+        private DateTime lastShiftPressTime = DateTime.MinValue;
+        private Command pendingShiftCommand = null;
+        private const int SHIFT_COMBINATION_TIMEOUT = 100; // ms
+
         #endregion
 
         #region Events
@@ -822,34 +827,8 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        ///// <summary>
-        ///// Handler pre stlačenie klávesy
-        ///// </summary>
-        //private void OnKeyPressed(object sender, KeyPressedEventArgs e)
-        //{
-        //    if (!IsRecording) return;
-
-        //    try
-        //    {
-        //        var command = new Command(commandCounter++, "Key_Press", CommandType.KeyPress, 0, 0)
-        //        {
-        //            Value = e.Key.ToString(),
-        //            Key = e.Key,
-        //            TargetWindow = GetWindowTitle(targetWindow),
-        //            TargetProcess = targetProcessName,
-        //            Timestamp = DateTime.Now
-        //        };
-
-        //        AddCommand(command);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"❌ Error recording key press: {ex.Message}");
-        //    }
-        //}
-
         /// <summary>
-        /// Handler pre stlačenie klávesy
+        /// Handler pre stlačenie klávesy s rozšíreným mapovaním
         /// </summary>
         private void OnKeyPressed(object sender, KeyPressedEventArgs e)
         {
@@ -857,13 +836,16 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                // **OPRAVA: Mapuj NumPad klávesy na hlavné číselné klávesy**
-                Keys mappedKey = MapNumPadToDigits(e.Key);
+                // **ROZŠÍRENÉ MAPOVANIE: Spracuj SHIFT kombinacie**
+                var processedKey = ProcessKeyWithShiftSupport(e.Key);
+
+                // Ak sa klávesa spracovala ako súčasť SHIFT kombinacie, preskočíme ju
+                if (processedKey == null) return;
 
                 var command = new Command(commandCounter++, "Key_Press", CommandType.KeyPress, 0, 0)
                 {
-                    Value = mappedKey.ToString(),
-                    Key = mappedKey,
+                    Value = processedKey.ToString(),
+                    Key = processedKey.Value,
                     TargetWindow = GetWindowTitle(targetWindow),
                     TargetProcess = targetProcessName,
                     Timestamp = DateTime.Now
@@ -878,7 +860,138 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Mapuje NumPad klávesy na hlavné číselné klávesy
+        /// Spracuje klávesy s podporou SHIFT kombinácií
+        /// </summary>
+        private Keys? ProcessKeyWithShiftSupport(Keys originalKey)
+        {
+            // Najprv mapuj NumPad klávesy
+            var mappedKey = MapNumPadToDigits(originalKey);
+
+            // Spracuj SHIFT klávesy
+            if (mappedKey == Keys.LShiftKey || mappedKey == Keys.RShiftKey)
+            {
+                HandleShiftKeyPress();
+                return null; // Nenahrávamc samostatnú SHIFT udalosť
+            }
+
+            // Ak je SHIFT stlačený a toto je písmeno/číslica, kombinuj ich
+            if (isShiftPressed && IsShiftCombinable(mappedKey))
+            {
+                var combinedKey = CombineWithShift(mappedKey);
+                ResetShiftState();
+                return combinedKey;
+            }
+
+            // Ak prešiel SHIFT timeout, resetuj stav
+            if (isShiftPressed && (DateTime.Now - lastShiftPressTime).TotalMilliseconds > SHIFT_COMBINATION_TIMEOUT)
+            {
+                ResetShiftState();
+            }
+
+            return mappedKey;
+        }
+
+        /// <summary>
+        /// Spracuje stlačenie SHIFT klávesy
+        /// </summary>
+        private void HandleShiftKeyPress()
+        {
+            isShiftPressed = true;
+            lastShiftPressTime = DateTime.Now;
+
+            System.Diagnostics.Debug.WriteLine("🔄 SHIFT pressed - waiting for combination");
+        }
+
+        /// <summary>
+        /// Kontroluje, či sa klávesa dá kombinovať so SHIFT
+        /// </summary>
+        private bool IsShiftCombinable(Keys key)
+        {
+            return (key >= Keys.A && key <= Keys.Z) ||        // Písmená
+                   (key >= Keys.D0 && key <= Keys.D9) ||      // Číslice
+                   IsShiftSymbolKey(key);                      // Symboly
+        }
+
+        /// <summary>
+        /// Kontroluje, či je klávesa symbol ktorý sa mení so SHIFT
+        /// </summary>
+        private bool IsShiftSymbolKey(Keys key)
+        {
+            var shiftSymbols = new[] {
+        Keys.OemMinus,      // - / _
+        Keys.Oemplus,       // = / +
+        Keys.OemOpenBrackets,   // [ / {
+        Keys.Oem6,          // ] / }
+        Keys.Oem5,          // \ / |
+        Keys.Oem1,          // ; / :
+        Keys.Oem7,          // ' / "
+        Keys.Oemcomma,      // , / <
+        Keys.OemPeriod,     // . / >
+        Keys.OemQuestion,   // / / ?
+        Keys.Oemtilde       // ` / ~
+    };
+
+            return shiftSymbols.Contains(key);
+        }
+
+        /// <summary>
+        /// Kombinuje klávesy so SHIFT
+        /// </summary>
+        private Keys CombineWithShift(Keys key)
+        {
+            System.Diagnostics.Debug.WriteLine($"🔄 Combining SHIFT + {key}");
+
+            // Písmená: malé → veľké
+            if (key >= Keys.A && key <= Keys.Z)
+            {
+                // V .NET Keys enum sú písmená už veľké, ale označíme že je to SHIFT kombinácia
+                return key | Keys.Shift;
+            }
+
+            // Číslice so SHIFT → symboly
+            switch (key)
+            {
+                case Keys.D1: return Keys.D1 | Keys.Shift;  // 1 → !
+                case Keys.D2: return Keys.D2 | Keys.Shift;  // 2 → @
+                case Keys.D3: return Keys.D3 | Keys.Shift;  // 3 → #
+                case Keys.D4: return Keys.D4 | Keys.Shift;  // 4 → $
+                case Keys.D5: return Keys.D5 | Keys.Shift;  // 5 → %
+                case Keys.D6: return Keys.D6 | Keys.Shift;  // 6 → ^
+                case Keys.D7: return Keys.D7 | Keys.Shift;  // 7 → &
+                case Keys.D8: return Keys.D8 | Keys.Shift;  // 8 → *
+                case Keys.D9: return Keys.D9 | Keys.Shift;  // 9 → (
+                case Keys.D0: return Keys.D0 | Keys.Shift;  // 0 → )
+
+                // Symboly so SHIFT
+                case Keys.OemMinus: return Keys.OemMinus | Keys.Shift;      // - → _
+                case Keys.Oemplus: return Keys.Oemplus | Keys.Shift;       // = → +
+                case Keys.OemOpenBrackets: return Keys.OemOpenBrackets | Keys.Shift; // [ → {
+                case Keys.Oem6: return Keys.Oem6 | Keys.Shift;             // ] → }
+                case Keys.Oem5: return Keys.Oem5 | Keys.Shift;             // \ → |
+                case Keys.Oem1: return Keys.Oem1 | Keys.Shift;             // ; → :
+                case Keys.Oem7: return Keys.Oem7 | Keys.Shift;             // ' → "
+                case Keys.Oemcomma: return Keys.Oemcomma | Keys.Shift;     // , → <
+                case Keys.OemPeriod: return Keys.OemPeriod | Keys.Shift;   // . → >
+                case Keys.OemQuestion: return Keys.OemQuestion | Keys.Shift; // / → ?
+                case Keys.Oemtilde: return Keys.Oemtilde | Keys.Shift;     // ` → ~
+
+                default:
+                    return key;
+            }
+        }
+
+        /// <summary>
+        /// Resetuje stav SHIFT
+        /// </summary>
+        private void ResetShiftState()
+        {
+            isShiftPressed = false;
+            lastShiftPressTime = DateTime.MinValue;
+            pendingShiftCommand = null;
+        }
+
+        /// <summary>
+        /// Mapuje NumPad klávesy na hlavné číselné klávesy (pôvodná funkcia)
         /// </summary>
         private Keys MapNumPadToDigits(Keys originalKey)
         {
@@ -899,6 +1012,42 @@ namespace AppCommander.W7_11.WPF.Core
                 default:
                     return originalKey;
             }
+        }
+
+        /// <summary>
+        /// Konvertuje Keys hodnotu s SHIFT na string reprezentáciu
+        /// </summary>
+        private string GetShiftKeyDisplayString(Keys key)
+        {
+            // Ak obsahuje SHIFT flag
+            if ((key & Keys.Shift) == Keys.Shift)
+            {
+                var baseKey = key & ~Keys.Shift; // Odstráň SHIFT flag
+
+                // Písmená zostanú veľké
+                if (baseKey >= Keys.A && baseKey <= Keys.Z)
+                {
+                    return baseKey.ToString(); // Už veľké písmeno
+                }
+
+                // Číslice so SHIFT → symboly
+                switch (baseKey)
+                {
+                    case Keys.D1: return "!";
+                    case Keys.D2: return "@";
+                    case Keys.D3: return "#";
+                    case Keys.D4: return "$";
+                    case Keys.D5: return "%";
+                    case Keys.D6: return "^";
+                    case Keys.D7: return "&";
+                    case Keys.D8: return "*";
+                    case Keys.D9: return "(";
+                    case Keys.D0: return ")";
+                    default: return key.ToString();
+                }
+            }
+
+            return key.ToString();
         }
 
         /// <summary>
