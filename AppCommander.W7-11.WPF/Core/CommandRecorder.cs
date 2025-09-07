@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -821,6 +822,32 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        ///// <summary>
+        ///// Handler pre stlačenie klávesy
+        ///// </summary>
+        //private void OnKeyPressed(object sender, KeyPressedEventArgs e)
+        //{
+        //    if (!IsRecording) return;
+
+        //    try
+        //    {
+        //        var command = new Command(commandCounter++, "Key_Press", CommandType.KeyPress, 0, 0)
+        //        {
+        //            Value = e.Key.ToString(),
+        //            Key = e.Key,
+        //            TargetWindow = GetWindowTitle(targetWindow),
+        //            TargetProcess = targetProcessName,
+        //            Timestamp = DateTime.Now
+        //        };
+
+        //        AddCommand(command);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"❌ Error recording key press: {ex.Message}");
+        //    }
+        //}
+
         /// <summary>
         /// Handler pre stlačenie klávesy
         /// </summary>
@@ -830,10 +857,13 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
+                // **OPRAVA: Mapuj NumPad klávesy na hlavné číselné klávesy**
+                Keys mappedKey = MapNumPadToDigits(e.Key);
+
                 var command = new Command(commandCounter++, "Key_Press", CommandType.KeyPress, 0, 0)
                 {
-                    Value = e.Key.ToString(),
-                    Key = e.Key,
+                    Value = mappedKey.ToString(),
+                    Key = mappedKey,
                     TargetWindow = GetWindowTitle(targetWindow),
                     TargetProcess = targetProcessName,
                     Timestamp = DateTime.Now
@@ -844,6 +874,30 @@ namespace AppCommander.W7_11.WPF.Core
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error recording key press: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Mapuje NumPad klávesy na hlavné číselné klávesy
+        /// </summary>
+        private Keys MapNumPadToDigits(Keys originalKey)
+        {
+            switch (originalKey)
+            {
+                case Keys.NumPad0: return Keys.D0;
+                case Keys.NumPad1: return Keys.D1;
+                case Keys.NumPad2: return Keys.D2;
+                case Keys.NumPad3: return Keys.D3;
+                case Keys.NumPad4: return Keys.D4;
+                case Keys.NumPad5: return Keys.D5;
+                case Keys.NumPad6: return Keys.D6;
+                case Keys.NumPad7: return Keys.D7;
+                case Keys.NumPad8: return Keys.D8;
+                case Keys.NumPad9: return Keys.D9;
+
+                // Pre ostatné klávesy vráť pôvodný kód
+                default:
+                    return originalKey;
             }
         }
 

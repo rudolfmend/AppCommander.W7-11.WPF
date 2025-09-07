@@ -32,6 +32,17 @@ namespace AppCommander.W7_11.WPF.Core
         public event EventHandler<KeyPressedEventArgs> KeyPressed;
         public event EventHandler<MouseClickedEventArgs> MouseClicked;
 
+        // Štruktúra pre keyboard hook
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public int vkCode;
+            public int scanCode;
+            public int flags;
+            public int time;
+            public IntPtr dwExtraInfo;
+        }
+
         public GlobalHook()
         {
             keyboardProc = HookKeyboardCallback;
@@ -78,25 +89,72 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (wParam == (IntPtr)WM_KEYDOWN)
                 {
-                    int vkCode = Marshal.ReadInt32(lParam);
+                    // Načítaj kompletný hook struct
+                    KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+
+                    // Debug výpis pre analýzu
+                    System.Diagnostics.Debug.WriteLine($"VK Code: 0x{hookStruct.vkCode:X2}, Scan Code: 0x{hookStruct.scanCode:X2}, Flags: 0x{hookStruct.flags:X2}");
 
                     // Get foreground window info
                     IntPtr foregroundWindow = GetForegroundWindow();
                     string windowTitle = GetWindowTitle(foregroundWindow);
                     string processName = GetProcessName(foregroundWindow);
 
-                    KeyPressed?.Invoke(this, new KeyPressedEventArgs
+                    // KĽÚČOVÁ OPRAVA: Mapuj klávesy na základe scan kódu a VK kódu
+                    Keys detectedKey = MapKeyCorrectly(hookStruct.vkCode, hookStruct.scanCode);
+
+                    var args = new KeyPressedEventArgs
                     {
-                        Key = (Keys)vkCode,
+                        Key = detectedKey,
                         WindowHandle = foregroundWindow,
                         WindowTitle = windowTitle,
                         ProcessName = processName,
                         Timestamp = DateTime.Now
-                    });
+                    };
+
+                    KeyPressed?.Invoke(this, args);
                 }
             }
 
             return CallNextHookEx(keyboardHookID, nCode, wParam, lParam);
+        }
+
+        // Správne mapovanie klávesov na základe scan kódu
+        private Keys MapKeyCorrectly(int vkCode, int scanCode)
+        {
+            // Horné číselné klávesy majú scan kódy 0x02-0x0B
+            // NumPad číselné klávesy majú scan kódy 0x52-0x53, 0x47-0x49, 0x4B, 0x4D, 0x4F-0x51
+
+            switch (scanCode)
+            {
+                // Horné číselné klávesy (rad čísiel)
+                case 0x0B: return Keys.D0;  // Scan code pre '0'
+                case 0x02: return Keys.D1;  // Scan code pre '1'
+                case 0x03: return Keys.D2;  // Scan code pre '2'
+                case 0x04: return Keys.D3;  // Scan code pre '3'
+                case 0x05: return Keys.D4;  // Scan code pre '4'
+                case 0x06: return Keys.D5;  // Scan code pre '5'
+                case 0x07: return Keys.D6;  // Scan code pre '6'
+                case 0x08: return Keys.D7;  // Scan code pre '7'
+                case 0x09: return Keys.D8;  // Scan code pre '8'
+                case 0x0A: return Keys.D9;  // Scan code pre '9'
+
+                // NumPad číselné klávesy
+                case 0x52: return Keys.NumPad0;  // NumPad 0
+                case 0x4F: return Keys.NumPad1;  // NumPad 1
+                case 0x50: return Keys.NumPad2;  // NumPad 2
+                case 0x51: return Keys.NumPad3;  // NumPad 3
+                case 0x4B: return Keys.NumPad4;  // NumPad 4
+                case 0x4C: return Keys.NumPad5;  // NumPad 5
+                case 0x4D: return Keys.NumPad6;  // NumPad 6
+                case 0x47: return Keys.NumPad7;  // NumPad 7
+                case 0x48: return Keys.NumPad8;  // NumPad 8
+                case 0x49: return Keys.NumPad9;  // NumPad 9
+
+                // Pre ostatné klávesy použij VK kód
+                default:
+                    return (Keys)vkCode;
+            }
         }
 
         private IntPtr HookMouseCallback(int nCode, IntPtr wParam, IntPtr lParam)
