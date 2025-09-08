@@ -47,8 +47,4 @@
 			<disableWindowFiltering xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">true</disableWindowFiltering>
 		</windowsSettings>
 	</application>
-	<!-- 
-	Assembly dependencies REMOVED - čo spôsobovalo ClickOnce chyby
-	Common Controls budú načítané automaticky systémom
-	-->
 </assembly>

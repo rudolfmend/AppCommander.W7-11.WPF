@@ -65,42 +65,31 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // Check for single instance BEFORE any UI initialization
                 if (!EnsureSingleInstance())
                 {
-                    // Another instance is already running
-                    Debug.WriteLine("Another instance of AppCommander is already running. Exiting...");
                     Shutdown(0);
                     return;
                 }
 
-                // Initialize DPI awareness for better scaling
                 InitializeDpiAwareness();
 
-                // Enable better text rendering globally
                 TextOptions.TextFormattingModeProperty.OverrideMetadata(typeof(Control),
                     new FrameworkPropertyMetadata(TextFormattingMode.Display));
                 TextOptions.TextRenderingModeProperty.OverrideMetadata(typeof(Control),
                     new FrameworkPropertyMetadata(TextRenderingMode.ClearType));
-
-                // Set WPF to use the hardware rendering tier
                 RenderOptions.ProcessRenderMode = RenderMode.Default;
-
-                // Enable layout rounding globally for crisp edges
                 FrameworkElement.UseLayoutRoundingProperty.OverrideMetadata(typeof(Control),
                     new FrameworkPropertyMetadata(true));
 
-                // Handle unhandled exceptions
                 SetupExceptionHandling();
 
                 base.OnStartup(e);
 
-                // Log successful startup
                 Debug.WriteLine($"AppCommander started successfully on {GetWindowsVersion()}, DPI Scale: {GetDpiScale():F2}x");
             }
             catch (Exception ex)
             {
-                ReleaseMutex(); // Clean up mutex on startup failure
+                ReleaseMutex();
                 MessageBox.Show($"Application startup failed: {ex.Message}", "AppCommander Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
