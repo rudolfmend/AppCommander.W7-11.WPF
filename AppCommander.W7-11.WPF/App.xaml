@@ -4,29 +4,347 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+
+            <!-- UX-optimalizované farby -->
+            <SolidColorBrush x:Key="PrimaryBlue" Color="#7dd4fa"/>
+            <SolidColorBrush x:Key="PrimaryBlueHover" Color="#41c2fa"/>
+            <SolidColorBrush x:Key="PrimaryBluePressed" Color="#2599cc"/>
+
+            <SolidColorBrush x:Key="SuccessGreen" Color="#abffe6"/>
+            <SolidColorBrush x:Key="WarningOrange" Color="#e35e3d"/>
+            <SolidColorBrush x:Key="DangerRed" Color="#fc9379"/>
+
+            <SolidColorBrush x:Key="NeutralGray100" Color="#FFFAF9F8"/>
+            <SolidColorBrush x:Key="NeutralGray200" Color="#FFF3F2F1"/>
+            <SolidColorBrush x:Key="NeutralGray300" Color="#FFEDEBE9"/>
+            <SolidColorBrush x:Key="NeutralGray400" Color="#FFE1DFDD"/>
+            <SolidColorBrush x:Key="NeutralGray500" Color="#FFD2D0CE"/>
+            <SolidColorBrush x:Key="NeutralGray700" Color="#FF605E5C"/>
+            <SolidColorBrush x:Key="NeutralGray800" Color="#FF484644"/>
+            <SolidColorBrush x:Key="NeutralGray900" Color="#FF323130"/>
+
+            <SolidColorBrush x:Key="Background" Color="#fff"/>
+            <SolidColorBrush x:Key="Surface" Color="#fdfdfc"/>
+            <SolidColorBrush x:Key="OnSurface" Color="#FF323130"/>
+            <SolidColorBrush x:Key="OnSurfaceVariant" Color="#FF605E5C"/>
+
+            <!-- Shadows pomocou DropShadowEffect -->
+            <DropShadowEffect x:Key="ElevationLow" 
+                              BlurRadius="4" 
+                              ShadowDepth="1" 
+                              Opacity="0.15" 
+                              Color="#FF000000"/>
+
+            <DropShadowEffect x:Key="ElevationMedium" 
+                              BlurRadius="8" 
+                              ShadowDepth="2" 
+                              Opacity="0.2" 
+                              Color="#FF000000"/>
+
+            <!-- Globálny Window štýl -->
             <Style TargetType="Window">
-                <Setter Property="Background" Value="#fcf6d7"/>
+                <Setter Property="Background" Value="{StaticResource Background}"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="UseLayoutRounding" Value="True"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
             </Style>
-            <Style TargetType="UserControl">
-                <Setter Property="Background" Value="#FFFAFAFA"/>
-            </Style>
-            <Style x:Key="SubmenuItemStyle" TargetType="MenuItem">
-                <Setter Property="Background" Value="#f5ecc9"/>
-                <Setter Property="Foreground" Value="Black"/>
+
+            <!-- Primary Button - pre hlavné akcie -->
+            <Style x:Key="PrimaryButton" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="MinHeight" Value="32"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="OpacityMask" Value="Black" />
+                <Setter Property="Effect" Value="{StaticResource ElevationLow}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7">
+                                <ContentPresenter x:Name="contentPresenter"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="{TemplateBinding Padding}"
+                                                Focusable="False"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlueHover}"/>
+                                    <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
+                                    <Setter Property="Effect" Value="{x:Null}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
+                                    <Setter Property="Effect" Value="{x:Null}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
-            <Style TargetType="MenuItem">
-                <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
-                <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- Secondary Button - pre sekundárne akcie -->
+            <Style x:Key="SecondaryButton" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource Background}"/>
+                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray900}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="MinHeight" Value="32"/>
+                <Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray500}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
-            <SolidColorBrush x:Key="MaterialDesignPaper" Color="#f5ecc9"/>
-            <SolidColorBrush x:Key="MaterialDesignBody" Color="#DD000000"/>
-            <SolidColorBrush x:Key="MaterialDesignDivider" Color="#1F000000"/>
+
+            <!-- Danger Button - pre destruktívne akcie -->
+            <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                <Setter Property="Foreground" Value="{StaticResource DangerRed}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource DangerRed}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource DangerRed}"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource WarningOrange}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Moderný TextBox s fokus animáciou -->
+            <Style TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7">
+                                <ScrollViewer x:Name="PART_ContentHost" 
+                                            Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource NeutralGray700}"/>
+                                </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBlue}"/>
+                                    <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Moderný GroupBox s tieňom -->
+            <Style x:Key="GroupBoxStyle"  TargetType="GroupBox">
+                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Margin" Value="8"/>
+                <Setter Property="Padding" Value="16"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupBox">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Grid.RowSpan="2"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="6"/>
+                                <TextBlock Grid.Row="0" 
+                                          Text="{TemplateBinding Header}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="16"
+                                          Foreground="{StaticResource PrimaryBlue}"
+                                          Margin="16,12,16,8"/>
+                                <ContentPresenter Grid.Row="1" 
+                                                Margin="{TemplateBinding Padding}"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="TopLevelMenuItem" TargetType="MenuItem">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Padding" Value="12,8"/>
+                
+            </Style>
+
+            <!-- Moderný MenuItem s hover efektmi -->
+            <Style x:Key="ModernMenuItem" TargetType="MenuItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
+                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="MenuItem">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="5"
+                                    Margin="2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0" 
+                                                    Content="{TemplateBinding Icon}"
+                                                    Margin="0,0,8,0"/>
+                                    <ContentPresenter Grid.Column="1"
+                                                    Content="{TemplateBinding Header}"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2"
+                                             Text="{TemplateBinding InputGestureText}"
+                                             Foreground="{StaticResource OnSurfaceVariant}"
+                                             FontSize="12"
+                                             Margin="16,0,0,0"
+                                             VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Moderný DataGrid -->
+            <Style TargetType="DataGrid">
+                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray400}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+                <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource NeutralGray300}"/>
+                <Setter Property="AlternatingRowBackground" Value="{StaticResource NeutralGray100}"/>
+                <Setter Property="RowBackground" Value="{StaticResource Surface}"/>
+                <Setter Property="HeadersVisibility" Value="Column"/>
+                <Setter Property="CanUserSortColumns" Value="True"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="RowHeight" Value="36"/>
+            </Style>
+
+            <!-- Moderný Menu -->
+            <Style TargetType="Menu">
+                <Setter Property="Background" Value="{StaticResource NeutralGray100}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
+                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                <Setter Property="Padding" Value="8,4"/>
+            </Style>
+
+            <!-- Moderný StatusBar -->
+            <Style TargetType="StatusBar">
+                <Setter Property="Background" Value="{StaticResource NeutralGray100}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
+                <Setter Property="BorderThickness" Value="0,1,0,0"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Padding" Value="8,4"/>
+            </Style>
+
+            <!-- CheckBox s moderným dizajnom -->
+            <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
+                <Setter Property="Padding" Value="8,0,0,0"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <!-- Label -->
+            <Style x:Key="LabelStyle" TargetType="Label">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
+            </Style>
+
+            <!-- TextBlock -->
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
