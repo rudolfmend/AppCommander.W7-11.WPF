@@ -52,7 +52,7 @@
                 <MenuItem Header="_Window Selector"  Style="{StaticResource ModernMenuItem}" Click="WindowSelector_Click"/>
                 <MenuItem Header="_Element Inspector"  Style="{StaticResource ModernMenuItem}" Click="ElementInspector_Click"/>
                 <Separator/>
-                <MenuItem Header="_Test Playback"  Style="{StaticResource TopLevelMenuItem}" Click="TestPlayback_Click"/>
+                <MenuItem Header="_Test Playback"  Style="{StaticResource ModernMenuItem}" Click="TestPlayback_Click"/>
                 <MenuItem Header="_Debug Coordinates" Style="{StaticResource ModernMenuItem}"  Click="DebugCoordinates_Click"/>
                 <MenuItem Header="_Settings"  Style="{StaticResource ModernMenuItem}" Click="Settings_Click"/>
             </MenuItem>

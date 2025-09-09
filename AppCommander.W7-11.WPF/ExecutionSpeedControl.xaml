@@ -79,8 +79,10 @@
                            Foreground="DarkGray"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="testButton" Content="Test" Padding="10,5" Margin="5,0" Click="TestButton_Click"/>
-                    <Button x:Name="resetButton" Content="Reset" Padding="10,5" Click="ResetButton_Click"/>
+                    <Button x:Name="testButton" Content="Test" Padding="10,5" Margin="5,0" Click="TestButton_Click" 
+                                Style="{StaticResource SecondaryButton}" Width="55" />
+                    <Button x:Name="resetButton" Content="Reset" Padding="10,5" Click="ResetButton_Click" 
+                                Style="{StaticResource SecondaryButton}" />
                 </StackPanel>
             </Grid>
 

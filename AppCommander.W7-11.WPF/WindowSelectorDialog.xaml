@@ -13,7 +13,8 @@
         </Grid.RowDefinitions>
 
         <!-- Instructions -->
-        <TextBlock Grid.Row="0" Text="Select the target application window for recording:" 
+        <TextBlock Grid.Row="0" Text="Select the target application window for recording:"  
+                                Style="{StaticResource  TextBlockStyle}" 
                    FontWeight="SemiBold" Margin="0,0,0,10"/>
 
         <!-- Windows List -->
@@ -29,7 +30,8 @@
         </DataGrid>
 
         <!-- Selected Window Info -->
-        <GroupBox Grid.Row="2" Header="Selected Window Information" Margin="0,10,0,10">
+        <GroupBox Grid.Row="2" Header="Selected Window Information" Margin="0,10,0,10" 
+                                Style="{StaticResource  GroupBoxStyle}" >
             <Grid Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -58,11 +60,14 @@
 
         <!-- Buttons -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="btnRefresh" Content="🔄 Refresh" Width="80" Height="30" 
+            <Button Name="btnRefresh" Content="🔄 Refresh" Width="111" Height="30"  
+                                Style="{StaticResource SecondaryButton}" 
                     Margin="0,0,10,0" Click="Refresh_Click"/>
             <Button Name="btnOK" Content="OK" Width="80" Height="30" 
+                                Style="{StaticResource SecondaryButton}" 
                     Margin="0,0,10,0" Click="OK_Click" IsDefault="True"/>
             <Button Name="btnCancel" Content="Cancel" Width="80" Height="30" 
+                                Style="{StaticResource SecondaryButton}" 
                     Click="Cancel_Click" IsCancel="True"/>
         </StackPanel>
     </Grid>
