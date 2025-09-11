@@ -262,6 +262,228 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
+        #region Window Click Selection
+
+        private WindowClickSelector _windowClickSelector;
+
+        /// <summary>
+        /// Inicializuje window click selector
+        /// </summary>
+        private void InitializeWindowClickSelector()
+        {
+            _windowClickSelector = new WindowClickSelector();
+
+            // Subscribe to events
+            _windowClickSelector.WindowSelected += OnWindowClickSelected;
+            _windowClickSelector.SelectionCancelled += OnWindowClickSelectionCancelled;
+            _windowClickSelector.StatusChanged += OnWindowClickStatusChanged;
+        }
+
+        /// <summary>
+        /// Handler pre výber okna pomocou kliknutia
+        /// </summary>
+        private async void SelectTargetByClick_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_windowClickSelector.IsSelecting)
+                {
+                    _windowClickSelector.CancelSelection();
+                    return;
+                }
+
+                // Zmeni tlačidlo na cancel mode
+                btnSelectTargetByClick.Content = "❌ Cancel Selection";
+                btnSelectTargetByClick.IsEnabled = true;
+
+                // Disable ostatné controls počas výberu
+                btnSelectTarget.IsEnabled = false;
+                btnStartRecording.IsEnabled = false;
+
+                UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
+
+                // Spusti async selection
+                var selectedWindow = await _windowClickSelector.StartWindowSelectionAsync();
+
+                if (selectedWindow != null)
+                {
+                    // Nastav vybrané okno ako target
+                    _targetWindowHandle = selectedWindow.WindowHandle;
+                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                        selectedWindow.ProcessName, selectedWindow.Title);
+
+                    UpdateUI();
+                    UpdateStatus(string.Format("Target selected by click: {0}", selectedWindow.ProcessName));
+
+                    Debug.WriteLine(string.Format("Target window selected by click: Handle=0x{0:X8}, Process={1}, Title={2}",
+                        _targetWindowHandle.ToInt64(), selectedWindow.ProcessName, selectedWindow.Title));
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error during click selection", ex);
+            }
+            finally
+            {
+                // Vráti UI do normálneho stavu
+                ResetClickSelectionUI();
+            }
+        }
+
+        /// <summary>
+        /// Event handler pre úspešný výber okna
+        /// </summary>
+        private void OnWindowClickSelected(object sender, WindowSelectedEventArgs e)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    var windowInfo = e.SelectedWindow;
+
+                    // Nastav target window
+                    _targetWindowHandle = windowInfo.WindowHandle;
+                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                        windowInfo.ProcessName, windowInfo.Title);
+
+                    UpdateUI();
+                    UpdateStatus(string.Format("Target window selected: {0} - {1}",
+                        windowInfo.ProcessName, windowInfo.Title));
+
+                    // Log successful selection
+                    Debug.WriteLine(string.Format("Window selected by click: Process={0}, Title={1}, Handle=0x{2:X8}",
+                        windowInfo.ProcessName, windowInfo.Title, windowInfo.WindowHandle.ToInt64()));
+                }
+                catch (Exception ex)
+                {
+                    ShowErrorMessage("Error processing window selection", ex);
+                }
+            }));
+        }
+
+        /// <summary>
+        /// Event handler pre zrušenie výberu
+        /// </summary>
+        private void OnWindowClickSelectionCancelled(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateStatus("Window selection cancelled by user");
+                ResetClickSelectionUI();
+            }));
+        }
+
+        /// <summary>
+        /// Event handler pre status zmeny počas výberu
+        /// </summary>
+        private void OnWindowClickStatusChanged(object sender, string status)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateStatus(status);
+            }));
+        }
+
+        /// <summary>
+        /// Resetuje UI po click selection
+        /// </summary>
+        private void ResetClickSelectionUI()
+        {
+            try
+            {
+                btnSelectTargetByClick.Content = "👆 Click to Select";
+                btnSelectTargetByClick.IsEnabled = true;
+                btnSelectTarget.IsEnabled = true;
+                btnStartRecording.IsEnabled = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Updated Constructor and Cleanup
+
+        // Pridajte toto do existujúceho konstruktora MainWindow
+        private void InitializeComponents()
+        {
+            // Existujúci inicializačný kód...
+
+            // Pridajte toto na koniec
+            InitializeWindowClickSelector();
+        }
+
+        // Aktualizujte Dispose/Cleanup metódu
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                // Existujúci cleanup kód...
+
+                // Pridajte cleanup pre window click selector
+                _windowClickSelector?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during cleanup: {ex.Message}");
+            }
+            finally
+            {
+                base.OnClosed(e);
+            }
+        }
+
+        #endregion
+
+        #region Updated SelectTarget_Click Method
+
+        // Aktualizovaná verzia existujúcej metódy SelectTarget_Click
+        private void SelectTarget_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Ak je click selection aktívny, zruš ho
+                if (_windowClickSelector?.IsSelecting == true)
+                {
+                    _windowClickSelector.CancelSelection();
+                    UpdateStatus("Click selection cancelled. Opening window selector dialog...");
+                    System.Threading.Thread.Sleep(100); // Krátke čakanie
+                }
+
+                // Pokračuj s existujúcou funkcionalitou
+                var dialog = new WindowSelectorDialog();
+                if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
+                {
+                    _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
+                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                        dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
+
+                    UpdateUI();
+                    UpdateStatus(string.Format("Target selected from dialog: {0}", dialog.SelectedWindow.ProcessName));
+
+                    Debug.WriteLine(string.Format("Target window selected from dialog: Handle=0x{0:X8}, Process={1}, Title={2}",
+                        _targetWindowHandle.ToInt64(), dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title));
+                }
+                else
+                {
+                    Debug.WriteLine("No window selected or dialog cancelled");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error selecting target window", ex);
+            }
+            finally
+            {
+                // Uisti sa, že click selection UI je resetovaný
+                ResetClickSelectionUI();
+            }
+        }
+
+        #endregion
+
         #region Window Event Handlers
 
         private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
@@ -440,33 +662,33 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void SelectTarget_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var dialog = new WindowSelectorDialog();
-                if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
-                {
-                    _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    lblTargetWindow.Content = string.Format("{0} - {1}",
-                        dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
+        //private void SelectTarget_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        var dialog = new WindowSelectorDialog();
+        //        if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
+        //        {
+        //            _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
+        //            lblTargetWindow.Content = string.Format("{0} - {1}",
+        //                dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
 
-                    UpdateUI();
-                    UpdateStatus(string.Format("Target selected: {0}", dialog.SelectedWindow.ProcessName));
+        //            UpdateUI();
+        //            UpdateStatus(string.Format("Target selected: {0}", dialog.SelectedWindow.ProcessName));
 
-                    Debug.WriteLine(string.Format("Target window selected: Handle=0x{0:X8}, Process={1}, Title={2}",
-                        _targetWindowHandle.ToInt64(), dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title));
-                }
-                else
-                {
-                    Debug.WriteLine("No window selected or dialog cancelled");
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error selecting target window", ex);
-            }
-        }
+        //            Debug.WriteLine(string.Format("Target window selected: Handle=0x{0:X8}, Process={1}, Title={2}",
+        //                _targetWindowHandle.ToInt64(), dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title));
+        //        }
+        //        else
+        //        {
+        //            Debug.WriteLine("No window selected or dialog cancelled");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error selecting target window", ex);
+        //    }
+        //}
 
         private void StopRecording_Click(object sender, RoutedEventArgs e)
         {

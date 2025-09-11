@@ -407,7 +407,7 @@
             <Style x:Key="ModernMenuItem" TargetType="MenuItem">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="Padding" Value="e30,8"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Template">
                     <Setter.Value>

@@ -74,22 +74,39 @@
             <GroupBox Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition MinWidth="398"/>
+                        <ColumnDefinition MinWidth="450"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Recording Controls -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                        <Button Name="btnSelectTarget" Content="🎯 Select Target" 
-                                Style="{StaticResource SecondaryButton}" 
-                                Click="SelectTarget_Click" Margin="0,0,10,0"/>
+                        <!-- Target Selection Buttons -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
+                            <Button Name="btnSelectTargetByClick" Content="👆 Click to Select" 
+                                    Style="{StaticResource PrimaryButton}" 
+                                    Click="SelectTargetByClick_Click" 
+                                    Margin="0,0,5,0"
+                                    ToolTip="Click to select target window by clicking on it"/>
+                            <Button Name="btnSelectTarget" Content="📋 Select from List" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    Click="SelectTarget_Click" 
+                                    Margin="0,0,10,0"
+                                    ToolTip="Select target window from a list"/>
+                        </StackPanel>
+                        <!-- Recording Controls -->
                         <Button Name="btnStartRecording" Content="🔴 Start Recording" 
                                 Style="{StaticResource PrimaryButton}" 
                                 Click="StartRecording_Click" Margin="0,0,10,0"/>
-                        <Button Name="btnPauseRecording" Content="|| Pause" 
+                        <Button Name="btnStopRecording" Content="⏹ Stop Recording" 
+                                Style="{StaticResource DangerButton}" 
+                                Click="StopRecording_Click" Margin="0,0,10,0"/>
+                        <Button Name="btnPauseRecording" Content="⏸ Pause Recording" 
                                 Style="{StaticResource SecondaryButton}" 
-                                Click="PauseRecording_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                                Click="PauseRecording_Click" Margin="0,0,10,0"/>
+                        <Button Name="btnPlayCommands" Content="▶ Play" 
+                                Style="{StaticResource PrimaryButton}" 
+                                Click="PlaySequence_Click" Margin="0,0,10,0"/>
                     </StackPanel>
 
                     <!-- Repeat Logic Panel -->
@@ -128,10 +145,10 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="Sequence Name:" VerticalAlignment="Center" 
-                          FontWeight="Bold" Width="100" FontSize="10"/>
+                                   FontWeight="Bold" Width="100" FontSize="10"/>
                         <TextBox Name="txtSequenceName" Style="{StaticResource TextBoxStyle}" Width="250" Height="25" 
-                         Text="My_Recording" VerticalAlignment="Center" 
-                         ToolTip="Enter name for the recording sequence"/>
+                                 Text="My_Recording" VerticalAlignment="Center" 
+                                 ToolTip="Enter name for the recording sequence"/>
                     </StackPanel>
 
                     <Grid>
@@ -229,63 +246,91 @@
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 
                 <StackPanel Grid.Column="2" ScrollViewer.VerticalScrollBarVisibility="Visible" SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical">
-                <!-- Target Information -->
-                <GroupBox Header="Target Information" Style="{StaticResource GroupBoxStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                            <TextBlock Text="Window:" FontWeight="Bold" Width="60" FontSize="10"/>
-                            <Label Name="lblTargetWindow" Content="No target selected" 
-                                   FontSize="10" Foreground="Gray" Padding="0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                            <TextBlock Text="Process:" FontWeight="Bold" Width="60" FontSize="10"/>
-                            <TextBox Name="txtTargetProcess" Text="" 
-                                     FontSize="10" Foreground="Gray" Background="Transparent" 
-                                     BorderThickness="0" IsReadOnly="True"/>
-                        </StackPanel>
-                        <Button Content="🎯 Select New Target" Click="SelectTarget_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </GroupBox>
+                    <!-- Target Information -->
+                    <GroupBox Header="Target Information" Style="{StaticResource GroupBoxStyle}">
+                        <StackPanel>
+                            <!-- Selection Mode Indicator -->
+                            <Border Name="selectionModeIndicator" 
+                                    Background="#FFF3E5" 
+                                    BorderBrush="Orange" 
+                                    BorderThickness="1" 
+                                    CornerRadius="3" 
+                                    Padding="8,4" 
+                                    Margin="0,0,0,8"
+                                    Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🎯" FontSize="14" Margin="0,0,5,0"/>
+                                    <TextBlock Name="txtSelectionMode" 
+                                               Text="Click Selection Mode Active" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="DarkOrange"/>
+                                </StackPanel>
+                            </Border>
 
-                <!-- Element Statistics -->
-                <GroupBox Header="Element Statistics" Style="{StaticResource GroupBoxStyle}">
-                    <StackPanel>
-                        <ListBox Name="lstElementStats" Height="150" FontSize="10">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding ElementName}" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding UsageCount, StringFormat='Used: {0} times'}" FontSize="9" Foreground="Gray"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            <!-- Existing Target Information -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <TextBlock Text="Window:" FontWeight="Bold" Width="60" FontSize="10"/>
+                                <Label Name="lblTargetWindow" Content="No target selected" 
+                                       FontSize="10" Foreground="Gray" Padding="0"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <TextBlock Text="Process:" FontWeight="Bold" Width="60" FontSize="10"/>
+                                <TextBox Name="txtTargetProcess" Text="" 
+                                         FontSize="10" Foreground="Gray" Background="Transparent" 
+                                         BorderThickness="0" IsReadOnly="True"/>
+                            </StackPanel>
+
+                            <!-- Quick Action Buttons -->
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <Button Content="🔄 Reselect" Click="SelectTargetByClick_Click" 
+                                        Style="{StaticResource SecondaryButton}" 
+                                        FontSize="10" Padding="8,4" Margin="0,0,5,0"
+                                        ToolTip="Quickly reselect target using click selection"/>
+                                <Button Content="📋 Browse" Click="SelectTarget_Click" 
+                                        Style="{StaticResource SecondaryButton}" 
+                                        FontSize="10" Padding="8,4"
+                                        ToolTip="Browse all available windows"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- Element Statistics -->
+                    <GroupBox Header="Element Statistics" Style="{StaticResource GroupBoxStyle}">
+                        <StackPanel>
+                            <ListBox Name="lstElementStats" Height="150" FontSize="10">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding ElementName}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding UsageCount, StringFormat='Used: {0} times'}" FontSize="9" Foreground="Gray"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
                             <Button Content="↻ Refresh Stats" Click="AutoRefreshAllUIElements_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </GroupBox>
+                                    Style="{StaticResource SecondaryButton}" 
+                                    HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </GroupBox>
 
-                <!-- Quick Actions -->
-                <GroupBox Header="Quick Actions" Style="{StaticResource GroupBoxStyle}">
-                    <StackPanel>
-                        <Button Content="🔍 Element Inspector" Click="ElementInspector_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
-                        <Button Content="🏃 Play Direct" Click="PlayWithoutElementSearch_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
-                        <Button Content="📊 Debug Info" Click="ExportSequenceForDebug_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
-                        <Button Content="⚙ Settings" Click="Settings_Click" 
-                                Style="{StaticResource SecondaryButton}" 
-                                HorizontalAlignment="Stretch"/>
-                    </StackPanel>
-                </GroupBox>
-            </StackPanel>
+                    <!-- Quick Actions -->
+                    <GroupBox Header="Quick Actions" Style="{StaticResource GroupBoxStyle}">
+                        <StackPanel>
+                            <Button Content="🔍 Element Inspector" Click="ElementInspector_Click" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
+                            <Button Content="🏃 Play Direct" Click="PlayWithoutElementSearch_Click" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
+                            <Button Content="📊 Debug Info" Click="ExportSequenceForDebug_Click" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
+                            <Button Content="⚙ Settings" Click="Settings_Click" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
             </ScrollViewer>
 
         </Grid>
@@ -300,10 +345,10 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="Speed control will be available when implemented" 
-                          Grid.Column="0" VerticalAlignment="Center" FontStyle="Italic" Foreground="Gray"/>
+                           Grid.Column="0" VerticalAlignment="Center" FontStyle="Italic" Foreground="Gray"/>
 
                 <TextBlock Name="txtExecutionSpeedInfo" Text="Normal Speed" 
-                          Grid.Column="1" VerticalAlignment="Center" Margin="10,0"/>
+                           Grid.Column="1" VerticalAlignment="Center" Margin="10,0"/>
 
                 <Button Name="btnSpeedSettings" Content="⚙ Speed Settings" 
                         Grid.Column="2" Style="{StaticResource SecondaryButton}"
