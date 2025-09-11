@@ -7,14 +7,6 @@
         Icon="appcommander_icon.ico"
         WindowStartupLocation="CenterScreen" FontSize="18" FontFamily="MS Reference Sans Serif">
 
-    <Window.Resources>
-        <Style x:Key="StatusLabelStyle" TargetType="Label">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="Padding" Value="2"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-    </Window.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -94,19 +86,6 @@
                                     Margin="0,0,10,0"
                                     ToolTip="Select target window from a list"/>
                         </StackPanel>
-                        <!-- Recording Controls -->
-                        <Button Name="btnStartRecording" Content="🔴 Start Recording" 
-                                Style="{StaticResource PrimaryButton}" 
-                                Click="StartRecording_Click" Margin="0,0,10,0"/>
-                        <Button Name="btnStopRecording" Content="⏹ Stop Recording" 
-                                Style="{StaticResource DangerButton}" 
-                                Click="StopRecording_Click" Margin="0,0,10,0"/>
-                        <Button Name="btnPauseRecording" Content="⏸ Pause Recording" 
-                                Style="{StaticResource SecondaryButton}" 
-                                Click="PauseRecording_Click" Margin="0,0,10,0"/>
-                        <Button Name="btnPlayCommands" Content="▶ Play" 
-                                Style="{StaticResource PrimaryButton}" 
-                                Click="PlaySequence_Click" Margin="0,0,10,0"/>
                     </StackPanel>
 
                     <!-- Repeat Logic Panel -->
@@ -144,11 +123,13 @@
             <GroupBox Header="Enhanced Recording &amp; Auto-Detection" Style="{StaticResource GroupBoxStyle}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Sequence Name:" VerticalAlignment="Center" 
-                                   FontWeight="Bold" Width="100" FontSize="10"/>
+                        <TextBlock Text="Sequence Name:" VerticalAlignment="Center"  Style="{StaticResource TextBlockStyle}"
+                                   FontWeight="Bold" Width="100" />
                         <TextBox Name="txtSequenceName" Style="{StaticResource TextBoxStyle}" Width="250" Height="25" 
                                  Text="My_Recording" VerticalAlignment="Center" 
                                  ToolTip="Enter name for the recording sequence"/>
+                        
+                        
                     </StackPanel>
 
                     <Grid>
@@ -160,6 +141,22 @@
 
                         <!-- Enhanced Controls -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
+
+
+                            <!-- Recording Controls -->
+                            <Button Name="btnStartRecording" Content="🔴 Start Recording" 
+                                Style="{StaticResource PrimaryButton}" 
+                                Click="StartRecording_Click" Margin="0,0,10,0"/>
+                            <!--<Button Name="btnStopRecording" Content="⏹ Stop Recording" 
+                                Style="{StaticResource DangerButton}" 
+                                Click="StopRecording_Click" Margin="0,0,10,0"/>
+                            <Button Name="btnPauseRecording" Content="⏸ Pause Recording" 
+                                Style="{StaticResource SecondaryButton}" 
+                                Click="PauseRecording_Click" Margin="0,0,10,0"/>-->
+                            <Button Name="btnPlayCommands" Content="▶ Play" 
+                                Style="{StaticResource PrimaryButton}" 
+                                Click="PlaySequence_Click" Margin="0,0,10,0"/>
+                            
                             <Button Name="btnStartEnhancedRecording" Content="Enhanced Record." 
                                     Click="StartEnhancedRecordingWithAutoDetection_Click" 
                                     Style="{StaticResource PrimaryButton}" Margin="0,0,5,0"/>
@@ -181,9 +178,9 @@
                         <!-- Status Indicators -->
                         <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                             <Label Name="lblAutoDetectionStatus" Content="🔴 Auto-Detection Inactive" 
-                                   Style="{StaticResource StatusLabelStyle}"/>
+                                   Style="{StaticResource LabelStyle}"/>
                             <Label Name="lblUIRecordingStatus" Content="🔴 UI Scanning Inactive" 
-                                   Style="{StaticResource StatusLabelStyle}"/>
+                                   Style="{StaticResource LabelStyle}"/>
                         </StackPanel>
                     </Grid>
 

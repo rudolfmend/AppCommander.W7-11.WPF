@@ -714,31 +714,31 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void PauseRecording_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_recorder.IsRecording)
-                {
-                    if (_recorder.IsPaused)
-                    {
-                        _recorder.ResumeRecording();
-                        btnPauseRecording.Content = "Pause";
-                        UpdateStatus("Recording resumed");
-                    }
-                    else
-                    {
-                        _recorder.PauseRecording();
-                        btnPauseRecording.Content = "Resume";
-                        UpdateStatus("Recording paused");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error pausing/resuming recording", ex);
-            }
-        }
+        //private void PauseRecording_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (_recorder.IsRecording)
+        //        {
+        //            if (_recorder.IsPaused)
+        //            {
+        //                _recorder.ResumeRecording();
+        //                btnPauseRecording.Content = "Pause";
+        //                UpdateStatus("Recording resumed");
+        //            }
+        //            else
+        //            {
+        //                _recorder.PauseRecording();
+        //                btnPauseRecording.Content = "Resume";
+        //                UpdateStatus("Recording paused");
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error pausing/resuming recording", ex);
+        //    }
+        //}
 
         #endregion
 
