@@ -264,26 +264,334 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Window Click Selection
 
-        private WindowClickSelector _windowClickSelector;
+
+        // OPRAVY PRE C# KÓD - nahraďte existujúce metódy
+
+        #region UI Update Fixes
 
         /// <summary>
-        /// Inicializuje window click selector
+        /// Resetuje UI po click selection - OPRAVENÉ
         /// </summary>
-        private void InitializeWindowClickSelector()
+        private void ResetClickSelectionUI()
         {
-            _windowClickSelector = new WindowClickSelector();
+            try
+            {
+                btnSelectTargetByClick.Content = "🎯 Click to Select";
+                btnSelectTargetByClick.IsEnabled = true;
+                btnSelectTarget.IsEnabled = true;
+                btnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
 
-            // Subscribe to events
-            _windowClickSelector.WindowSelected += OnWindowClickSelected;
-            _windowClickSelector.SelectionCancelled += OnWindowClickSelectionCancelled;
-            _windowClickSelector.StatusChanged += OnWindowClickStatusChanged;
+                // Skryje selection indicator
+                selectionModeIndicator.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
+            }
         }
 
         /// <summary>
-        /// Handler pre výber okna pomocou kliknutia
+        /// Aktualizuje target window information - OPRAVENÉ
         /// </summary>
+        private void UpdateTargetWindowInfo(WindowTrackingInfo windowInfo)
+        {
+            try
+            {
+                if (windowInfo != null)
+                {
+                    // OPRAVA: TextBlock používa .Text namiesto .Content
+                    lblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
+                    txtTargetProcess.Text = windowInfo.ProcessName;
+                }
+                else
+                {
+                    lblTargetWindow.Text = "No target selected";
+                    txtTargetProcess.Text = "-";
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating target window info: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje status labels - OPRAVENÉ
+        /// </summary>
+        private void UpdateStatusLabels(bool isRecording)
+        {
+            try
+            {
+                if (isRecording)
+                {
+                    // OPRAVA: TextBlock používa .Text namiesto .Content
+                    lblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
+                    lblUIRecordingStatus.Text = "🟢 UI Scanning Active";
+                }
+                else
+                {
+                    lblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
+                    lblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating status labels: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Recording Methods - OPRAVENÉ
+
+        private void StartNewRecording()
+        {
+            try
+            {
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a target window first.", "No Target Selected",
+                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var sequenceName = txtSequenceName.Text;
+                if (string.IsNullOrWhiteSpace(sequenceName))
+                {
+                    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+                    txtSequenceName.Text = sequenceName;
+                }
+
+                _recorder.StartRecording(sequenceName, _targetWindowHandle);
+                _recorder.EnableRealTimeElementScanning = true;
+                _recorder.AutoUpdateExistingCommands = true;
+                _recorder.EnablePredictiveDetection = true;
+
+                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+                _windowTracker.StartTracking(targetProcess);
+                _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
+
+                btnRecording.Content = "⏹ Stop Recording";
+                btnRecording.Style = (Style)FindResource("ModernDangerButton");
+
+                // OPRAVA: Používa novú metódu
+                UpdateStatusLabels(true);
+
+                progressEnhancedRecording.Visibility = Visibility.Visible;
+                progressEnhancedRecording.IsIndeterminate = true;
+
+                UpdateStatus($"Recording started: {sequenceName}");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error starting recording", ex);
+            }
+        }
+
+        private void StopCurrentRecording()
+        {
+            try
+            {
+                _recorder.StopRecording();
+                _windowTracker.StopTracking();
+                _automaticUIManager.StopMonitoring();
+
+                btnRecording.Content = "🔴 Start Recording";
+                btnRecording.Style = (Style)FindResource("ModernDangerButton");
+
+                // OPRAVA: Používa novú metódu
+                UpdateStatusLabels(false);
+
+                progressEnhancedRecording.Visibility = Visibility.Collapsed;
+                progressEnhancedRecording.IsIndeterminate = false;
+
+                UpdateStatus("Recording stopped");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error stopping recording", ex);
+            }
+        }
+
+        #endregion
+
+        #region Playback Controls - PODMIENEČNÉ kontroly
+
+        private void PausePlayback_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_player.IsPaused)
+                {
+                    _player.Resume();
+                    // OPRAVA: Podmienečná kontrola či btnPause existuje
+                    if (btnPause != null)
+                        btnPause.Content = "⏸ Pause";
+                }
+                else if (_player.IsPlaying)
+                {
+                    _player.Pause();
+                    if (btnPause != null)
+                        btnPause.Content = "▶ Resume";
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error pausing/resuming playback", ex);
+            }
+        }
+
+        private void StopPlayback_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _player.Stop();
+                // OPRAVA: Podmienečná kontrola
+                if (btnPause != null)
+                    btnPause.Content = "⏸ Pause";
+                UpdateStatus("Playback stopped");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error stopping playback", ex);
+            }
+        }
+
+        #endregion
+
+        #region UI Update Method - OPRAVENÉ
+
+        private void UpdateUI()
+        {
+            try
+            {
+                bool isRecording = _recorder != null && _recorder.IsRecording;
+                bool isPlaying = _player != null && _player.IsPlaying;
+                bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
+
+                // Recording button state
+                btnRecording.IsEnabled = hasTargetWindow || isRecording;
+
+                // Playback controls - OPRAVA: podmienečné kontroly
+                btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+
+                if (btnPlay != null)
+                    btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+
+                if (btnPause != null)
+                    btnPause.IsEnabled = isPlaying;
+
+                if (btnStop != null)
+                    btnStop.IsEnabled = isPlaying;
+
+                // Target selection buttons - disable počas recordingu
+                btnSelectTargetByClick.IsEnabled = !isRecording;
+                btnSelectTarget.IsEnabled = !isRecording;
+
+                // Commands count
+                var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
+                string commandText = loopCount > 0 ?
+                    string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
+                    string.Format("Commands: {0}", _commands.Count);
+                txtCommandCount.Text = commandText;
+
+                // Window title
+                string title = "AppCommander";
+                if (!string.IsNullOrEmpty(_currentFilePath))
+                {
+                    title += string.Format(" - {0}", Path.GetFileName(_currentFilePath));
+                }
+                if (_hasUnsavedChanges)
+                {
+                    title += " *";
+                }
+                this.Title = title;
+
+                // Target process info - OPRAVA: ak existuje handle
+                if (hasTargetWindow)
+                {
+                    var processName = GetProcessNameFromWindow(_targetWindowHandle);
+                    var windowTitle = GetWindowTitle(_targetWindowHandle);
+                    lblTargetWindow.Text = $"{processName} - {windowTitle}";
+                    txtTargetProcess.Text = processName;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error updating UI: {0}", ex.Message));
+            }
+        }
+
+        #endregion
+
+        #region Element Statistics - PODMIENEČNÉ
+
+        private void RefreshElementStatistics()
+        {
+            try
+            {
+                // OPRAVA: podmienečná kontrola či lstElementStats existuje
+                if (lstElementStats == null) return;
+
+                lstElementStats.Items.Clear();
+
+                var elementGroups = _commands
+                    .Where(c => !string.IsNullOrEmpty(c.ElementName))
+                    .GroupBy(c => c.ElementName)
+                    .Select(g => new
+                    {
+                        ElementName = g.Key,
+                        UsageCount = g.Count(),
+                        LastUsed = g.Max(c => c.Timestamp)
+                    })
+                    .OrderByDescending(e => e.UsageCount)
+                    .ToList();
+
+                foreach (var element in elementGroups)
+                {
+                    lstElementStats.Items.Add(element);
+                }
+
+                UpdateStatus(string.Format("Element statistics refreshed: {0} unique elements", elementGroups.Count));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error refreshing element statistics: {0}", ex.Message));
+            }
+        }
+
+        #endregion
+
+        #region Auto Mode Toggle - PODMIENEČNÉ
+
+        private void ToggleAutomaticMode_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
+
+                // OPRAVA: podmienečná kontrola
+                if (btnToggleAutoMode != null)
+                {
+                    btnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
+                }
+
+                var message = _isAutoTrackingEnabled ?
+                    "Automatic mode enabled - New windows will be tracked automatically" :
+                    "Automatic mode disabled - Manual window selection required";
+                UpdateStatus(message);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error toggling automatic mode", ex);
+            }
+        }
+
+        #endregion
+
+        #region Selection UI Updates - OPRAVENÉ
+
         private async void SelectTargetByClick_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -294,12 +602,16 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
+                // Zobraz selection indicator
+                selectionModeIndicator.Visibility = Visibility.Visible;
+                txtSelectionMode.Text = "Click Selection Active";
+
                 // Zmeni tlačidlo na cancel mode
                 btnSelectTargetByClick.Content = "❌ Cancel Selection";
                 btnSelectTargetByClick.IsEnabled = true;
 
                 // Disable ostatné controls počas výberu
-                btnSelectTarget.IsEnabled = false;  // ← ODKOMENTOVAŤ TOTO
+                btnSelectTarget.IsEnabled = false;
                 btnRecording.IsEnabled = false;
 
                 UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
@@ -311,8 +623,7 @@ namespace AppCommander.W7_11.WPF
                 {
                     // Nastav vybrané okno ako target
                     _targetWindowHandle = selectedWindow.WindowHandle;
-                    lblTargetWindow.Content = string.Format("{0} - {1}",
-                        selectedWindow.ProcessName, selectedWindow.Title);
+                    UpdateTargetWindowInfo(selectedWindow);
 
                     UpdateUI();
                     UpdateStatus(string.Format("Target selected by click: {0}", selectedWindow.ProcessName));
@@ -331,6 +642,28 @@ namespace AppCommander.W7_11.WPF
                 ResetClickSelectionUI();
             }
         }
+
+        #endregion
+
+
+
+        #region Window Click Selection
+
+        private WindowClickSelector _windowClickSelector;
+
+        /// <summary>
+        /// Inicializuje window click selector
+        /// </summary>
+        private void InitializeWindowClickSelector()
+        {
+            _windowClickSelector = new WindowClickSelector();
+
+            // Subscribe to events
+            _windowClickSelector.WindowSelected += OnWindowClickSelected;
+            _windowClickSelector.SelectionCancelled += OnWindowClickSelectionCancelled;
+            _windowClickSelector.StatusChanged += OnWindowClickStatusChanged;
+        }
+
         /// <summary>
         /// Event handler pre úspešný výber okna
         /// </summary>
@@ -344,7 +677,7 @@ namespace AppCommander.W7_11.WPF
 
                     // Nastav target window
                     _targetWindowHandle = windowInfo.WindowHandle;
-                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                    lblTargetWindow.Text = string.Format("{0} - {1}",
                         windowInfo.ProcessName, windowInfo.Title);
 
                     UpdateUI();
@@ -383,24 +716,6 @@ namespace AppCommander.W7_11.WPF
             {
                 UpdateStatus(status);
             }));
-        }
-
-        /// <summary>
-        /// Resetuje UI po click selection
-        /// </summary>
-        private void ResetClickSelectionUI()
-        {
-            try
-            {
-                btnSelectTargetByClick.Content = "👆 Click to Select";
-                btnSelectTargetByClick.IsEnabled = true;
-                btnSelectTarget.IsEnabled = true;  // ← Uistite sa, že toto zapína "Select from List"
-                btnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
-            }
         }
 
 
@@ -459,7 +774,7 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
                 {
                     _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    lblTargetWindow.Content = string.Format("{0} - {1}",
+                    lblTargetWindow.Text = string.Format("{0} - {1}",
                         dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
 
                     UpdateUI();
@@ -654,238 +969,9 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void StartNewRecording()
-        {
-            try
-            {
-                if (_targetWindowHandle == IntPtr.Zero)
-                {
-                    MessageBox.Show("Please select a target window first.", "No Target Selected",
-                                   MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var sequenceName = txtSequenceName.Text;
-                if (string.IsNullOrWhiteSpace(sequenceName))
-                {
-                    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-                    txtSequenceName.Text = sequenceName;
-                }
-
-                _recorder.StartRecording(sequenceName, _targetWindowHandle);
-                _recorder.EnableRealTimeElementScanning = true;
-                _recorder.AutoUpdateExistingCommands = true;
-                _recorder.EnablePredictiveDetection = true;
-
-                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
-                _windowTracker.StartTracking(targetProcess);
-                _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
-
-                btnRecording.Content = "⏹ Stop Recording";
-                btnRecording.Style = (Style)FindResource("DangerButton");
-
-                lblAutoDetectionStatus.Content = "🟢 Auto-Detection Active";
-                lblUIRecordingStatus.Content = "🟢 UI Scanning Active";
-                progressEnhancedRecording.Visibility = Visibility.Visible;
-                progressEnhancedRecording.IsIndeterminate = true;
-
-                UpdateStatus($"Recording started: {sequenceName}");
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error starting recording", ex);
-            }
-        }
-
-        private void StopCurrentRecording()
-        {
-            try
-            {
-                _recorder.StopRecording();
-                _windowTracker.StopTracking();
-                _automaticUIManager.StopMonitoring();
-
-                btnRecording.Content = "🔴 Start Recording";
-                btnRecording.Style = (Style)FindResource("PrimaryButton");
-
-                lblAutoDetectionStatus.Content = "🔴 Auto-Detection Inactive";
-                lblUIRecordingStatus.Content = "🔴 UI Scanning Inactive";
-                progressEnhancedRecording.Visibility = Visibility.Collapsed;
-                progressEnhancedRecording.IsIndeterminate = false;
-
-                UpdateStatus("Recording stopped");
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error stopping recording", ex);
-            }
-        }
-
-        //private void StartRecording_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (_recorder.IsRecording)
-        //        {
-        //            _recorder.StopRecording();
-        //            _windowTracker.StopTracking();
-        //            _automaticUIManager.StopMonitoring();
-        //            return;
-        //        }
-
-        //        if (_targetWindowHandle == IntPtr.Zero)
-        //        {
-        //            MessageBox.Show("Please select a target window first.", "No Target Selected",
-        //                          MessageBoxButton.OK, MessageBoxImage.Warning);
-        //            SelectTarget_Click(sender, e);
-        //            return;
-        //        }
-
-        //        var sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-
-        //        _recorder.StartRecording(sequenceName, _targetWindowHandle);
-
-        //        string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
-        //        _windowTracker.StartTracking(targetProcess);
-        //        _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
-
-        //        UpdateStatus(string.Format("Recording started: {0} (Target: {1})", sequenceName, targetProcess));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error starting recording", ex);
-        //    }
-        //}
-
-        //private void SelectTarget_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        var dialog = new WindowSelectorDialog();
-        //        if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
-        //        {
-        //            _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-        //            lblTargetWindow.Content = string.Format("{0} - {1}",
-        //                dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
-
-        //            UpdateUI();
-        //            UpdateStatus(string.Format("Target selected: {0}", dialog.SelectedWindow.ProcessName));
-
-        //            Debug.WriteLine(string.Format("Target window selected: Handle=0x{0:X8}, Process={1}, Title={2}",
-        //                _targetWindowHandle.ToInt64(), dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title));
-        //        }
-        //        else
-        //        {
-        //            Debug.WriteLine("No window selected or dialog cancelled");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error selecting target window", ex);
-        //    }
-        //}
-
-        //private void StopRecording_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (_recorder.IsRecording)
-        //        {
-        //            _recorder.StopRecording();
-        //            _windowTracker.StopTracking();
-        //            _automaticUIManager.StopMonitoring();
-
-        //            lblAutoDetectionStatus.Content = "Auto-Detection Inactive";
-        //            lblUIRecordingStatus.Content = "UI Scanning Inactive";
-        //            progressEnhancedRecording.Visibility = Visibility.Collapsed;
-        //            progressEnhancedRecording.IsIndeterminate = false;
-
-        //            UpdateStatus("Recording stopped");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error stopping recording", ex);
-        //    }
-        //}
-
-        //private void PauseRecording_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (_recorder.IsRecording)
-        //        {
-        //            if (_recorder.IsPaused)
-        //            {
-        //                _recorder.ResumeRecording();
-        //                btnPauseRecording.Content = "Pause";
-        //                UpdateStatus("Recording resumed");
-        //            }
-        //            else
-        //            {
-        //                _recorder.PauseRecording();
-        //                btnPauseRecording.Content = "Resume";
-        //                UpdateStatus("Recording paused");
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error pausing/resuming recording", ex);
-        //    }
-        //}
-
         #endregion
 
         #region Enhanced Recording
-
-        //private void StartEnhancedRecordingWithAutoDetection_Click(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (_recorder.IsRecording)
-        //        {
-        //            MessageBox.Show("Recording is already in progress. Please stop current recording first.",
-        //                           "Recording In Progress", MessageBoxButton.OK, MessageBoxImage.Warning);
-        //            return;
-        //        }
-
-        //        if (_targetWindowHandle == IntPtr.Zero)
-        //        {
-        //            MessageBox.Show("Please select a target window first.", "No Target Selected",
-        //                           MessageBoxButton.OK, MessageBoxImage.Warning);
-        //            SelectTarget_Click(sender, e);
-        //            return;
-        //        }
-
-        //        var sequenceName = txtSequenceName.Text;
-        //        if (string.IsNullOrWhiteSpace(sequenceName))
-        //        {
-        //            sequenceName = string.Format("Enhanced_Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-        //            txtSequenceName.Text = sequenceName;
-        //        }
-
-        //        _recorder.StartRecording(sequenceName, _targetWindowHandle);
-        //        _recorder.EnableRealTimeElementScanning = true;
-        //        _recorder.AutoUpdateExistingCommands = true;
-        //        _recorder.EnablePredictiveDetection = true;
-
-        //        string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
-        //        _windowTracker.StartTracking(targetProcess);
-        //        _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
-
-        //        lblAutoDetectionStatus.Content = "Auto-Detection Active";
-        //        lblUIRecordingStatus.Content = "UI Scanning Active";
-        //        progressEnhancedRecording.Visibility = Visibility.Visible;
-        //        progressEnhancedRecording.IsIndeterminate = true;
-
-        //        UpdateStatus(string.Format("Enhanced recording started: {0} (Target: {1})", sequenceName, targetProcess));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error starting enhanced recording", ex);
-        //    }
-        //}
 
         private void AutoRefreshAllUIElements_Click(object sender, RoutedEventArgs e)
         {
@@ -908,23 +994,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void ToggleAutomaticMode_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
-                btnToggleAutoMode.Content = _isAutoTrackingEnabled ? "Auto Mode ON" : "Auto Mode OFF";
-
-                var message = _isAutoTrackingEnabled ?
-                    "Automatic mode enabled - New windows will be tracked automatically" :
-                    "Automatic mode disabled - Manual window selection required";
-                UpdateStatus(message);
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error toggling automatic mode", ex);
-            }
-        }
 
         private void ShowAutomaticSystemStatus_Click(object sender, RoutedEventArgs e)
         {
@@ -1089,42 +1158,7 @@ namespace AppCommander.W7_11.WPF
                 ShowErrorMessage("Error starting direct playback", ex);
             }
         }
-
-        private void PausePlayback_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_player.IsPaused)
-                {
-                    _player.Resume();
-                    btnPause.Content = "Pause";
-                }
-                else if (_player.IsPlaying)
-                {
-                    _player.Pause();
-                    btnPause.Content = "Resume";
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error pausing/resuming playback", ex);
-            }
-        }
-
-        private void StopPlayback_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                _player.Stop();
-                btnPause.Content = "Pause";
-                UpdateStatus("Playback stopped");
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error stopping playback", ex);
-            }
-        }
-
+        
         private (bool IsValid, string Message) ValidateLoopIntegrity()
         {
             var loopStarts = _commands.Count(c => c.Type == CommandType.LoopStart);
@@ -1806,52 +1840,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region UI Updates
-
-        private void UpdateUI()
-        {
-            try
-            {
-                bool isRecording = _recorder != null && _recorder.IsRecording;
-                bool isPlaying = _player != null && _player.IsPlaying;
-
-                // OPRAVA: zmeňte btnStartRecording na btnRecording
-                // btnStartRecording.Content = isRecording ? "Stop Recording" : "Record";
-                // btnStartRecording.IsEnabled = shouldEnableRecord;
-
-                bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
-
-                // Nové riadky pre btnRecording:
-                btnRecording.IsEnabled = hasTargetWindow || isRecording;
-
-                // Playback controls
-                btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
-                btnPause.IsEnabled = isPlaying;
-                btnStop.IsEnabled = isPlaying;
-                btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
-
-                var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
-                string commandText = loopCount > 0 ?
-                    string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
-                    string.Format("Commands: {0}", _commands.Count);
-                txtCommandCount.Text = commandText;
-
-                string title = "AppCommander";
-                if (!string.IsNullOrEmpty(_currentFilePath))
-                {
-                    title += string.Format(" - {0}", Path.GetFileName(_currentFilePath));
-                }
-                if (_hasUnsavedChanges)
-                {
-                    title += " *";
-                }
-                this.Title = title;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(string.Format("Error updating UI: {0}", ex.Message));
-            }
-        }
+        #region UI Update
 
         private void UpdateStatus(string message)
         {
@@ -1887,38 +1876,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Helper Methods
-
-        private void RefreshElementStatistics()
-        {
-            try
-            {
-                lstElementStats.Items.Clear();
-
-                var elementGroups = _commands
-                    .Where(c => !string.IsNullOrEmpty(c.ElementName))
-                    .GroupBy(c => c.ElementName)
-                    .Select(g => new
-                    {
-                        ElementName = g.Key,
-                        UsageCount = g.Count(),
-                        LastUsed = g.Max(c => c.Timestamp)
-                    })
-                    .OrderByDescending(e => e.UsageCount)
-                    .ToList();
-
-                foreach (var element in elementGroups)
-                {
-                    lstElementStats.Items.Add(element);
-                }
-
-                UpdateStatus(string.Format("Element statistics refreshed: {0} unique elements", elementGroups.Count));
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(string.Format("Error refreshing element statistics: {0}", ex.Message));
-            }
-        }
+        #region Helper Methods 
 
         private string GenerateAutoDetectedDataReport()
         {
