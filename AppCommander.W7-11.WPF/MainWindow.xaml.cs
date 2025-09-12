@@ -56,6 +56,8 @@ namespace AppCommander.W7_11.WPF
                 _commands = new ObservableCollection<Command>();
                 dgCommands.ItemsSource = _commands;
 
+                InitializeWindowClickSelector();
+
                 // Subscribe to events
                 SubscribeToEvents();
 
@@ -297,8 +299,8 @@ namespace AppCommander.W7_11.WPF
                 btnSelectTargetByClick.IsEnabled = true;
 
                 // Disable ostatné controls počas výberu
-                btnSelectTarget.IsEnabled = false;
-                btnStartRecording.IsEnabled = false;
+                btnSelectTarget.IsEnabled = false;  // ← ODKOMENTOVAŤ TOTO
+                btnRecording.IsEnabled = false;
 
                 UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
 
@@ -329,7 +331,6 @@ namespace AppCommander.W7_11.WPF
                 ResetClickSelectionUI();
             }
         }
-
         /// <summary>
         /// Event handler pre úspešný výber okna
         /// </summary>
@@ -393,14 +394,15 @@ namespace AppCommander.W7_11.WPF
             {
                 btnSelectTargetByClick.Content = "👆 Click to Select";
                 btnSelectTargetByClick.IsEnabled = true;
-                btnSelectTarget.IsEnabled = true;
-                btnStartRecording.IsEnabled = true;
+                btnSelectTarget.IsEnabled = true;  // ← Uistite sa, že toto zapína "Select from List"
+                btnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
             }
         }
+
 
         #endregion
 
@@ -624,43 +626,136 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
+
+
         #region Recording Controls
 
-        private void StartRecording_Click(object sender, RoutedEventArgs e)
+
+
+        /// <summary>
+        /// Toggle medzi Start/Stop recording
+        /// </summary>
+        private void ToggleRecording_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (_recorder.IsRecording)
                 {
-                    _recorder.StopRecording();
-                    _windowTracker.StopTracking();
-                    _automaticUIManager.StopMonitoring();
-                    return;
+                    StopCurrentRecording();
                 }
+                else
+                {
+                    StartNewRecording();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error toggling recording", ex);
+            }
+        }
 
+        private void StartNewRecording()
+        {
+            try
+            {
                 if (_targetWindowHandle == IntPtr.Zero)
                 {
                     MessageBox.Show("Please select a target window first.", "No Target Selected",
-                                  MessageBoxButton.OK, MessageBoxImage.Warning);
-                    SelectTarget_Click(sender, e);
+                                   MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                var sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+                var sequenceName = txtSequenceName.Text;
+                if (string.IsNullOrWhiteSpace(sequenceName))
+                {
+                    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+                    txtSequenceName.Text = sequenceName;
+                }
 
                 _recorder.StartRecording(sequenceName, _targetWindowHandle);
+                _recorder.EnableRealTimeElementScanning = true;
+                _recorder.AutoUpdateExistingCommands = true;
+                _recorder.EnablePredictiveDetection = true;
 
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 _windowTracker.StartTracking(targetProcess);
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
-                UpdateStatus(string.Format("Recording started: {0} (Target: {1})", sequenceName, targetProcess));
+                btnRecording.Content = "⏹ Stop Recording";
+                btnRecording.Style = (Style)FindResource("DangerButton");
+
+                lblAutoDetectionStatus.Content = "🟢 Auto-Detection Active";
+                lblUIRecordingStatus.Content = "🟢 UI Scanning Active";
+                progressEnhancedRecording.Visibility = Visibility.Visible;
+                progressEnhancedRecording.IsIndeterminate = true;
+
+                UpdateStatus($"Recording started: {sequenceName}");
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error starting recording", ex);
             }
         }
+
+        private void StopCurrentRecording()
+        {
+            try
+            {
+                _recorder.StopRecording();
+                _windowTracker.StopTracking();
+                _automaticUIManager.StopMonitoring();
+
+                btnRecording.Content = "🔴 Start Recording";
+                btnRecording.Style = (Style)FindResource("PrimaryButton");
+
+                lblAutoDetectionStatus.Content = "🔴 Auto-Detection Inactive";
+                lblUIRecordingStatus.Content = "🔴 UI Scanning Inactive";
+                progressEnhancedRecording.Visibility = Visibility.Collapsed;
+                progressEnhancedRecording.IsIndeterminate = false;
+
+                UpdateStatus("Recording stopped");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error stopping recording", ex);
+            }
+        }
+
+        //private void StartRecording_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (_recorder.IsRecording)
+        //        {
+        //            _recorder.StopRecording();
+        //            _windowTracker.StopTracking();
+        //            _automaticUIManager.StopMonitoring();
+        //            return;
+        //        }
+
+        //        if (_targetWindowHandle == IntPtr.Zero)
+        //        {
+        //            MessageBox.Show("Please select a target window first.", "No Target Selected",
+        //                          MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            SelectTarget_Click(sender, e);
+        //            return;
+        //        }
+
+        //        var sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+
+        //        _recorder.StartRecording(sequenceName, _targetWindowHandle);
+
+        //        string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+        //        _windowTracker.StartTracking(targetProcess);
+        //        _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
+
+        //        UpdateStatus(string.Format("Recording started: {0} (Target: {1})", sequenceName, targetProcess));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error starting recording", ex);
+        //    }
+        //}
 
         //private void SelectTarget_Click(object sender, RoutedEventArgs e)
         //{
@@ -690,29 +785,29 @@ namespace AppCommander.W7_11.WPF
         //    }
         //}
 
-        private void StopRecording_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_recorder.IsRecording)
-                {
-                    _recorder.StopRecording();
-                    _windowTracker.StopTracking();
-                    _automaticUIManager.StopMonitoring();
+        //private void StopRecording_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (_recorder.IsRecording)
+        //        {
+        //            _recorder.StopRecording();
+        //            _windowTracker.StopTracking();
+        //            _automaticUIManager.StopMonitoring();
 
-                    lblAutoDetectionStatus.Content = "Auto-Detection Inactive";
-                    lblUIRecordingStatus.Content = "UI Scanning Inactive";
-                    progressEnhancedRecording.Visibility = Visibility.Collapsed;
-                    progressEnhancedRecording.IsIndeterminate = false;
+        //            lblAutoDetectionStatus.Content = "Auto-Detection Inactive";
+        //            lblUIRecordingStatus.Content = "UI Scanning Inactive";
+        //            progressEnhancedRecording.Visibility = Visibility.Collapsed;
+        //            progressEnhancedRecording.IsIndeterminate = false;
 
-                    UpdateStatus("Recording stopped");
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error stopping recording", ex);
-            }
-        }
+        //            UpdateStatus("Recording stopped");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error stopping recording", ex);
+        //    }
+        //}
 
         //private void PauseRecording_Click(object sender, RoutedEventArgs e)
         //{
@@ -744,53 +839,53 @@ namespace AppCommander.W7_11.WPF
 
         #region Enhanced Recording
 
-        private void StartEnhancedRecordingWithAutoDetection_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_recorder.IsRecording)
-                {
-                    MessageBox.Show("Recording is already in progress. Please stop current recording first.",
-                                   "Recording In Progress", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+        //private void StartEnhancedRecordingWithAutoDetection_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (_recorder.IsRecording)
+        //        {
+        //            MessageBox.Show("Recording is already in progress. Please stop current recording first.",
+        //                           "Recording In Progress", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            return;
+        //        }
 
-                if (_targetWindowHandle == IntPtr.Zero)
-                {
-                    MessageBox.Show("Please select a target window first.", "No Target Selected",
-                                   MessageBoxButton.OK, MessageBoxImage.Warning);
-                    SelectTarget_Click(sender, e);
-                    return;
-                }
+        //        if (_targetWindowHandle == IntPtr.Zero)
+        //        {
+        //            MessageBox.Show("Please select a target window first.", "No Target Selected",
+        //                           MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            SelectTarget_Click(sender, e);
+        //            return;
+        //        }
 
-                var sequenceName = txtSequenceName.Text;
-                if (string.IsNullOrWhiteSpace(sequenceName))
-                {
-                    sequenceName = string.Format("Enhanced_Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-                    txtSequenceName.Text = sequenceName;
-                }
+        //        var sequenceName = txtSequenceName.Text;
+        //        if (string.IsNullOrWhiteSpace(sequenceName))
+        //        {
+        //            sequenceName = string.Format("Enhanced_Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+        //            txtSequenceName.Text = sequenceName;
+        //        }
 
-                _recorder.StartRecording(sequenceName, _targetWindowHandle);
-                _recorder.EnableRealTimeElementScanning = true;
-                _recorder.AutoUpdateExistingCommands = true;
-                _recorder.EnablePredictiveDetection = true;
+        //        _recorder.StartRecording(sequenceName, _targetWindowHandle);
+        //        _recorder.EnableRealTimeElementScanning = true;
+        //        _recorder.AutoUpdateExistingCommands = true;
+        //        _recorder.EnablePredictiveDetection = true;
 
-                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
-                _windowTracker.StartTracking(targetProcess);
-                _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
+        //        string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+        //        _windowTracker.StartTracking(targetProcess);
+        //        _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
-                lblAutoDetectionStatus.Content = "Auto-Detection Active";
-                lblUIRecordingStatus.Content = "UI Scanning Active";
-                progressEnhancedRecording.Visibility = Visibility.Visible;
-                progressEnhancedRecording.IsIndeterminate = true;
+        //        lblAutoDetectionStatus.Content = "Auto-Detection Active";
+        //        lblUIRecordingStatus.Content = "UI Scanning Active";
+        //        progressEnhancedRecording.Visibility = Visibility.Visible;
+        //        progressEnhancedRecording.IsIndeterminate = true;
 
-                UpdateStatus(string.Format("Enhanced recording started: {0} (Target: {1})", sequenceName, targetProcess));
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error starting enhanced recording", ex);
-            }
-        }
+        //        UpdateStatus(string.Format("Enhanced recording started: {0} (Target: {1})", sequenceName, targetProcess));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error starting enhanced recording", ex);
+        //    }
+        //}
 
         private void AutoRefreshAllUIElements_Click(object sender, RoutedEventArgs e)
         {
@@ -1720,14 +1815,20 @@ namespace AppCommander.W7_11.WPF
                 bool isRecording = _recorder != null && _recorder.IsRecording;
                 bool isPlaying = _player != null && _player.IsPlaying;
 
-                btnStartRecording.Content = isRecording ? "Stop Recording" : "Record";
-                bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
-                bool shouldEnableRecord = hasTargetWindow || isRecording;
+                // OPRAVA: zmeňte btnStartRecording na btnRecording
+                // btnStartRecording.Content = isRecording ? "Stop Recording" : "Record";
+                // btnStartRecording.IsEnabled = shouldEnableRecord;
 
-                btnStartRecording.IsEnabled = shouldEnableRecord;
+                bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
+
+                // Nové riadky pre btnRecording:
+                btnRecording.IsEnabled = hasTargetWindow || isRecording;
+
+                // Playback controls
                 btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
                 btnPause.IsEnabled = isPlaying;
                 btnStop.IsEnabled = isPlaying;
+                btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
                 var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
                 string commandText = loopCount > 0 ?

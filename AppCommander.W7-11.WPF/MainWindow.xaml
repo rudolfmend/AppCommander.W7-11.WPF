@@ -61,9 +61,9 @@
             </MenuItem>
         </Menu>
 
-        <!-- Main Control Panel -->
+        <!-- Main Selection Panel -->
         <StackPanel Grid.Row="1" Margin="5">
-            <GroupBox Header="Control Panel" Style="{StaticResource GroupBoxStyle}">
+            <GroupBox Header="Selection" Style="{StaticResource GroupBoxStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition MinWidth="450"/>
@@ -76,16 +76,29 @@
                         <!-- Target Selection Buttons -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
                             <Button Name="btnSelectTargetByClick" Content="👆 Click to Select" 
-                                    Style="{StaticResource PrimaryButton}" 
-                                    Click="SelectTargetByClick_Click" 
-                                    Margin="0,0,5,0"
-                                    ToolTip="Click to select target window by clicking on it"/>
+                            Style="{StaticResource PrimaryButton}" 
+                            Click="SelectTargetByClick_Click" 
+                            Margin="0,0,5,0"
+                            ToolTip="Click to select target window by clicking on it"/>
                             <Button Name="btnSelectTarget" Content="📋 Select from List" 
-                                    Style="{StaticResource SecondaryButton}" 
-                                    Click="SelectTarget_Click" 
-                                    Margin="0,0,10,0"
-                                    ToolTip="Select target window from a list"/>
+                            Style="{StaticResource SecondaryButton}" 
+                            Click="SelectTarget_Click" 
+                            Margin="0,0,10,0"
+                            ToolTip="Select target window from a list"/>
                         </StackPanel>
+
+                        <!-- Single Recording Toggle Button -->
+
+                        <!-- Playback Button -->
+                        <Button Name="btnPlayCommands" Content="▶ Play" 
+                        Style="{StaticResource PrimaryButton}" 
+                            Click="PlaySequence_Click" 
+                            Margin="350,0,10,0"
+                            ToolTip="Play recorded sequence"/>      
+                        <Button x:Name="btnRecording" Content="🔴 Start Recording" 
+                            Style="{StaticResource PrimaryButton}"  
+                            Click="ToggleRecording_Click"
+                            ToolTip="Start or stop recording"/>
                     </StackPanel>
 
                     <!-- Repeat Logic Panel -->
@@ -94,25 +107,25 @@
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <TextBlock Text="Count:" VerticalAlignment="Center" Margin="0,0,5,0" FontSize="10"/>
                             <TextBox Name="txtRepeatCount" Style="{StaticResource TextBoxStyle}" Text="1" Width="40" Height="20" 
-                                     VerticalAlignment="Center" HorizontalContentAlignment="Center"
-                                     ToolTip="Number of times to repeat the sequence (1-999)"/>
+                             VerticalAlignment="Center" HorizontalContentAlignment="Center"
+                             ToolTip="Number of times to repeat the sequence (1-999)"/>
                             <CheckBox Name="chkInfiniteLoop" Content="∞" VerticalAlignment="Center" Style="{StaticResource CheckBoxStyle}"
-                                      Margin="5,0,0,0" ToolTip="Infinite loop (Ctrl+Stop to break)"
-                                      Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked"/>
+                              Margin="5,0,0,0" ToolTip="Infinite loop (Ctrl+Stop to break)"
+                              Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Playback Controls -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Name="btnPlay" Content="▶ Play" 
-                                Style="{StaticResource PrimaryButton}" 
-                                Click="PlaySequence_Click" Margin="0,0,10,0"/>
+                        Style="{StaticResource PrimaryButton}" 
+                        Click="PlaySequence_Click" Margin="0,0,10,0"/>
                         <Button Name="btnPause" Content="|| Pause" 
-                                Style="{StaticResource SecondaryButton}" 
-                                Click="PausePlayback_Click" Margin="0,0,10,0" IsEnabled="False"/>
+                        Style="{StaticResource SecondaryButton}" 
+                        Click="PausePlayback_Click" Margin="0,0,10,0" IsEnabled="False"/>
                         <Button Name="btnStop" Content="■ Stop" 
-                                Style="{StaticResource SecondaryButton}" 
-                                Click="StopPlayback_Click" IsEnabled="False"/>
+                        Style="{StaticResource SecondaryButton}" 
+                        Click="StopPlayback_Click" IsEnabled="False"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -120,16 +133,14 @@
 
         <!-- Enhanced Recording Panel -->
         <StackPanel Grid.Row="2" Margin="5">
-            <GroupBox Header="Enhanced Recording &amp; Auto-Detection" Style="{StaticResource GroupBoxStyle}">
+            <GroupBox Header="Recording" Style="{StaticResource GroupBoxStyle}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Sequence Name:" VerticalAlignment="Center"  Style="{StaticResource TextBlockStyle}"
-                                   FontWeight="Bold" Width="100" />
+                        <TextBlock Text="Sequence Name:" VerticalAlignment="Center" 
+                           FontWeight="Bold" Width="100" FontSize="10"/>
                         <TextBox Name="txtSequenceName" Style="{StaticResource TextBoxStyle}" Width="250" Height="25" 
-                                 Text="My_Recording" VerticalAlignment="Center" 
-                                 ToolTip="Enter name for the recording sequence"/>
-                        
-                        
+                         Text="My_Recording" VerticalAlignment="Center" 
+                         ToolTip="Enter name for the recording sequence"/>
                     </StackPanel>
 
                     <Grid>
@@ -141,51 +152,33 @@
 
                         <!-- Enhanced Controls -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
-
-
-                            <!-- Recording Controls -->
-                            <Button Name="btnStartRecording" Content="🔴 Start Recording" 
-                                Style="{StaticResource PrimaryButton}" 
-                                Click="StartRecording_Click" Margin="0,0,10,0"/>
-                            <!--<Button Name="btnStopRecording" Content="⏹ Stop Recording" 
-                                Style="{StaticResource DangerButton}" 
-                                Click="StopRecording_Click" Margin="0,0,10,0"/>
-                            <Button Name="btnPauseRecording" Content="⏸ Pause Recording" 
-                                Style="{StaticResource SecondaryButton}" 
-                                Click="PauseRecording_Click" Margin="0,0,10,0"/>-->
-                            <Button Name="btnPlayCommands" Content="▶ Play" 
-                                Style="{StaticResource PrimaryButton}" 
-                                Click="PlaySequence_Click" Margin="0,0,10,0"/>
-                            
-                            <Button Name="btnStartEnhancedRecording" Content="Enhanced Record." 
-                                    Click="StartEnhancedRecordingWithAutoDetection_Click" 
-                                    Style="{StaticResource PrimaryButton}" Margin="0,0,5,0"/>
                             <Button x:Name="btnAutoRefreshElements" Content="↻ Refresh UI" 
-                                    Click="AutoRefreshAllUIElements_Click" 
-                                    Style="{StaticResource SecondaryButton}" Margin="0,0,0,0"/>
+                            Click="AutoRefreshAllUIElements_Click" 
+                            Style="{StaticResource SecondaryButton}" 
+                            ToolTip="Refresh UI element detection"/>
                         </StackPanel>
 
                         <!-- Auto Mode Controls -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Name="btnToggleAutoMode" Content="🎯 Auto Mode" 
-                                    Click="ToggleAutomaticMode_Click" 
-                                    Style="{StaticResource SecondaryButton}" Margin="0,0,5,0"/>
+                            Click="ToggleAutomaticMode_Click" 
+                            Style="{StaticResource SecondaryButton}" Margin="0,0,5,0"/>
                             <Button Name="btnShowSystemStatus" Content="≡ Status" 
-                                    Click="ShowAutomaticSystemStatus_Click" 
-                                    Style="{StaticResource SecondaryButton}"/>
+                            Click="ShowAutomaticSystemStatus_Click" 
+                            Style="{StaticResource SecondaryButton}"/>
                         </StackPanel>
 
                         <!-- Status Indicators -->
                         <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                             <Label Name="lblAutoDetectionStatus" Content="🔴 Auto-Detection Inactive" 
-                                   Style="{StaticResource LabelStyle}"/>
+                           Style="{StaticResource LabelStyle}"/>
                             <Label Name="lblUIRecordingStatus" Content="🔴 UI Scanning Inactive" 
-                                   Style="{StaticResource LabelStyle}"/>
+                           Style="{StaticResource LabelStyle}"/>
                         </StackPanel>
                     </Grid>
 
                     <ProgressBar Name="progressEnhancedRecording" Height="4" 
-                                 IsIndeterminate="False" Visibility="Collapsed" Margin="0,5,0,0"/>
+                         IsIndeterminate="False" Visibility="Collapsed" Margin="0,5,0,0"/>
                 </StackPanel>
             </GroupBox>
         </StackPanel>
@@ -280,13 +273,15 @@
                             <!-- Quick Action Buttons -->
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                 <Button Content="🔄 Reselect" Click="SelectTargetByClick_Click" 
-                                        Style="{StaticResource SecondaryButton}" 
-                                        FontSize="10" Padding="8,4" Margin="0,0,5,0"
-                                        ToolTip="Quickly reselect target using click selection"/>
-                                <Button Content="📋 Browse" Click="SelectTarget_Click" 
-                                        Style="{StaticResource SecondaryButton}" 
-                                        FontSize="10" Padding="8,4"
-                                        ToolTip="Browse all available windows"/>
+                                    Name="btnQuickReselect"
+                                    Style="{StaticResource SecondaryButton}" 
+                                    FontSize="10" Padding="8,4" Margin="0,0,5,0"
+                                    ToolTip="Quickly reselect target using click selection"/>
+                                <Button Content="📋 Browse" Click="SelectTarget_Click"
+                                    Name="btnQuickBrowse" 
+                                    Style="{StaticResource SecondaryButton}" 
+                                    FontSize="10" Padding="8,4"
+                                    ToolTip="Browse all available windows"/>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
