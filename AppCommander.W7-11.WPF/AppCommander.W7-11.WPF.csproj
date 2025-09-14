@@ -162,6 +162,7 @@
     <Compile Include="Core\SharedClasses.cs" />
     <Compile Include="Core\TableCellDetector.cs" />
     <Compile Include="Core\UIElementDetector.cs" />
+    <Compile Include="Core\UnifiedItem.cs" />
     <Compile Include="Core\WindowClickSelector.cs" />
     <Compile Include="Core\WindowDetectionTester.cs" />
     <Compile Include="Core\WindowTracker.cs" />

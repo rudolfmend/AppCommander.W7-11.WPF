@@ -4,12 +4,120 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+
+public class SequenceSetItem : INotifyPropertyChanged
+{
+    private ObservableCollection<UnifiedItem> _unifiedItems;
+    private UnifiedSequence _currentUnifiedSequence;
+    private string _currentUnifiedSequenceFilePath;
+    private bool _hasUnsavedUnifiedChanges;
+
+    private int _stepNumber;
+    private string _sequenceName;
+    private int _repeatCount;
+    private string _status;
+    private DateTime _timestamp;
+    private string _filePath;
+
+    public int StepNumber
+    {
+        get { return _stepNumber; }
+        set { _stepNumber = value; OnPropertyChanged("StepNumber"); }
+    }
+
+    public string SequenceName
+    {
+        get { return _sequenceName; }
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("Sequence name cannot be empty");
+            _sequenceName = value;
+            OnPropertyChanged("SequenceName");
+        }
+    }
+
+    public int RepeatCount
+    {
+        get { return _repeatCount; }
+        set
+        {
+            if (value < 1)
+                throw new ArgumentException("Repeat count must be at least 1");
+            _repeatCount = value;
+            OnPropertyChanged("RepeatCount");
+        }
+    }
+
+    public string Status
+    {
+        get { return _status; }
+        set { _status = value; OnPropertyChanged("Status"); }
+    }
+
+    public DateTime Timestamp
+    {
+        get { return _timestamp; }
+        set { _timestamp = value; OnPropertyChanged("Timestamp"); }
+    }
+
+    public string FilePath
+    {
+        get { return _filePath; }
+        set { _filePath = value; OnPropertyChanged("FilePath"); }
+    }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public SequenceSetItem()
+    {
+        _stepNumber = 1;
+        _sequenceName = "";
+        _repeatCount = 1;
+        _status = "Ready";
+        _timestamp = DateTime.Now;
+        _filePath = "";
+    }
+}
+
+// Trieda pre SequenceSet
+public class SequenceSet
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public List<SequenceSetItem> Sequences { get; set; }
+    public DateTime Created { get; set; }
+    public DateTime LastModified { get; set; }
+    public string FilePath { get; set; }
+
+    public SequenceSet()
+    {
+        Name = "";
+        Description = "";
+        Sequences = new List<SequenceSetItem>();
+        Created = DateTime.Now;
+        LastModified = DateTime.Now;
+        FilePath = "";
+    }
+
+    public SequenceSet(string name) : this()
+    {
+        Name = name;
+    }
+}
 
 namespace AppCommander.W7_11.WPF
 {
@@ -32,6 +140,19 @@ namespace AppCommander.W7_11.WPF
         private bool _hasUnsavedChanges = false;
         private bool _isAutoTrackingEnabled = true;
 
+        private ObservableCollection<SequenceSetItem> _sequenceSetItems;
+        private SequenceSet _currentSequenceSet;
+        private string _currentSequenceSetFilePath;
+        private bool _hasUnsavedSequenceSetChanges;
+
+        private void InitializeSequenceSet()
+        {
+            _sequenceSetItems = new ObservableCollection<SequenceSetItem>();
+            _currentSequenceSet = new SequenceSet();
+            _currentSequenceSetFilePath = string.Empty;
+            _hasUnsavedSequenceSetChanges = false;
+        }
+
         #endregion
 
         #region Constructor
@@ -42,11 +163,26 @@ namespace AppCommander.W7_11.WPF
             InitializeApplication();
         }
 
+        private void InitializeUnifiedTable()
+        {
+            _unifiedItems = new ObservableCollection<UnifiedItem>();
+            _currentUnifiedSequence = new UnifiedSequence();
+            _currentUnifiedSequenceFilePath = string.Empty;
+            _hasUnsavedUnifiedChanges = false;
+
+            // Nastavte DataContext pre dgUnified
+            if (dgUnified != null)
+            {
+                dgUnified.ItemsSource = _unifiedItems;
+            }
+
+            Debug.WriteLine("Unified table initialized");
+        }
+
         private void InitializeApplication()
         {
             try
             {
-                // Initialize core components
                 _windowTracker = new WindowTracker();
                 _recorder = new CommandRecorder();
                 _player = new CommandPlayer();
@@ -54,14 +190,12 @@ namespace AppCommander.W7_11.WPF
 
                 // Initialize collections
                 _commands = new ObservableCollection<Command>();
-                dgCommands.ItemsSource = _commands;
+
+                InitializeUnifiedTable();
 
                 InitializeWindowClickSelector();
 
-                // Subscribe to events
                 SubscribeToEvents();
-
-                // Update UI
                 UpdateUI();
                 UpdateStatus("Application initialized - Ready to start");
 
@@ -300,19 +434,39 @@ namespace AppCommander.W7_11.WPF
             {
                 if (windowInfo != null)
                 {
-                    // OPRAVA: TextBlock používa .Text namiesto .Content
+                    var processName = windowInfo.ProcessName ?? "Unknown Process";
+                    var title = windowInfo.Title ?? "Unknown Title";
+                    lblTargetWindow.Text = $"{processName} - {title}";
+
+                    // Update UI state
+                    btnRecording.IsEnabled = true;
+
                     lblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
                     txtTargetProcess.Text = windowInfo.ProcessName;
+                    _targetWindowHandle = windowInfo.WindowHandle;
+                    Debug.WriteLine($"Target window updated: Handle=0x{_targetWindowHandle.ToInt64():X8}, Process={windowInfo.ProcessName}, Title={windowInfo.Title}");
+
+                    UpdateStatus($"Target window set to: {windowInfo.ProcessName}");
+                    btnRecording.IsEnabled = true;
+                    UpdateUI();
                 }
                 else
                 {
                     lblTargetWindow.Text = "No target selected";
                     txtTargetProcess.Text = "-";
+                    btnRecording.IsEnabled = false;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error updating target window info: {ex.Message}");
+                txtTargetProcess.Text = "-";
+                lblTargetWindow.Text = "Error loading target info";
+                btnRecording.IsEnabled = false;
+            }
+            finally
+            {
+                UpdateUI();
             }
         }
 
@@ -373,7 +527,7 @@ namespace AppCommander.W7_11.WPF
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
                 btnRecording.Content = "⏹ Stop Recording";
-                btnRecording.Style = (Style)FindResource("ModernDangerButton");
+                btnRecording.Style = (Style)FindResource("DangerButton");
 
                 // OPRAVA: Používa novú metódu
                 UpdateStatusLabels(true);
@@ -398,7 +552,7 @@ namespace AppCommander.W7_11.WPF
                 _automaticUIManager.StopMonitoring();
 
                 btnRecording.Content = "🔴 Start Recording";
-                btnRecording.Style = (Style)FindResource("ModernDangerButton");
+                btnRecording.Style = (Style)FindResource("DangerButton");
 
                 // OPRAVA: Používa novú metódu
                 UpdateStatusLabels(false);
@@ -473,11 +627,10 @@ namespace AppCommander.W7_11.WPF
                 // Recording button state
                 btnRecording.IsEnabled = hasTargetWindow || isRecording;
 
-                // Playback controls - OPRAVA: podmienečné kontroly
                 btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
-                if (btnPlay != null)
-                    btnPlay.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                if (btnPlayCommands != null)
+                    btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
                 if (btnPause != null)
                     btnPause.IsEnabled = isPlaying;
@@ -650,6 +803,11 @@ namespace AppCommander.W7_11.WPF
         #region Window Click Selection
 
         private WindowClickSelector _windowClickSelector;
+        private ObservableCollection<UnifiedItem> _unifiedItems;
+        private UnifiedSequence _currentUnifiedSequence;
+        private string _currentUnifiedSequenceFilePath;
+        private bool _hasUnsavedUnifiedChanges;
+        private object txtSequenceName_Copy;
 
         /// <summary>
         /// Inicializuje window click selector
@@ -907,38 +1065,6 @@ namespace AppCommander.W7_11.WPF
                     e.ProcessName.IndexOf(_recorder.CurrentSequence.TargetProcessName, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            try
-            {
-                if (_hasUnsavedChanges)
-                {
-                    var result = MessageBox.Show("You have unsaved changes. Do you want to save before closing?",
-                                                "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        SaveSequence_Click(null, null);
-                    }
-                    else if (result == MessageBoxResult.Cancel)
-                    {
-                        e.Cancel = true;
-                        return;
-                    }
-                }
-
-                // Cleanup
-                if (_recorder != null) _recorder.Dispose();
-                if (_player != null) _player.Dispose();
-                if (_windowTracker != null) _windowTracker.Dispose();
-                if (_automaticUIManager != null) _automaticUIManager.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(string.Format("Error during window closing: {0}", ex.Message));
-            }
-        }
-
         #endregion
 
 
@@ -1030,59 +1156,6 @@ namespace AppCommander.W7_11.WPF
         #endregion
 
         #region Playback Controls
-
-        private void StartPlayback_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_player.IsPlaying)
-                {
-                    UpdateStatus("Playback is already running");
-                    return;
-                }
-
-                if (!_commands.Any())
-                {
-                    MessageBox.Show("No commands to play. Please record some commands first.",
-                                  "No Commands", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                var loopValidation = ValidateLoopIntegrity();
-                if (!loopValidation.IsValid)
-                {
-                    var message = string.Format("Loop validation warning:\n{0}\n\nDo you want to continue anyway?",
-                        loopValidation.Message);
-                    var result = MessageBox.Show(message, "Loop Validation",
-                        MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    if (result == MessageBoxResult.No)
-                        return;
-                }
-
-                int repeatCount = 1;
-                if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
-                {
-                    repeatCount = 1;
-                    txtRepeatCount.Text = "1";
-                }
-
-                var sequence = new CommandSequence
-                {
-                    Name = string.Format("Playback_{0:HHmmss}", DateTime.Now),
-                    Commands = _commands.ToList(),
-                    TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
-                    TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
-                    TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
-                };
-
-                _player.PlaySequence(sequence, repeatCount);
-                UpdateStatus(string.Format("Starting playback ({0}x) - {1} commands", repeatCount, _commands.Count));
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error starting playback", ex);
-            }
-        }
 
         private void PlaySequence_Click(object sender, RoutedEventArgs e)
         {
@@ -1181,30 +1254,44 @@ namespace AppCommander.W7_11.WPF
 
         #region Menu Handlers - File
 
+        /// <summary>
+        /// Aktualizuje NewSequence_Click aby vytvorila unified sequence
+        /// </summary>
         private void NewSequence_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (_hasUnsavedChanges)
+                // Ak používame unified table, vytvor unified sequence
+                if (_unifiedItems.Count > 0 || _commands.Count == 0)
                 {
-                    var result = MessageBox.Show("You have unsaved changes. Do you want to save before creating a new sequence?",
-                                                "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        SaveSequence_Click(sender, e);
-                    }
-                    else if (result == MessageBoxResult.Cancel)
-                    {
-                        return;
-                    }
+                    NewUnifiedSequence();
                 }
+                else
+                {
+                    // Fallback na starý systém
+                    if (_hasUnsavedChanges)
+                    {
+                        var result = MessageBox.Show("You have unsaved changes. Do you want to save before creating a new sequence?",
+                                                    "Unsaved Changes",
+                                                    MessageBoxButton.YesNoCancel,
+                                                    MessageBoxImage.Question);
 
-                _commands.Clear();
-                _currentFilePath = string.Empty;
-                _hasUnsavedChanges = false;
-                UpdateUI();
-                UpdateStatus("New sequence created");
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            SaveSequence_Click(sender, e);
+                        }
+                        else if (result == MessageBoxResult.Cancel)
+                        {
+                            return;
+                        }
+                    }
+
+                    _commands.Clear();
+                    _currentFilePath = string.Empty;
+                    _hasUnsavedChanges = false;
+                    UpdateUI();
+                    UpdateStatus("New sequence created");
+                }
             }
             catch (Exception ex)
             {
@@ -1212,19 +1299,36 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        // <summary>
+        /// Aktualizuje metódu pre načítanie súborov aby podporovala unified sequences
+        /// </summary>
         private void OpenSequence_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 var dialog = new OpenFileDialog
                 {
-                    Filter = "AppCommander Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Filter = "All Supported Files|*.acc;*.json;*.uniseq|" +
+                            "AppCommander Files (*.acc)|*.acc|" +
+                            "JSON Files (*.json)|*.json|" +
+                            "Unified Sequence Files (*.uniseq)|*.uniseq|" +
+                            "All Files (*.*)|*.*",
                     DefaultExt = ".acc"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    LoadSequenceFromFile(dialog.FileName);
+                    var extension = Path.GetExtension(dialog.FileName).ToLower();
+
+                    if (extension == ".uniseq")
+                    {
+                        LoadUnifiedSequenceFromFile(dialog.FileName);
+                    }
+                    else
+                    {
+                        // Load as traditional sequence
+                        LoadSequenceFromFile(dialog.FileName);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1233,21 +1337,76 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+
+        /// <summary>
+        /// Aktualizuje metódu pre uloženie aby automaticky rozhodla medzi formátmi
+        /// </summary>
         private void SaveSequence_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (string.IsNullOrEmpty(_currentFilePath))
+                // Ak máme unified items, uprednostníme unified formát
+                if (_unifiedItems.Count > 0)
                 {
-                    SaveSequenceAs_Click(sender, e);
-                    return;
+                    if (string.IsNullOrEmpty(_currentUnifiedSequenceFilePath))
+                    {
+                        SaveAsSet_Click(sender, e);
+                        return;
+                    }
+                    SaveUnifiedSequenceToFile(_currentUnifiedSequenceFilePath);
                 }
-
-                SaveSequenceToFile(_currentFilePath);
+                else
+                {
+                    // Fallback na starý systém
+                    if (string.IsNullOrEmpty(_currentFilePath))
+                    {
+                        SaveSequenceAs_Click(sender, e);
+                        return;
+                    }
+                    SaveSequenceToFile(_currentFilePath);
+                }
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error saving sequence", ex);
+            }
+        }
+
+        /// <summary>
+        /// Vyčistí unified table a vytvorí novú
+        /// </summary>
+        private void NewUnifiedSequence()
+        {
+            try
+            {
+                if (_hasUnsavedUnifiedChanges)
+                {
+                    var result = MessageBox.Show("You have unsaved changes in unified sequence. Do you want to save before creating new?",
+                                                "Unsaved Changes",
+                                                MessageBoxButton.YesNoCancel,
+                                                MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        SaveAsSet_Click(null, null);
+                    }
+                    else if (result == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+                }
+
+                _unifiedItems.Clear();
+                _currentUnifiedSequence = new UnifiedSequence();
+                _currentUnifiedSequenceFilePath = string.Empty;
+                _hasUnsavedUnifiedChanges = false;
+
+                UpdateUnifiedUI();
+                UpdateStatus("New unified sequence created");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error creating new unified sequence", ex);
             }
         }
 
@@ -1274,7 +1433,535 @@ namespace AppCommander.W7_11.WPF
         }
 
         #endregion
+        #region Unified Table Playback Support
 
+        /// <summary>
+        /// Spustí playback z unified table
+        /// </summary>
+        private void PlayUnifiedSequence()
+        {
+            try
+            {
+                if (_unifiedItems.Count == 0)
+                {
+                    MessageBox.Show("No items to play. Please add commands or sequences first.",
+                                  "No Items",
+                                  MessageBoxButton.OK,
+                                  MessageBoxImage.Information);
+                    return;
+                }
+
+                // Validate unified sequence
+                if (!_currentUnifiedSequence.IsValid(out List<string> errors))
+                {
+                    var errorMessage = "Validation errors found:\n" + string.Join("\n", errors.Take(5)) +
+                                      (errors.Count > 5 ? $"\n... and {errors.Count - 5} more errors." : "") +
+                                      "\n\nDo you want to continue anyway?";
+
+                    var result = MessageBox.Show(errorMessage, "Validation Errors",
+                                                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.No)
+                        return;
+                }
+
+                int repeatCount = 1;
+                if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                {
+                    repeatCount = 1;
+                    txtRepeatCount.Text = "1";
+                }
+
+                // Convert unified sequence to traditional format for playback
+                var commandSequence = _currentUnifiedSequence.ToCommandSequence();
+                commandSequence.Name = $"UnifiedPlayback_{DateTime.Now:HHmmss}";
+
+                _player.PlaySequence(commandSequence, repeatCount);
+                UpdateStatus($"Starting unified playback ({repeatCount}x) - {_unifiedItems.Count} items");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error starting unified playback", ex);
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje StartPlayback_Click aby podporovala unified table
+        /// </summary>
+        private void StartPlayback_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_player.IsPlaying)
+                {
+                    UpdateStatus("Playback is already running");
+                    return;
+                }
+
+                // Prefer unified table if it has content
+                if (_unifiedItems.Count > 0)
+                {
+                    PlayUnifiedSequence();
+                }
+                else if (_commands.Any())
+                {
+                    // Fallback to old system
+                    var loopValidation = ValidateLoopIntegrity();
+                    if (!loopValidation.IsValid)
+                    {
+                        var message = string.Format("Loop validation warning:\n{0}\n\nDo you want to continue anyway?",
+                            loopValidation.Message);
+                        var result = MessageBox.Show(message, "Loop Validation",
+                            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        if (result == MessageBoxResult.No)
+                            return;
+                    }
+
+                    int repeatCount = 1;
+                    if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                    {
+                        repeatCount = 1;
+                        txtRepeatCount.Text = "1";
+                    }
+
+                    var sequence = new CommandSequence
+                    {
+                        Name = string.Format("Playback_{0:HHmmss}", DateTime.Now),
+                        Commands = _commands.ToList(),
+                        TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
+                        TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                        TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                    };
+
+                    _player.PlaySequence(sequence, repeatCount);
+                    UpdateStatus(string.Format("Starting playback ({0}x) - {1} commands", repeatCount, _commands.Count));
+                }
+                else
+                {
+                    MessageBox.Show("No commands or items to play. Please record some commands or add sequences first.",
+                                  "No Content",
+                                  MessageBoxButton.OK,
+                                  MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error starting playback", ex);
+            }
+        }
+
+        #endregion
+
+        #region Updated Window Closing
+
+        /// <summary>
+        /// Aktualizuje MainWindow_Closing aby kontrolovala aj unified changes
+        /// </summary>
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                bool hasUnsavedChanges = _hasUnsavedChanges || _hasUnsavedUnifiedChanges || _hasUnsavedSequenceSetChanges;
+
+                if (hasUnsavedChanges)
+                {
+                    var changes = new List<string>();
+                    if (_hasUnsavedChanges) changes.Add("recorded commands");
+                    if (_hasUnsavedUnifiedChanges) changes.Add("unified sequence");
+                    if (_hasUnsavedSequenceSetChanges) changes.Add("sequence set");
+
+                    var changesList = string.Join(", ", changes);
+                    var result = MessageBox.Show($"You have unsaved changes in: {changesList}.\n\nDo you want to save before closing?",
+                                                "Unsaved Changes",
+                                                MessageBoxButton.YesNoCancel,
+                                                MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        // Save the most relevant format
+                        if (_hasUnsavedUnifiedChanges)
+                        {
+                            SaveAsSet_Click(null, null);
+                        }
+                        else if (_hasUnsavedChanges)
+                        {
+                            SaveSequence_Click(null, null);
+                        }
+                        else if (_hasUnsavedSequenceSetChanges)
+                        {
+                            btnSaveSetAs_Click(null, null);
+                        }
+                    }
+                    else if (result == MessageBoxResult.Cancel)
+                    {
+                        e.Cancel = true;
+                        return;
+                    }
+                }
+
+                // Cleanup
+                if (_recorder != null) _recorder.Dispose();
+                if (_player != null) _player.Dispose();
+                if (_windowTracker != null) _windowTracker.Dispose();
+                if (_automaticUIManager != null) _automaticUIManager.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error during window closing: {0}", ex.Message));
+            }
+        }
+
+        #endregion
+
+        #region Updated Unified Table Methods
+
+        /// <summary>
+        /// Presúva položku vyššie v unified tabuľke
+        /// </summary>
+        private void MoveUp_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                if (selectedItem == null || selectedItem.StepNumber <= 1)
+                {
+                    UpdateStatus("Cannot move item up - select an item that is not first");
+                    return;
+                }
+
+                var currentIndex = _unifiedItems.IndexOf(selectedItem);
+                if (currentIndex > 0)
+                {
+                    _unifiedItems.Move(currentIndex, currentIndex - 1);
+                    RecalculateStepNumbers();
+                    _hasUnsavedUnifiedChanges = true;
+
+                    // Keep selection on moved item
+                    dgUnified.SelectedItem = selectedItem;
+                    UpdateStatus($"Moved '{selectedItem.Name}' up");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error moving item up", ex);
+            }
+        }
+
+        /// <summary>
+        /// Presúva položku nižšie v unified tabuľke
+        /// </summary>
+        private void MoveDown_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                if (selectedItem == null || selectedItem.StepNumber >= _unifiedItems.Count)
+                {
+                    UpdateStatus("Cannot move item down - select an item that is not last");
+                    return;
+                }
+
+                var currentIndex = _unifiedItems.IndexOf(selectedItem);
+                if (currentIndex < _unifiedItems.Count - 1)
+                {
+                    _unifiedItems.Move(currentIndex, currentIndex + 1);
+                    RecalculateStepNumbers();
+                    _hasUnsavedUnifiedChanges = true;
+
+                    // Keep selection on moved item
+                    dgUnified.SelectedItem = selectedItem;
+                    UpdateStatus($"Moved '{selectedItem.Name}' down");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error moving item down", ex);
+            }
+        }
+
+        private void RecalculateStepNumbers()
+        {
+            for (int i = 0; i < _unifiedItems.Count; i++)
+            {
+                _unifiedItems[i].StepNumber = i + 1;
+            }
+        }
+
+        /// <summary>
+        /// Pridá príkazy z dgCommands do unified tabuľky
+        /// </summary>
+        private void AddFromCommands_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_commands.Count == 0)
+                {
+                    MessageBox.Show("No recorded commands to add. Please record some commands first.",
+                                   "No Commands",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
+                    return;
+                }
+
+                // Check if user wants to save commands first
+                if (_hasUnsavedChanges)
+                {
+                    var result = MessageBox.Show(
+                        "You have unsaved recorded commands. It's recommended to save them as a sequence first.\n\n" +
+                        "Do you want to save them as a sequence and then add to the unified list?",
+                        "Unsaved Commands",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        SaveSequenceAs_Click(sender, e);
+                        // If save was successful, the commands are now saved, continue with adding
+                    }
+                    else if (result == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+                    // If No, continue with adding unsaved commands
+                }
+
+                // Convert commands to unified items
+                int addedCount = 0;
+                foreach (var command in _commands)
+                {
+                    var unifiedItem = UnifiedItem.FromCommand(command, _unifiedItems.Count + 1);
+                    _unifiedItems.Add(unifiedItem);
+                    addedCount++;
+                }
+
+                _hasUnsavedUnifiedChanges = true;
+                RecalculateStepNumbers();
+                UpdateStatus($"Added {addedCount} commands to unified sequence");
+
+                // Optionally clear the original commands after adding
+                var clearResult = MessageBox.Show(
+                    $"Successfully added {addedCount} commands to the unified list.\n\n" +
+                    "Do you want to clear the original recorded commands list?",
+                    "Clear Original Commands",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (clearResult == MessageBoxResult.Yes)
+                {
+                    _commands.Clear();
+                    _hasUnsavedChanges = false;
+                    UpdateUI();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error adding commands to unified list", ex);
+            }
+        }
+
+        /// <summary>
+        /// Pridá sekvenciu zo súboru do unified tabuľky
+        /// </summary>
+        private void AddSequence_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new OpenFileDialog
+                {
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    Filter = "AppCommander Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Title = "Select Sequence File to Add",
+                    Multiselect = false
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var filePath = dialog.FileName;
+                    var fileName = Path.GetFileNameWithoutExtension(filePath);
+
+                    // Skontroluj či už sekvencia nie je pridaná
+                    if (_unifiedItems.Any(item =>
+                        item.Type == UnifiedItem.ItemType.SequenceReference &&
+                        item.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        MessageBox.Show($"Sequence '{fileName}' is already added to the unified list.",
+                                       "Duplicate Sequence",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Validácia súboru
+                    if (!File.Exists(filePath))
+                    {
+                        MessageBox.Show($"File '{filePath}' does not exist.",
+                                       "File Not Found",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Validácia obsahu súboru
+                    if (!ValidateSequenceFile(filePath))
+                    {
+                        MessageBox.Show($"File '{fileName}' is not a valid sequence file.",
+                                       "Invalid File",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Vytvorenie nového UnifiedItem
+                    var unifiedItem = UnifiedItem.FromSequenceFile(filePath, _unifiedItems.Count + 1);
+                    _unifiedItems.Add(unifiedItem);
+
+                    _hasUnsavedUnifiedChanges = true;
+                    RecalculateStepNumbers();
+
+                    UpdateStatus($"Sequence '{fileName}' added to unified list");
+                    Debug.WriteLine($"Added sequence to unified list: {fileName} from {filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error adding sequence to unified list", ex);
+            }
+        }
+
+        /// <summary>
+        /// Edituje vybranú položku v unified tabuľke
+        /// </summary>
+        private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show("Please select an item to edit.",
+                                   "No Selection",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
+                    return;
+                }
+
+                bool wasModified = false;
+
+                if (selectedItem.Type == UnifiedItem.ItemType.SequenceReference)
+                {
+                    // Edit repeat count for sequences
+                    var newRepeatCount = ShowInputDialog(
+                        $"Enter repeat count for sequence '{selectedItem.Name}':",
+                        "Edit Sequence Repeat Count",
+                        selectedItem.RepeatCount.ToString());
+
+                    if (!string.IsNullOrEmpty(newRepeatCount) &&
+                        int.TryParse(newRepeatCount, out int count) && count > 0)
+                    {
+                        selectedItem.RepeatCount = count;
+                        selectedItem.Status = "Modified";
+                        wasModified = true;
+                        UpdateStatus($"Sequence '{selectedItem.Name}' repeat count updated to {count}");
+                    }
+                    else if (!string.IsNullOrEmpty(newRepeatCount))
+                    {
+                        MessageBox.Show("Please enter a valid positive number.",
+                                       "Invalid Input",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Warning);
+                    }
+                }
+                else if (selectedItem.Type == UnifiedItem.ItemType.Command ||
+                         selectedItem.Type == UnifiedItem.ItemType.Wait)
+                {
+                    // Edit command value
+                    var newValue = ShowInputDialog(
+                        $"Edit value for '{selectedItem.Name}':",
+                        "Edit Command Value",
+                        selectedItem.Value);
+
+                    if (!string.IsNullOrEmpty(newValue) && newValue != selectedItem.Value)
+                    {
+                        selectedItem.Value = newValue;
+                        selectedItem.Status = "Modified";
+                        wasModified = true;
+                        UpdateStatus($"Command '{selectedItem.Name}' value updated");
+                    }
+                }
+                else if (selectedItem.Type == UnifiedItem.ItemType.LoopStart)
+                {
+                    // Edit loop repeat count
+                    var newRepeatCount = ShowInputDialog(
+                        $"Enter repeat count for loop:",
+                        "Edit Loop Repeat Count",
+                        selectedItem.RepeatCount.ToString());
+
+                    if (!string.IsNullOrEmpty(newRepeatCount) &&
+                        int.TryParse(newRepeatCount, out int count) && count > 0)
+                    {
+                        selectedItem.RepeatCount = count;
+                        selectedItem.Value = count.ToString();
+                        selectedItem.Status = "Modified";
+                        wasModified = true;
+                        UpdateStatus($"Loop repeat count updated to {count}");
+                    }
+                }
+
+                if (wasModified)
+                {
+                    _hasUnsavedUnifiedChanges = true;
+                    dgUnified.Items.Refresh();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error editing unified item", ex);
+            }
+        }
+
+        /// <summary>
+        /// Odstráni vybranú položku z unified tabuľky
+        /// </summary>
+        private void DeleteItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show("Please select an item to delete.",
+                                   "No Selection",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
+                    return;
+                }
+
+                var message = $"Are you sure you want to delete this item?\n\n" +
+                             $"Type: {selectedItem.TypeDisplay}\n" +
+                             $"Name: {selectedItem.Name}";
+
+                var result = MessageBox.Show(message,
+                                            "Confirm Delete",
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var itemName = selectedItem.Name;
+                    _unifiedItems.Remove(selectedItem);
+                    RecalculateStepNumbers();
+                    _hasUnsavedUnifiedChanges = true;
+
+                    UpdateStatus($"Deleted item: {itemName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error deleting unified item", ex);
+            }
+        }
+
+        #endregion
         #region Menu Handlers - Commands
 
         private void AddWaitCommand_Click(object sender, RoutedEventArgs e)
@@ -2008,7 +2695,8 @@ namespace AppCommander.W7_11.WPF
             textBox.Focus();
             textBox.SelectAll();
 
-            return dialog.ShowDialog() == true ? result : null;
+            //return dialog.ShowDialog() == true ? result : null;
+            return dialog.ShowDialog() == true ? result : defaultValue;
         }
 
         [DllImport("user32.dll")]
@@ -2017,6 +2705,330 @@ namespace AppCommander.W7_11.WPF
         [DllImport("user32.dll")]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
 
+        #endregion
+    
+        // Trieda pre SequenceSet item v DataGrid
+        #region Sequence Set Methods
+
+        /// <summary>
+        /// Upraví vybranú sekvenciu v sete
+        /// </summary>
+        private void EditSequence_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgSetOfSequences.SelectedItem as SequenceSetItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show("Please select a sequence to edit.",
+                                    "No Selection",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                    return;
+                }
+
+                // Jednoduchý edit dialog pre RepeatCount
+                var input = Microsoft.VisualBasic.Interaction.InputBox(
+                    $"Enter repeat count for sequence '{selectedItem.SequenceName}':",
+                    "Edit Sequence",
+                    selectedItem.RepeatCount.ToString());
+
+                if (!string.IsNullOrEmpty(input))
+                {
+                    if (int.TryParse(input, out int repeatCount) && repeatCount > 0)
+                    {
+                        selectedItem.RepeatCount = repeatCount;
+                        selectedItem.Status = "Modified";
+                        _hasUnsavedSequenceSetChanges = true;
+
+                        UpdateSequenceSetUI();
+                        UpdateStatus($"Sequence '{selectedItem.SequenceName}' repeat count updated to {repeatCount}");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Please enter a valid positive number.",
+                                        "Invalid Input",
+                                        MessageBoxButton.OK,
+                                        MessageBoxImage.Warning);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error editing sequence", ex);
+            }
+        }
+
+        /// <summary>
+        /// Odstráni vybranú sekvenciu zo setu
+        /// </summary>
+        private void RemoveSequence_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = dgSetOfSequences.SelectedItem as SequenceSetItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show("Please select a sequence to remove.",
+                                    "No Selection",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"Are you sure you want to remove sequence '{selectedItem.SequenceName}' from the set?\n\n" +
+                    "Note: This will only remove it from the current set, the original file will not be deleted.",
+                    "Confirm Remove",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var sequenceName = selectedItem.SequenceName;
+                    _sequenceSetItems.Remove(selectedItem);
+
+                    // Aktualizuj step numbers
+                    for (int i = 0; i < _sequenceSetItems.Count; i++)
+                    {
+                        _sequenceSetItems[i].StepNumber = i + 1;
+                    }
+
+                    _hasUnsavedSequenceSetChanges = true;
+                    UpdateSequenceSetUI();
+                    UpdateStatus($"Sequence '{sequenceName}' removed from set");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error removing sequence", ex);
+            }
+        }
+
+        /// <summary>
+        /// Uloží set sekvencií - rýchle uloženie
+        /// </summary>
+        private void btnSaveSetAs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_currentSequenceSetFilePath))
+                {
+                    SaveSetAs_Click(sender, e);
+                    return;
+                }
+
+                SaveSetToFile(_currentSequenceSetFilePath);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving sequence set", ex);
+            }
+        }
+
+        /// <summary>
+        /// Uloží set sekvencií do súboru
+        /// </summary>
+        private void SaveSetToFile(string filePath)
+        {
+            try
+            {
+                if (_sequenceSetItems.Count == 0)
+                {
+                    MessageBox.Show("Cannot save empty sequence set. Please add at least one sequence.",
+                                    "Empty Set",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Vytvorenie SequenceSet objektu
+                var sequenceSet = new SequenceSet
+                {
+                    Name = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
+                            txtSequenceName_Copy.Text :
+                            Path.GetFileNameWithoutExtension(filePath),
+                    Description = $"Sequence set created on {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                    Sequences = _sequenceSetItems.ToList(),
+                    Created = _currentSequenceSet?.Created ?? DateTime.Now,
+                    LastModified = DateTime.Now,
+                    FilePath = filePath
+                };
+
+                // Serializácia do JSON
+                var json = JsonConvert.SerializeObject(sequenceSet, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+
+                // Aktualizácia stavu
+                _currentSequenceSet = sequenceSet;
+                _currentSequenceSetFilePath = filePath;
+                _hasUnsavedSequenceSetChanges = false;
+
+                UpdateSequenceSetUI();
+                UpdateStatus($"Sequence set saved: {Path.GetFileName(filePath)} ({_sequenceSetItems.Count} sequences)");
+
+                Debug.WriteLine($"Sequence set saved to: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving sequence set to file", ex);
+            }
+        }
+
+        /// <summary>
+        /// Uloží set sekvencií ako nový súbor
+        /// </summary>
+        private void SaveSetAs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_sequenceSetItems.Count == 0)
+                {
+                    MessageBox.Show("Cannot save empty sequence set. Please add at least one sequence.",
+                                    "Empty Set",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                    return;
+                }
+
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "Sequence Set Files (*.acset)|*.acset|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    DefaultExt = ".acset",
+                    Title = "Save Sequence Set As",
+                    FileName = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
+                                txtSequenceName_Copy.Text :
+                                "SequenceSet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    SaveSetToFile(dialog.FileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving sequence set as", ex);
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods for Sequence Set
+
+        /// <summary>
+        /// Validuje či je súbor validná sekvencia
+        /// </summary>
+        private bool ValidateSequenceFile(string filePath)
+        {
+            try
+            {
+                var content = File.ReadAllText(filePath);
+
+                // Pokus o deserializáciu ako CommandSequence
+                var sequence = JsonConvert.DeserializeObject<CommandSequence>(content);
+
+                return sequence != null && sequence.Commands != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje UI pre sequence set
+        /// </summary>
+        private void UpdateSequenceSetUI()
+        {
+            try
+            {
+                // Aktualizuj počet sekvencií
+                if (txtSequenceCount != null)
+                {
+                    txtSequenceCount.Text = $"{_sequenceSetItems.Count} sequences";
+                }
+
+                // Aktualizuj title bar ak je potrebné
+                var hasChanges = _hasUnsavedSequenceSetChanges ? "*" : "";
+                var setName = !string.IsNullOrEmpty(_currentSequenceSetFilePath) ?
+                                Path.GetFileNameWithoutExtension(_currentSequenceSetFilePath) :
+                                "Untitled Set";
+
+                // Môžete aktualizovať window title ak chcete
+                // this.Title = $"AppCommander - {setName}{hasChanges}";
+
+                // Refresh DataGrid
+                if (dgSetOfSequences != null)
+                {
+                    dgSetOfSequences.Items.Refresh();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating sequence set UI: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Načíta sequence set zo súboru
+        /// </summary>
+        private void LoadSequenceSetFromFile(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File '{filePath}' does not exist.",
+                                    "File Not Found",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                    return;
+                }
+
+                var json = File.ReadAllText(filePath);
+                var sequenceSet = JsonConvert.DeserializeObject<SequenceSet>(json);
+
+                if (sequenceSet != null && sequenceSet.Sequences != null)
+                {
+                    _sequenceSetItems.Clear();
+
+                    foreach (var sequence in sequenceSet.Sequences)
+                    {
+                        // Validuj že súbor stále existuje
+                        if (File.Exists(sequence.FilePath))
+                        {
+                            _sequenceSetItems.Add(sequence);
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Warning: Sequence file not found: {sequence.FilePath}");
+                            // Pridaj aj tak, ale označ ako chýbajúci
+                            sequence.Status = "File Missing";
+                            _sequenceSetItems.Add(sequence);
+                        }
+                    }
+
+                    _currentSequenceSet = sequenceSet;
+                    _currentSequenceSetFilePath = filePath;
+                    _hasUnsavedSequenceSetChanges = false;
+
+                    UpdateSequenceSetUI();
+                    UpdateStatus($"Sequence set loaded: {Path.GetFileName(filePath)} ({_sequenceSetItems.Count} sequences)");
+                }
+                else
+                {
+                    MessageBox.Show("Invalid sequence set file format.",
+                                    "Invalid File",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error loading sequence set", ex);
+            }
+        }
         #endregion
     }
 }

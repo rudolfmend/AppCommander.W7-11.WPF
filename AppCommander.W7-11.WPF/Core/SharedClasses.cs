@@ -9,6 +9,20 @@ namespace AppCommander.W7_11.WPF.Core
     #region Enums
 
     /// <summary>
+    /// CommandType vs UnifiedItem.ItemType - conversion table for compatibility
+    /// </summary>
+    public enum CommandType
+    {
+        Click,
+        SetText,
+        KeyPress,
+        Wait,
+        LoopStart,
+        LoopEnd,
+        Comment
+    }
+
+    /// <summary>
     /// Typ okna pre klasifikáciu
     /// </summary>
     public enum WindowType
