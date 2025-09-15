@@ -9,7 +9,35 @@
         WindowStartupLocation="CenterScreen" 
         FontSize="14" 
         FontFamily="Segoe UI"
-        Background="#F8F9FA">
+        Background="#dde7f0">
+        <!--<Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,2">
+            <GradientStop Color="#F8F9FA" Offset="0"/>
+            <GradientStop Color="#b1c8de" Offset="1"/>
+        </LinearGradientBrush>
+        </Window.Background>-->
+    <!--<Window.Background>
+        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#7dd4fa" Offset="0" x:Name="GradientStop1"/>
+            <GradientStop Color="#2599cc" Offset="1" x:Name="GradientStop2"/>
+        </LinearGradientBrush>
+    </Window.Background>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                    <ColorAnimation Storyboard.TargetName="GradientStop1"
+                                    Storyboard.TargetProperty="Color"
+                                    To="#abffe6" Duration="0:0:6"/>
+                    <ColorAnimation Storyboard.TargetName="GradientStop2"
+                                    Storyboard.TargetProperty="Color"
+                                    To="#e35e3d" Duration="0:0:6"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>-->
+
 
     <Grid>
         <Grid.RowDefinitions>
@@ -21,7 +49,7 @@
 
         <!-- Menu Bar -->
         <Border Grid.Row="0" Background="White" BorderBrush="#E1E1E1" BorderThickness="0,0,0,1">
-            <Menu Background="Transparent" Padding="8" Margin="1,0,-1,0">
+            <Menu x:Name="menuBar" Background="Transparent" Padding="8" Margin="1,0,-1,0">
                 <MenuItem Header="_File" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{StaticResource MenuItemStyle}" />
@@ -59,8 +87,6 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
-                    <TextBlock Text="Target:" VerticalAlignment="Center" Margin="0,0,8,0" 
-                               FontWeight="SemiBold" Foreground="#323130"/>
                     <Button x:Name="btnSelectTargetByClick" Content="🎯 Click to Select" 
                             Style="{StaticResource PrimaryButton}" 
                             Click="SelectTargetByClick_Click" 
@@ -100,6 +126,16 @@
                     <Button x:Name="btnStop" Content="⏹ Stop" 
                             Style="{StaticResource SecondaryButton}" 
                             Click="StopPlayback_Click" Height="36" IsEnabled="False"/>
+
+                    <!-- Info TextBoxes -->
+                    <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+                        <TextBlock x:Name="txtSetCount" Text="0 sets" 
+                            Foreground="#605E5C"  FontSize="12" />
+                        <TextBlock x:Name="txtSequenceCount" Text="0 sequences" 
+                            Foreground="#605E5C"  FontSize="12"/>
+                        <TextBlock x:Name="txtCommandsCount" Text="0 commands" 
+                            Foreground="#605E5C"  FontSize="12"/>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -143,6 +179,9 @@
                             <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="80"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80"/>
                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="80"/>
+                            <DataGridCheckBoxColumn Header="Command" Binding="{Binding Status}" Width="70" />
+                            <DataGridCheckBoxColumn Header="Sequence" Binding="{Binding Status}" Width="65"/>
+                            <DataGridCheckBoxColumn Header="Set" Binding="{Binding Status}" Width="40"/>
                         </DataGrid.Columns>
 
                         <!-- Custom row styling based on ItemType -->
@@ -162,112 +201,26 @@
 
                     <StackPanel Orientation="Horizontal" Grid.Row="2">
 
-                        <Button Content="✏ Edit" Click="EditItem_Click" Margin="8,0,8,0"  Style="{StaticResource SecondaryButton}"/>
-                        <Button Content="🗑 Delete" Click="DeleteItem_Click" Margin="0,0,8,0"  Style="{StaticResource DangerButton}"/>
+                        <Button Content=" ✏ Edit  " Click="EditItem_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <!--<Button Content="🗑 Delete" Click="DeleteItem_Click" Margin="0,0,8,0"  Style="{StaticResource DangerButton}"/>-->
 
                         <!-- Reordering -->
-                        <Button Content="⬆ Move Up" Click="MoveUp_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="⬆ Move Up  " Click="MoveUp_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
                         <Button Content="⬇ Move Down" Click="MoveDown_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
 
-                        <Button Content="➕ Add Sequence" Click="AddSequence_Click"  Margin="0,0,8,0" Style="{StaticResource PrimaryButton}"/>
+                        <Button Content="➕ Add  Sequence" Click="AddSequence_Click"  Margin="0,0,8,0" Style="{StaticResource PrimaryButton}"/>
                         <Button Content="📁 Add From Commands" Click="AddFromCommands_Click"  Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/>
 
                         <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+
+                        
                     </StackPanel>
 
                 </Grid>
             </Border>
 
-                <!-- DataGrid for Recorded Commands -->
-                    <!--<DataGrid x:Name="dgCommands" Grid.Row="1" AutoGenerateColumns="False" 
-                      HeadersVisibility="Column" CanUserSortColumns="True"
-                      GridLinesVisibility="None" AlternatingRowBackground="#ebe8e8"
-                      Background="Transparent" BorderThickness="0" FontSize="13">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="#" Binding="{Binding StepNumber}" Width="50"/>
-                            <DataGridTextColumn Header="Element" Binding="{Binding ElementName}" Width="140"/>
-                            <DataGridTextColumn Header="Action" Binding="{Binding Type}" Width="100"/>
-                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="120"/>
-                            <DataGridTextColumn Header="X" Binding="{Binding ElementX}" Width="60"/>
-                            <DataGridTextColumn Header="Y" Binding="{Binding ElementY}" Width="60"/>
-                            <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>-->
-
-                    <!-- Commands Toolbar -->
-                    <!--<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Content="✏ Edit" Click="EditCommand_Click" 
-                        Style="{StaticResource SecondaryButton}" 
-                        Margin="0,0,8,0" Height="32" Padding="12,4"/>
-                        <Button Content="🗑 Delete" Click="DeleteCommand_Click" 
-                        Style="{StaticResource DangerButton}" 
-                        Margin="0,0,8,0" Height="32" Padding="12,4"/>
-                        <Button Content="▶ Test" Click="TestPlayback_Click" 
-                        Style="{StaticResource SecondaryButton}" 
-                        Height="32" Padding="12,4" Margin="0,0,8,0"/>
-                        <Button Content="Save Sequence as" Click="SaveSequenceAs_Click" 
-                            Style="{StaticResource SecondaryButton}" 
-                            Height="32" Padding="12,4"/>
-                    </StackPanel>
-                </Grid>
-            </Border>-->
-
-            <!-- Sequences Panel (second table) -->
-            <!--<Border Grid.Column="2" Style="{StaticResource CardStyle}">
-                <Grid Margin="16">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>-->
-
-                    <!-- Header -->
-                    <!--<Grid Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="Sequence Commands" FontSize="18" FontWeight="SemiBold" 
-                           Foreground="#323130" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock x:Name="txtSequenceCount" Text="0 sequences" 
-                               Foreground="#605E5C" VerticalAlignment="Center" FontSize="12"/>
-                        </StackPanel>
-                        <TextBox x:Name="txtSequenceName_Copy" Text="Set_of_Sequences" 
-                        Style="{StaticResource TextBoxStyle}" Margin="201,3,93,-2" ToolTip="Name this set of command sequences."/>
-                    </Grid>-->
-
-                    <!-- DataGrid for Set of Sequences -->
-                    <!--<DataGrid x:Name="dgSetOfSequences" Grid.Row="1" AutoGenerateColumns="False" 
-                      HeadersVisibility="Column" CanUserSortColumns="True"
-                      GridLinesVisibility="None" AlternatingRowBackground="#ebe8e8"
-                      Background="Transparent" BorderThickness="0" FontSize="13">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="#" Binding="{Binding StepNumber}" Width="50"/>
-                            <DataGridTextColumn Header="Sequence" Binding="{Binding SequenceName}" Width="160"/>
-                            <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="80"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
-                            <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>-->
-
-                    <!-- Sequences Toolbar -->
-                    <!--<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Content="➕ Add Sequence" Click="AddSequence_Click" 
-                        Style="{StaticResource PrimaryButton}" 
-                        Margin="0,0,8,0" Height="32" Padding="12,4"/>
-                        <Button Content="✏ Edit" Click="EditSequence_Click" 
-                        Style="{StaticResource SecondaryButton}" 
-                        Margin="0,0,8,0" Height="32" Padding="12,4"/>
-                        <Button Content="🗑 Remove" Click="RemoveSequence_Click" 
-                        Style="{StaticResource DangerButton}" 
-                        Height="32" Padding="12,4"
-                                Margin="0,0,8,0"/>
-                        <Button x:Name="btnSaveSetAs" Content="Save Set as"  
-                            Style="{StaticResource SecondaryButton}" 
-                            Height="32" Padding="12,4" Click="btnSaveSetAs_Click" />
-                    </StackPanel>
-                </Grid>
-            </Border>-->
-
             <!-- Side Panel -->
-            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{StaticResource ScrollViewerStyle}">
                 <StackPanel>
                     <!-- Target Information Card -->
                     <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">

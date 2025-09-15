@@ -134,6 +134,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="LiveRecordingPreview.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -171,6 +175,9 @@
     </Compile>
     <Compile Include="ExecutionSpeedControl.xaml.cs">
       <DependentUpon>ExecutionSpeedControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="LiveRecordingPreview.xaml.cs">
+      <DependentUpon>LiveRecordingPreview.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

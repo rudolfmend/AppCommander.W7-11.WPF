@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
+using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -68,6 +69,7 @@ namespace AppCommander.W7_11.WPF.Core
         // **Rozšírené eventy**
         public event EventHandler<WindowContextChangedEventArgs> WindowContextChanged;
         public event EventHandler<UIElementsUpdatedEventArgs> UIElementsUpdated;
+        public event EventHandler<LiveRecordingStartedEventArgs> LiveRecordingStarted;
 
         #endregion
 
@@ -461,16 +463,18 @@ namespace AppCommander.W7_11.WPF.Core
                     currentSequence.AutoFindTarget = true;
                     currentSequence.MaxWaitTimeSeconds = 30;
 
-                    // Pridaj primary target do sledovaných okien
+                    // Pridá primary target do sledovaných okien
                     trackedWindows[targetWindow] = string.Format("{0} - {1}", targetProcessName, currentSequence.TargetWindowTitle);
 
                     System.Diagnostics.Debug.WriteLine(string.Format("Recording target: {0} - {1}", targetProcessName, currentSequence.TargetWindowTitle));
                 }
 
-                // Spusti automatické služby
+                LiveRecordingStarted?.Invoke(this, new LiveRecordingStartedEventArgs(currentSequence, sequenceName));
+
+                // Spustí automatické služby
                 StartAutomaticServices(targetWindowHandle);
 
-                // Vytvor počiatočný kontext okna
+                // Vytvorí počiatočný kontext okna
                 CreateInitialWindowContext(targetWindowHandle);
 
                 // Start global hooks
@@ -497,7 +501,6 @@ namespace AppCommander.W7_11.WPF.Core
             StartRecording(string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now), targetWindowHandle);
         }
 
-        // OPRAVA 5: Oprava AnalyzeCommandPatterns metódy pre .NET 4.8
         private void AnalyzeCommandPatterns()
         {
             try
@@ -512,7 +515,7 @@ namespace AppCommander.W7_11.WPF.Core
                         recentCommands.Add(currentSequence.Commands[i]);
                     }
 
-                    // Detekuj opakujúce sa akcie
+                    // Detekuje opakujúce sa akcie
                     var allClicks = true;
                     foreach (var cmd in recentCommands)
                     {
@@ -528,7 +531,7 @@ namespace AppCommander.W7_11.WPF.Core
                         System.Diagnostics.Debug.WriteLine("Pattern detected: Multiple clicks sequence");
                     }
 
-                    // Detekuj form filling pattern
+                    // Detekuje form filling pattern
                     var hasSetText = false;
                     var hasClick = false;
                     foreach (var cmd in recentCommands)
@@ -1861,7 +1864,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 System.Diagnostics.Debug.WriteLine($"Found {elementCommands.Count} element-based commands");
 
-                // Analyzuj WinUI3 elementy
+                // Analyzuje WinUI3 elementy
                 var winui3Commands = elementCommands.Where(c => c.IsWinUI3Element).ToList();
                 if (winui3Commands.Any())
                 {
@@ -1870,7 +1873,7 @@ namespace AppCommander.W7_11.WPF.Core
                     System.Diagnostics.Debug.WriteLine($"Average WinUI3 confidence: {avgConfidence:F2}");
                 }
 
-                // Analyzuj table commands
+                // Analyzuje table commands
                 var tableCommands = elementCommands.Where(c => c.IsTableCommand).ToList();
                 if (tableCommands.Any())
                 {
@@ -1879,11 +1882,11 @@ namespace AppCommander.W7_11.WPF.Core
                     System.Diagnostics.Debug.WriteLine($"Tables used: {string.Join(", ", tableNames)}");
                 }
 
-                // Analyzuj spoľahlivosť identifikátorov
+                // Analyzuje spoľahlivosť identifikátorov
                 var commandsWithStrongIds = elementCommands.Where(c => HasStrongIdentifier(c)).ToList();
                 System.Diagnostics.Debug.WriteLine($"Commands with strong identifiers: {commandsWithStrongIds.Count}/{elementCommands.Count}");
 
-                // Analyzuj command patterns
+                // Analyzuje command patterns
                 AnalyzeCommandSequencePatterns(elementCommands);
 
                 System.Diagnostics.Debug.WriteLine("=== ANALYSIS COMPLETE ===");
@@ -1901,7 +1904,7 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                // Detekuj opakujúce sa patterns
+                // Detekuje opakujúce sa patterns
                 var clickSequences = 0;
                 var formFillSequences = 0;
 

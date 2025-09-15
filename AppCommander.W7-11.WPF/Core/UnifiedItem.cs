@@ -18,7 +18,8 @@ namespace AppCommander.W7_11.WPF.Core
             SequenceReference, // Reference to saved sequence file
             LoopStart,         // Loop start marker
             LoopEnd,           // Loop end marker
-            Wait               // Wait command
+            Wait,              // Wait command
+            LiveRecording      // Live recording marker 
         }
 
         #endregion
@@ -38,6 +39,8 @@ namespace AppCommander.W7_11.WPF.Core
         private int? _elementY;
         private string _elementId;
         private string _className;
+        private bool _isLiveRecording;
+        private CommandSequence _liveSequenceReference;
 
         #endregion
 
@@ -127,6 +130,18 @@ namespace AppCommander.W7_11.WPF.Core
             set { _className = value; OnPropertyChanged(nameof(ClassName)); }
         }
 
+        public bool IsLiveRecording
+        {
+            get { return _isLiveRecording; }
+            set { _isLiveRecording = value; OnPropertyChanged(nameof(IsLiveRecording)); }
+        }
+
+        public CommandSequence LiveSequenceReference
+        {
+            get { return _liveSequenceReference; }
+            set { _liveSequenceReference = value; OnPropertyChanged(nameof(LiveSequenceReference)); }
+        }
+
         #endregion
 
         #region Display Properties
@@ -150,6 +165,8 @@ namespace AppCommander.W7_11.WPF.Core
                         return "🔚 Loop End";
                     case ItemType.Wait:
                         return "⏱ Wait";
+                    case ItemType.LiveRecording:
+                        return "🔴 Live Recording"; 
                     default:
                         return Type.ToString();
                 }
@@ -226,7 +243,7 @@ namespace AppCommander.W7_11.WPF.Core
                 ElementX = command.ElementX,
                 ElementY = command.ElementY,
                 ElementId = command.ElementId ?? "",
-                ClassName = command.ClassName ?? ""
+                ClassName = command.ElementClass ?? ""
             };
         }
 
@@ -343,7 +360,7 @@ namespace AppCommander.W7_11.WPF.Core
                 ElementX = ElementX ?? 0,
                 ElementY = ElementY ?? 0,
                 ElementId = ElementId,
-                ClassName = ClassName,
+                ElementClass = ClassName,
                 IsLoopStart = Type == ItemType.LoopStart,
                 IsLoopEnd = Type == ItemType.LoopEnd
             };

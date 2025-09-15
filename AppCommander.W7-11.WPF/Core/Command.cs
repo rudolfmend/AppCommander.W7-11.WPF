@@ -7,25 +7,6 @@ using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
-    public enum CommandType
-    {
-        KeyPress,
-        MouseClick,
-        SetText,
-        Wait,
-        Loop,
-        LoopEnd,
-        Click,
-        DoubleClick,
-        RightClick,
-        LoopStart,
-
-        TypeText,
-        WindowSwitch,
-        ElementFocus,
-        Other
-    }
-
     public class Command
     {
         public int StepNumber { get; set; }

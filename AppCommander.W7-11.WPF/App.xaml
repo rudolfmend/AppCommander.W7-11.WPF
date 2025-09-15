@@ -13,8 +13,8 @@
             <SolidColorBrush x:Key="PrimaryBluePressed" Color="#2599cc"/>
 
             <SolidColorBrush x:Key="SuccessGreen" Color="#abffe6"/>
-            <SolidColorBrush x:Key="WarningOrange" Color="#e35e3d"/>
-            <SolidColorBrush x:Key="DangerRed" Color="#fc9379"/>
+            <SolidColorBrush x:Key="WarningOrange" Color="DarkRed"/> <!--"#e35e3d"-->
+            <SolidColorBrush x:Key="DangerRed" Color="#fc9379"/> <!--"#fc9379"-->
 
             <SolidColorBrush x:Key="NeutralGray100" Color="#FFFAF9F8"/>
             <SolidColorBrush x:Key="NeutralGray200" Color="#FFF3F2F1"/>
@@ -56,12 +56,20 @@
 
             <!-- Primary Button - pre hlavné akcie -->
             <Style x:Key="PrimaryButton" TargetType="Button">
-                <Setter Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#7dd4fa" Offset="0" x:Name="GradientStop1"/> 
+                            <GradientStop Color="#2599cc" Offset="1" x:Name="GradientStop2"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="BorderThickness" Value="1.2"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="Padding" Value="16,8"/>
                 <Setter Property="MinHeight" Value="32"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Effect" Value="{StaticResource ElevationLow}"/>
                 <Setter Property="Template">
@@ -82,6 +90,9 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlueHover}"/>
                                     <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray100}"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
@@ -92,6 +103,19 @@
                                     <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
+                                <!-- Animation for gradient stops -->
+                                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                            <ColorAnimation Storyboard.TargetName="GradientStop1"
+                                                            Storyboard.TargetProperty="Color"
+                                                            To="#abffe6" Duration="0:0:6"/>
+                                            <ColorAnimation Storyboard.TargetName="GradientStop2"
+                                                            Storyboard.TargetProperty="Color"
+                                                            To="#e35e3d" Duration="0:0:6"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -100,11 +124,23 @@
 
             <!-- Secondary Button - pre sekundárne akcie -->
             <Style x:Key="SecondaryButton" TargetType="Button">
-                <Setter Property="Background" Value="{StaticResource Background}"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="White" Offset="0" x:Name="GradientStop1"/>
+                            <GradientStop Color="LightGray" Offset="1" x:Name="GradientStop2"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="BorderThickness" Value="1.2"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                
+                <!--<Setter Property="Background" Value="{StaticResource Background}"/>-->
                 <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray900}"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Padding" Value="12, 1"/>
+                <Setter Property="BorderThickness" Value="0.8"/>
+                <Setter Property="Padding" Value="16,8"/>
                 <Setter Property="MinHeight" Value="28"/>
                 <Setter Property="FontWeight" Value="Normal"/>
                 <Setter Property="Cursor" Value="Hand"/>
@@ -125,6 +161,8 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
                                     <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
+                                    <Setter Property="FontWeight" Value="DemiBold"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray500}"/>
@@ -140,7 +178,21 @@
 
             <!-- Red Danger - Delete Button -->
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                <Setter Property="Foreground" Value="{StaticResource DangerRed}"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="Coral" Offset="0" x:Name="GradientStop1"/>
+                            <GradientStop Color="DarkRed" Offset="1" x:Name="GradientStop2"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+
+                
+                <Setter Property="Foreground" Value="White" />
+                <!--<Setter Property="Foreground" Value="{StaticResource WarningOrange}"/>-->
                 <Setter Property="BorderBrush" Value="{StaticResource DangerRed}"/>
                 <Setter Property="Template">
                     <Setter.Value>
@@ -158,6 +210,8 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource DangerRed}"/>
                                     <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource WarningOrange}"/>
@@ -261,10 +315,10 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="MenuItem">
                             <Border x:Name="templateRoot" 
-                    Background="{TemplateBinding Background}" 
-                    BorderBrush="{TemplateBinding BorderBrush}" 
-                    BorderThickness="{TemplateBinding BorderThickness}"
-                    SnapsToDevicePixels="true">
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    SnapsToDevicePixels="true">
                                 <Grid x:Name="Grid">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -272,46 +326,46 @@
                                     </Grid.ColumnDefinitions>
 
                                     <ContentPresenter x:Name="Icon" 
-                            ContentSource="Icon" 
-                            HorizontalAlignment="Center" 
-                            Height="16" 
-                            Margin="3" 
-                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                            VerticalAlignment="Center" 
-                            Width="16"/>
+                                        ContentSource="Icon" 
+                                        HorizontalAlignment="Center" 
+                                        Height="16" 
+                                        Margin="3" 
+                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                        VerticalAlignment="Center" 
+                                        Width="16"/>
 
                                     <Path x:Name="GlyphPanel" 
-                            Data="{StaticResource Checkmark}" 
-                            FlowDirection="LeftToRight" 
-                            Fill="{TemplateBinding Foreground}" 
-                            Margin="3" 
-                            Visibility="Collapsed" 
-                            VerticalAlignment="Center"/>
+                                        Data="{StaticResource Checkmark}" 
+                                        FlowDirection="LeftToRight" 
+                                        Fill="{TemplateBinding Foreground}" 
+                                        Margin="3" 
+                                        Visibility="Collapsed" 
+                                        VerticalAlignment="Center"/>
 
                                     <ContentPresenter x:Name="menuHeaderContainer" 
-                            Grid.Column="1" 
-                            ContentSource="Header" 
-                            HorizontalAlignment="Left" 
-                            Margin="{TemplateBinding Padding}" 
-                            RecognizesAccessKey="true" 
-                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                            VerticalAlignment="Center"/>
+                                        Grid.Column="1" 
+                                        ContentSource="Header" 
+                                        HorizontalAlignment="Left" 
+                                        Margin="{TemplateBinding Padding}" 
+                                        RecognizesAccessKey="true" 
+                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                        VerticalAlignment="Center"/>
 
                                     <Popup x:Name="PART_Popup" 
-                                AllowsTransparency="true" 
-                                Focusable="false" 
-                                IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
-                                PopupAnimation="{DynamicResource {x:Static SystemParameters.MenuPopupAnimationKey}}" 
-                                Placement="Bottom" 
-                                PlacementTarget="{Binding ElementName=templateRoot}">
+                                        AllowsTransparency="true" 
+                                        Focusable="false" 
+                                        IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                                        PopupAnimation="{DynamicResource {x:Static SystemParameters.MenuPopupAnimationKey}}" 
+                                        Placement="Bottom" 
+                                        PlacementTarget="{Binding ElementName=templateRoot}">
 
                                         <Border x:Name="SubMenuBorder" 
-                                    Background="{StaticResource Surface}" 
-                                    BorderBrush="{StaticResource NeutralGray400}" 
-                                    BorderThickness="1" 
-                                    CornerRadius="15"
-                                    Effect="{StaticResource ElevationMedium}"
-                                    Padding="2">
+                                            Background="{StaticResource Surface}" 
+                                            BorderBrush="{StaticResource NeutralGray400}" 
+                                            BorderThickness="1" 
+                                            CornerRadius="15"
+                                            Effect="{StaticResource ElevationMedium}"
+                                            Padding="2">
 
                                             <ScrollViewer x:Name="SubMenuScrollViewer" 
                                 Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
@@ -501,14 +555,6 @@
                 <Setter Property="FontSize" Value="11" />
             </Style>
 
-            <!--<Window.Resources>
-                <Style x:Key="StatusLabelStyle" TargetType="Label">
-                    --><!--<Setter Property="FontSize" Value="10"/>--><!--
-                    <Setter Property="Padding" Value="2"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                </Style>
-            </Window.Resources>-->
-
             <!-- TextBlock -->
             <Style x:Key="TextBlockStyle" TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -524,6 +570,39 @@
                 <Setter Property="Effect">
                     <Setter.Value>
                         <DropShadowEffect ShadowDepth="2" Direction="270" Color="#E0E0E0" Opacity="0.3" BlurRadius="4"/>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+                <Setter Property="Background" Value="DarkMagenta"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="#E1E1"/>
+                <Setter Property="Template">
+                        <Setter.Value>
+                        <ControlTemplate TargetType="ScrollViewer">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ScrollContentPresenter Grid.Column="0" Grid.Row="0" Content="{TemplateBinding Content}" />
+                                <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Grid.Row="0" Orientation="Vertical" 
+                                           Maximum="{TemplateBinding ScrollableHeight}" 
+                                           ViewportSize="{TemplateBinding ViewportHeight}" 
+                                           Value="{TemplateBinding VerticalOffset}" 
+                                           Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                                <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" 
+                                           Maximum="{TemplateBinding ScrollableWidth}" 
+                                           ViewportSize="{TemplateBinding ViewportWidth}" 
+                                           Value="{TemplateBinding HorizontalOffset}" 
+                                           Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
+                            </Grid>
+                        </ControlTemplate>
                     </Setter.Value>
                 </Setter>
             </Style>

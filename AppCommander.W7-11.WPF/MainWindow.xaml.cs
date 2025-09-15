@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -1337,6 +1336,11 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        private void LoadUnifiedSequenceFromFile(string fileName)
+        {
+            throw new NotImplementedException();
+        }
+
 
         /// <summary>
         /// Aktualizuje metódu pre uloženie aby automaticky rozhodla medzi formátmi
@@ -1372,6 +1376,11 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        private void SaveUnifiedSequenceToFile(string currentUnifiedSequenceFilePath)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Vyčistí unified table a vytvorí novú
         /// </summary>
@@ -1403,10 +1412,72 @@ namespace AppCommander.W7_11.WPF
 
                 UpdateUnifiedUI();
                 UpdateStatus("New unified sequence created");
+                UpdateUI();
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error creating new unified sequence", ex);
+            }
+        }
+
+        private void UpdateUnifiedUI()
+        {
+            txtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
+            txtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            txtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+            //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
+
+            //txtSequenceName_Copy.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+            if (txtSequenceName_Copy is TextBox textBox)
+            {
+                textBox.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+            }
+            //lstUnifiedItems.ItemsSource = _unifiedItems;
+            UpdateUI();
+
+            // Aktualizuje title okna
+            string title = "AppCommander";
+            if (!string.IsNullOrEmpty(_currentUnifiedSequenceFilePath))
+            {
+                title += string.Format(" - {0}", Path.GetFileName(_currentUnifiedSequenceFilePath));
+            }
+            if (_hasUnsavedUnifiedChanges)
+            {
+                title += " *";
+            }
+            this.Title = title;
+
+            // Aktualizuje status bar
+            txtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+
+            // Aktualizuje enabled stav menu položiek
+            menuBar.IsEnabled = _unifiedItems.Count > 0;
+            //menuItem.IsEnabled = _hasUnsavedUnifiedChanges && _unifiedItems.Count > 0;
+
+            // Aktualizuje enabled stav playback tlačidiel
+            btnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            btnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            btnPause.IsEnabled = _player?.IsPlaying ?? false;
+            btnStop.IsEnabled = _player?.IsPlaying ?? false;
+
+            // Aktualizuje enabled stav recording tlačidiel
+            btnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
+            btnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
+            btnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
+
+            // Aktualizuje stavový riadok
+            if (_recorder?.IsRecording ?? false)
+            {
+                UpdateStatus("Recording in progress...");
+            }
+            else if (_player?.IsPlaying ?? false)
+            {
+                UpdateStatus("Playback in progress...");
+            }
+            else
+            {
+                UpdateStatus("Ready");
             }
         }
 
@@ -1609,6 +1680,11 @@ namespace AppCommander.W7_11.WPF
             {
                 Debug.WriteLine(string.Format("Error during window closing: {0}", ex.Message));
             }
+        }
+
+        private void SaveAsSet_Click(object value1, object value2)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -2074,7 +2150,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedCommand = dgCommands.SelectedItem as Command;
+                var selectedCommand = dgUnified.SelectedItem as Command;
                 if (selectedCommand == null)
                 {
                     MessageBox.Show("Please select a command to edit.", "No Selection",
@@ -2094,7 +2170,7 @@ namespace AppCommander.W7_11.WPF
                     }
 
                     _hasUnsavedChanges = true;
-                    dgCommands.Items.Refresh();
+                    dgUnified.Items.Refresh();
                     UpdateStatus("Command edited");
                 }
             }
@@ -2108,7 +2184,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedCommand = dgCommands.SelectedItem as Command;
+                var selectedCommand = dgUnified.SelectedItem as Command;
                 if (selectedCommand == null)
                 {
                     MessageBox.Show("Please select a command to delete.", "No Selection",
@@ -2717,7 +2793,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgSetOfSequences.SelectedItem as SequenceSetItem;
+                var selectedItem = dgUnified.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to edit.",
@@ -2766,7 +2842,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgSetOfSequences.SelectedItem as SequenceSetItem;
+                var selectedItem = dgUnified.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to remove.",
@@ -2845,9 +2921,10 @@ namespace AppCommander.W7_11.WPF
                 // Vytvorenie SequenceSet objektu
                 var sequenceSet = new SequenceSet
                 {
-                    Name = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
-                            txtSequenceName_Copy.Text :
+                    Name = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                            textBox.Text :
                             Path.GetFileNameWithoutExtension(filePath),
+
                     Description = $"Sequence set created on {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
                     Sequences = _sequenceSetItems.ToList(),
                     Created = _currentSequenceSet?.Created ?? DateTime.Now,
@@ -2896,8 +2973,12 @@ namespace AppCommander.W7_11.WPF
                     Filter = "Sequence Set Files (*.acset)|*.acset|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     DefaultExt = ".acset",
                     Title = "Save Sequence Set As",
-                    FileName = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
-                                txtSequenceName_Copy.Text :
+                    //FileName = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
+                    //            txtSequenceName_Copy.Text :
+                    //            "SequenceSet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
+
+                    FileName = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                                textBox.Text :
                                 "SequenceSet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
                 };
 
@@ -2943,6 +3024,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                txtSequenceCount = this.FindName("txtSequenceCount") as TextBlock;
                 // Aktualizuj počet sekvencií
                 if (txtSequenceCount != null)
                 {
@@ -2959,9 +3041,9 @@ namespace AppCommander.W7_11.WPF
                 // this.Title = $"AppCommander - {setName}{hasChanges}";
 
                 // Refresh DataGrid
-                if (dgSetOfSequences != null)
+                if (dgUnified != null)
                 {
-                    dgSetOfSequences.Items.Refresh();
+                    dgUnified.Items.Refresh();
                 }
             }
             catch (Exception ex)

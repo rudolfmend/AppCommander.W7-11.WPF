@@ -9,17 +9,35 @@ namespace AppCommander.W7_11.WPF.Core
     #region Enums
 
     /// <summary>
-    /// CommandType vs UnifiedItem.ItemType - conversion table for compatibility
+    /// Unified CommandType enum -
+    /// Obsahuje VŠETKY potrebné typy príkazov pre celý projekt
     /// </summary>
     public enum CommandType
     {
+        // Základné akcie  
         Click,
         SetText,
         KeyPress,
         Wait,
-        LoopStart,
-        LoopEnd,
-        Comment
+        Comment,
+
+        // Mouse akcie 
+        MouseClick,
+        DoubleClick,
+        RightClick,
+
+        // Text akcie (z Command.cs)
+        TypeText,
+
+        Loop,           // Všeobecný loop 
+        LoopStart,      // Začiatok loop-u 
+        LoopEnd,        // Koniec loop-u  
+
+        // Window a Focus operácie  
+        WindowSwitch,
+        ElementFocus,
+
+        Other
     }
 
     /// <summary>
@@ -687,6 +705,29 @@ namespace AppCommander.W7_11.WPF.Core
         public bool IsPaused { get { return _isPaused; } }
         public string SequenceName { get { return _sequenceName; } }
         public DateTime Timestamp { get { return _timestamp; } }
+    }
+
+    /// <summary>
+    /// Event args pre začatie live recording - .NET Framework 4.8 compatible
+    /// </summary>
+    public sealed class LiveRecordingStartedEventArgs : EventArgs
+    {
+        private readonly CommandSequence _sequence;
+        private readonly string _sequenceName;
+        private readonly DateTime _timestamp;
+
+        public LiveRecordingStartedEventArgs(CommandSequence sequence, string sequenceName)
+        {
+            if (sequence == null) throw new ArgumentNullException("sequence");
+            _sequence = sequence;
+            _sequenceName = sequenceName ?? string.Empty;
+            _timestamp = DateTime.Now;
+        }
+
+        public CommandSequence Sequence { get { return _sequence; } }
+        public string SequenceName { get { return _sequenceName; } }
+        public DateTime Timestamp { get { return _timestamp; } }
+        public DateTime StartedAt { get { return Timestamp; } }
     }
 
     #endregion
