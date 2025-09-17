@@ -93,6 +93,9 @@
                                     <Setter Property="Foreground" Value="{StaticResource NeutralGray100}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
+
+                                    <!--<Setter Property="Padding" Value="16.5,8"/>-->
+                                    <Setter Property="Margin" Value="29.5 ,8"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
@@ -176,7 +179,7 @@
                 </Setter>
             </Style>
 
-            <!-- Red Danger - Delete Button -->
+            <!-- Red Danger -->
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                 <Setter Property="Background">
                     <Setter.Value>
@@ -186,14 +189,15 @@
                         </LinearGradientBrush>
                     </Setter.Value>
                 </Setter>
-                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="BorderThickness" Value="2,0"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
 
                 
                 <Setter Property="Foreground" Value="White" />
                 <!--<Setter Property="Foreground" Value="{StaticResource WarningOrange}"/>-->
-                <Setter Property="BorderBrush" Value="{StaticResource DangerRed}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <!--<Setter Property="BorderBrush" Value="{StaticResource DangerRed}"/>-->
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">

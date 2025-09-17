@@ -109,26 +109,31 @@
 
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="btnPlayCommands" Content="▶ Play" 
+                    <Button x:Name="btnPlayCommands" Content="         ▶    Play            " 
                             Style="{StaticResource PrimaryButton}" 
                             Click="PlaySequence_Click" Height="36" Margin="0,0,4,0"/>
+
+                    <StackPanel Orientation="Vertical">
+
+                        <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" 
+                               FontWeight="SemiBold" Foreground="#323130"/>
+                        <TextBox x:Name="txtRepeatCount" Text="1" 
+                                 Style="{StaticResource TextBoxStyle}"     
+                                 Width="50" Height="36" TextAlignment="Center" Margin="10,0,8,18"/>
+                    </StackPanel>
+                        
+                        <CheckBox x:Name="chkInfiniteLoop" Content="∞" VerticalAlignment="Center"  FontStretch="UltraExpanded" FontWeight="ExtraBold"
+                                  Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,-3"/>
+
                     <Button x:Name="btnPause" Content="⏸ Pause" 
                             Style="{StaticResource SecondaryButton}" 
                             Click="PausePlayback_Click" Height="36" Margin="0,0,4,0" IsEnabled="False"/>
-
-                    <TextBlock Text="Repeat:" VerticalAlignment="Center" Margin="12,0,8,0" 
-                               FontWeight="SemiBold" Foreground="#323130"/>
-                    <TextBox x:Name="txtRepeatCount" Text="1" 
-                             Style="{StaticResource TextBoxStyle}"     
-                             Width="50" Height="36" TextAlignment="Center" Margin="0,0,8,0"/>
-                    <CheckBox x:Name="chkInfiniteLoop" Content="∞" VerticalAlignment="Center" 
-                              Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,0"/>
                     <Button x:Name="btnStop" Content="⏹ Stop" 
                             Style="{StaticResource SecondaryButton}" 
                             Click="StopPlayback_Click" Height="36" IsEnabled="False"/>
 
                     <!-- Info TextBoxes -->
-                    <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+                    <StackPanel Orientation="Vertical" Margin="20,6,6,6">
                         <TextBlock x:Name="txtSetCount" Text="0 sets" 
                             Foreground="#605E5C"  FontSize="12" />
                         <TextBlock x:Name="txtSequenceCount" Text="0 sequences" 
@@ -201,17 +206,17 @@
 
                     <StackPanel Orientation="Horizontal" Grid.Row="2">
 
-                        <Button Content=" ✏ Edit  " Click="EditItem_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content=" ✏ Edit   " Click="EditItem_Click" Margin="0,2,8,0"  Style="{StaticResource SecondaryButton}"/>
                         <!--<Button Content="🗑 Delete" Click="DeleteItem_Click" Margin="0,0,8,0"  Style="{StaticResource DangerButton}"/>-->
 
                         <!-- Reordering -->
-                        <Button Content="⬆ Move Up  " Click="MoveUp_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
-                        <Button Content="⬇ Move Down" Click="MoveDown_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="⬆ Move Up   " Click="MoveUp_Click" Margin="2,2,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="⬇ Move Down " Click="MoveDown_Click" Margin="0,2,8,2"  Style="{StaticResource SecondaryButton}"/>
 
                         <Button Content="➕ Add  Sequence" Click="AddSequence_Click"  Margin="0,0,8,0" Style="{StaticResource PrimaryButton}"/>
-                        <Button Content="📁 Add From Commands" Click="AddFromCommands_Click"  Margin="0,0,8,0" Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="📁Add Cmd" Click="AddFromCommands_Click"  Margin="2,2,8,2" Style="{StaticResource SecondaryButton}"/>
 
-                        <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,0,8,0"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,2,8,2"  Style="{StaticResource SecondaryButton}"/>
 
                         
                     </StackPanel>
