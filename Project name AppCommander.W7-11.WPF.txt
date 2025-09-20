@@ -1,0 +1,66 @@
+Project name: AppCommander.W7-11.WPF
+
+# AppCommander
+
+### Automate Any App on Windows 7–11 version
+
+**AppCommander** is a lightweight Windows automation tool that allows you to:
+- Automatically interact with other applications' text fields and buttons
+- Simulate input, calculations, and button clicks
+- Define, save, and load automation configurations
+- Execute loops and repetitive sequences
+- Detect all installed applications (including hidden system apps)
+- Works without any programming knowledge required!
+
+---
+
+## 🔧 Features
+
+- 🧠 No-code automation of desktop applications
+- 🪟 Supports Windows 7, 8, 8.1, 10, and 11
+- 💾 Configuration saving and loading
+- 🔁 Loop-based automation execution
+- 🧭 UI element detection and manipulation
+- 🕹️ Button click simulation and text field input
+
+---
+
+## 💡 Use Cases
+
+- Automate repetitive tasks in legacy systems
+- Populate forms with pre-calculated data
+- Click through steps in testing or data entry tools
+- Perform UI testing without writing code
+
+---
+
+## 📦 Installation
+
+Simply download the latest `AppCommander.exe` from the [Releases](https://github.com/rudolfmend/AppCommander/releases) section and run it — no installation required! - Treba ešte doplniť!
+
+---
+
+## 📸 Screenshots
+
+*Coming soon – showing automation in action.*
+
+---
+
+## 🏗️ Technologies Used
+
+- C# (.NET Framework 4.8)
+- Windows Forms / WPF
+- UI Automation (System.Windows.Automation)
+
+---
+
+## 📝 License
+
+This project is licensed under the **Apache License 2.0**.
+
+---
+
+## 🙋 Author
+
+Developed by **Rudolf Mendzezof**  
+Feel free to [reach out](rudolf.mend@gmail.com)
