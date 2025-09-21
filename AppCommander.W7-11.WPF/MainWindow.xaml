@@ -99,7 +99,7 @@
                 <Separator Margin="0,0,24,0" Style="{x:Null}" Background="#E1E1E1" Width="1"/>
 
                 <!-- Recording Controls -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                     <Button x:Name="btnRecording" Content="🔴 Start Recording" 
                             Style="{StaticResource DangerButton}" 
                             Click="ToggleRecording_Click" Height="36" Margin="0,0,8,0"/>

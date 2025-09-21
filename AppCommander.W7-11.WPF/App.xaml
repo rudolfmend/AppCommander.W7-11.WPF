@@ -54,13 +54,13 @@
                 <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
             </Style>
 
-            <!-- Primary Button - pre hlavné akcie -->
+            <!-- Primary Button + Statický gradient -->
             <Style x:Key="PrimaryButton" TargetType="Button">
                 <Setter Property="Background">
                     <Setter.Value>
-                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#7dd4fa" Offset="0" x:Name="GradientStop1"/> 
-                            <GradientStop Color="#2599cc" Offset="1" x:Name="GradientStop2"/>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#7dd4fa" Offset="0"/>
+                            <GradientStop Color="#2599cc" Offset="1"/>
                         </LinearGradientBrush>
                     </Setter.Value>
                 </Setter>
@@ -76,15 +76,15 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="7">
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="7">
                                 <ContentPresenter x:Name="contentPresenter"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="{TemplateBinding Padding}"
-                                                Focusable="False"/>
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"
+                                    Focusable="False"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -93,9 +93,6 @@
                                     <Setter Property="Foreground" Value="{StaticResource NeutralGray100}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
-
-                                    <!--<Setter Property="Padding" Value="16.5,8"/>-->
-                                    <Setter Property="Margin" Value="29.5 ,8"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
@@ -106,40 +103,25 @@
                                     <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
-                                <!-- Animation for gradient stops -->
-                                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                    <BeginStoryboard>
-                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                            <ColorAnimation Storyboard.TargetName="GradientStop1"
-                                                            Storyboard.TargetProperty="Color"
-                                                            To="#abffe6" Duration="0:0:6"/>
-                                            <ColorAnimation Storyboard.TargetName="GradientStop2"
-                                                            Storyboard.TargetProperty="Color"
-                                                            To="#e35e3d" Duration="0:0:6"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </EventTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
             </Style>
 
-            <!-- Secondary Button - pre sekundárne akcie -->
+            <!-- Secondary Button + Statický gradient -->
             <Style x:Key="SecondaryButton" TargetType="Button">
                 <Setter Property="Background">
                     <Setter.Value>
-                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="White" Offset="0" x:Name="GradientStop1"/>
-                            <GradientStop Color="LightGray" Offset="1" x:Name="GradientStop2"/>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="White" Offset="0"/>
+                            <GradientStop Color="LightGray" Offset="1"/>
                         </LinearGradientBrush>
                     </Setter.Value>
                 </Setter>
                 <Setter Property="BorderThickness" Value="1.2"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                
-                <!--<Setter Property="Background" Value="{StaticResource Background}"/>-->
                 <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray900}"/>
                 <Setter Property="BorderThickness" Value="0.8"/>
@@ -152,13 +134,13 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="7">
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="7">
                                 <ContentPresenter HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="{TemplateBinding Padding}"/>
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
@@ -179,46 +161,64 @@
                 </Setter>
             </Style>
 
-            <!-- Red Danger -->
+            <!-- Red Danger Button + Statický gradient -->
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                 <Setter Property="Background">
                     <Setter.Value>
-                        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="Coral" Offset="0" x:Name="GradientStop1"/>
-                            <GradientStop Color="DarkRed" Offset="1" x:Name="GradientStop2"/>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="Coral" Offset="0"/>
+                            <GradientStop Color="DarkRed" Offset="1"/>
                         </LinearGradientBrush>
                     </Setter.Value>
                 </Setter>
                 <Setter Property="BorderThickness" Value="2,0"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-
-                
                 <Setter Property="Foreground" Value="White" />
-                <!--<Setter Property="Foreground" Value="{StaticResource WarningOrange}"/>-->
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <!--<Setter Property="BorderBrush" Value="{StaticResource DangerRed}"/>-->
+
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="7">
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="7">
                                 <ContentPresenter HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="{TemplateBinding Padding}"/>
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource DangerRed}"/>
-                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter TargetName="border" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="LightCoral" Offset="0"/>
+                                                <GradientStop Color="Crimson" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Margin" Value="0,0,0,0"/>
+                                    <!--<Setter Property=""-->
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource WarningOrange}"/>
+                                    <Setter TargetName="border" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="IndianRed" Offset="0"/>
+                                                <GradientStop Color="Maroon" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Effect" Value="{x:Null}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
+                                    <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
