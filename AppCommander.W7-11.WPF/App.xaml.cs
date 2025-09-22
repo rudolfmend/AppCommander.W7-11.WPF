@@ -63,6 +63,9 @@ namespace AppCommander.W7_11.WPF
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // 1. NAJPRV načítaj defaultnú tému (pred base.OnStartup!)
+            LoadDefaultTheme();
+
             try
             {
                 if (!EnsureSingleInstance())
@@ -83,6 +86,7 @@ namespace AppCommander.W7_11.WPF
 
                 SetupExceptionHandling();
 
+                // 2. POTOM volaj base.OnStartup (keď je téma už načítaná)
                 base.OnStartup(e);
 
                 Debug.WriteLine($"AppCommander started successfully on {GetWindowsVersion()}, DPI Scale: {GetDpiScale():F2}x");
@@ -93,6 +97,47 @@ namespace AppCommander.W7_11.WPF
                 MessageBox.Show($"Application startup failed: {ex.Message}", "AppCommander Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
+            }
+        }
+
+        private void LoadDefaultTheme()
+        {
+            try
+            {
+                var lightTheme = new ResourceDictionary
+                {
+                    Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative)
+                };
+                Application.Current.Resources.MergedDictionaries.Add(lightTheme);
+                Debug.WriteLine("Default Light theme loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load default theme: {ex.Message}");
+
+                // Fallback - vytvor minimálne potrebné zdroje
+                CreateFallbackResources();
+            }
+        }
+
+        private void CreateFallbackResources()
+        {
+            try
+            {
+                var resources = Application.Current.Resources;
+
+                // Vytvor základné brushes ako fallback
+                resources["WindowBackgroundBrush"] = new SolidColorBrush(Colors.White);
+                resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xF8, 0xF9, 0xFA));
+                resources["CardBackgroundBrush"] = new SolidColorBrush(Colors.White);
+                resources["PrimaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x32, 0x31, 0x30));
+                resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x60, 0x5E, 0x5C));
+
+                Debug.WriteLine("Fallback theme resources created");
+            }
+            catch (Exception fallbackEx)
+            {
+                Debug.WriteLine($"Even fallback resource creation failed: {fallbackEx.Message}");
             }
         }
 

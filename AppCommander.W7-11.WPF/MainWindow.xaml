@@ -9,38 +9,12 @@
         WindowStartupLocation="CenterScreen" 
         FontSize="14" 
         FontFamily="Segoe UI"
-        Background="#dde7f0">
-        <!--<Window.Background>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="1,2">
-            <GradientStop Color="#F8F9FA" Offset="0"/>
-            <GradientStop Color="#b1c8de" Offset="1"/>
-        </LinearGradientBrush>
-        </Window.Background>-->
-    <!--<Window.Background>
-        <LinearGradientBrush x:Name="AnimatedBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#7dd4fa" Offset="0" x:Name="GradientStop1"/>
-            <GradientStop Color="#2599cc" Offset="1" x:Name="GradientStop2"/>
-        </LinearGradientBrush>
-    </Window.Background>
-
-    <Window.Triggers>
-        <EventTrigger RoutedEvent="Window.Loaded">
-            <BeginStoryboard>
-                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                    <ColorAnimation Storyboard.TargetName="GradientStop1"
-                                    Storyboard.TargetProperty="Color"
-                                    To="#abffe6" Duration="0:0:6"/>
-                    <ColorAnimation Storyboard.TargetName="GradientStop2"
-                                    Storyboard.TargetProperty="Color"
-                                    To="#e35e3d" Duration="0:0:6"/>
-                </Storyboard>
-            </BeginStoryboard>
-        </EventTrigger>
-    </Window.Triggers>-->
-
+        Background="{DynamicResource WindowBackgroundBrush}">
+        <!-- Background="#dde7f0"> -->
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -74,6 +48,39 @@
                     <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
+
+                <!-- Najjednoduchšie riešenie - priamo menu položky: -->
+                <MenuItem Header="_Settings" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                    <!-- Theme options ako checkable menu items -->
+                    <MenuItem Header="🔄 System Default" IsCheckable="True" IsChecked="True" 
+              Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="☀️ Light Theme" IsCheckable="True" 
+              Click="ThemeMenuItem_Click" Tag="Light" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="🌙 Dark Theme" IsCheckable="True" 
+              Click="ThemeMenuItem_Click" Tag="Dark" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="🔍 High Contrast" IsCheckable="True" 
+              Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
+
+                    <Separator Margin="8,4"/>
+                    <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="_Application Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}"/>
+                </MenuItem>
+
+
+
+                <!--<MenuItem Header="_Settings" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                    <MenuItem Header="_System Theme" Click="SystemTheme_Click" Style="{StaticResource MenuItemStyle}" />
+                    <CheckBox x:Name="SystemThemeCheckBox" IsChecked="True" Checked="SystemTheme_Checked" Unchecked="SystemTheme_Unchecked" />
+                    
+                    <MenuItem Header="_Light Theme" Click="LightTheme_Click" Style="{StaticResource MenuItemStyle}" />
+                    <CheckBox x:Name="LightThemeCheckBox" IsChecked="False" Checked="LightThemeCheckBox_Checked" Unchecked="LightThemeCheckBox_Unchecked" />
+                    
+                    <MenuItem Header="_Dark Theme" Click="DarkTheme_Click" Style="{StaticResource MenuItemStyle}" />
+                    <CheckBox x:Name="DarkThemeCheckBox" IsChecked="False" Checked="Dark_Checked" Unchecked="Dark_Unchecked"  />
+
+                    <MenuItem Header="_High Contrast Theme" Click="HighContrastTheme_Click" Style="{StaticResource MenuItemStyle}" />
+                    <CheckBox x:Name="HighContrastThemeCheckBox" IsChecked="False" Checked="HighContrast_Checked" Unchecked="HighContrast_Unchecked"  />
+                </MenuItem>-->
 
                 <MenuItem Header="_Help" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{StaticResource MenuItemStyle}" />

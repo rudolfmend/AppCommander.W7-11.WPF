@@ -46,7 +46,8 @@
 
             <!-- Globálny Window štýl -->
             <Style TargetType="Window">
-                <Setter Property="Background" Value="{StaticResource Background}"/>
+                <!--<Setter Property="Background" Value="{StaticResource Background}"/>-->
+                <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>
                 <Setter Property="FontFamily" Value="Segoe UI"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="UseLayoutRounding" Value="True"/>

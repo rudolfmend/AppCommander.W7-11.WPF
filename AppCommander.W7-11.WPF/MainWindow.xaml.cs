@@ -144,6 +144,13 @@ namespace AppCommander.W7_11.WPF
         private string _currentSequenceSetFilePath;
         private bool _hasUnsavedSequenceSetChanges;
 
+
+        [DllImport("UxTheme.dll", SetLastError = true, EntryPoint = "#138")]
+        private static extern bool ShouldSystemUseDarkMode();
+
+        [DllImport("UxTheme.dll", SetLastError = true, EntryPoint = "#137")]
+        private static extern bool ShouldAppsUseDarkMode();
+
         private void InitializeSequenceSet()
         {
             _sequenceSetItems = new ObservableCollection<SequenceSetItem>();
@@ -2489,10 +2496,16 @@ namespace AppCommander.W7_11.WPF
 
         #region Loop Controls
 
+        private bool _isUpdatingRepeatCount = false; // Flag to prevent recursion
+
         private void InfiniteLoop_Checked(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (_isUpdatingRepeatCount) return; // Prevent recursion
+
+                _isUpdatingRepeatCount = true;
+
                 txtRepeatCount.IsEnabled = false;
                 txtRepeatCount.Text = "∞";
                 UpdateStatus("Infinite loop enabled");
@@ -2501,12 +2514,20 @@ namespace AppCommander.W7_11.WPF
             {
                 ShowErrorMessage("Error enabling infinite loop", ex);
             }
+            finally
+            {
+                _isUpdatingRepeatCount = false;
+            }
         }
 
         private void InfiniteLoop_Unchecked(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (_isUpdatingRepeatCount) return; // Prevent recursion
+
+                _isUpdatingRepeatCount = true;
+
                 txtRepeatCount.IsEnabled = true;
                 txtRepeatCount.Text = "1";
                 UpdateStatus("Infinite loop disabled");
@@ -2514,6 +2535,26 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error disabling infinite loop", ex);
+            }
+            finally
+            {
+                _isUpdatingRepeatCount = false;
+            }
+        }
+
+        // Pridajte handler pre TextChanged event ak existuje
+        private void txtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                if (_isUpdatingRepeatCount) return; // Prevent recursion during programmatic changes
+
+                // Your existing TextChanged logic here (if any)
+                // Ale NIKDY nevolajte UpdateUI() odtiaľto!
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in txtRepeatCount_TextChanged: {ex.Message}");
             }
         }
 
@@ -3109,6 +3150,357 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error loading sequence set", ex);
+            }
+        }
+        #endregion
+
+        #region Theme Selection - Simplified
+
+        // Pre RadioButton riešenie
+        private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var radioButton = sender as RadioButton;
+                if (radioButton?.Tag is string theme)
+                {
+                    SetAppTheme(theme);
+                    UpdateStatus($"{theme} theme enabled");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error changing theme", ex);
+            }
+        }
+
+        // Pre ComboBox riešenie
+        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                var comboBox = sender as ComboBox;
+                var selectedItem = comboBox?.SelectedItem as ComboBoxItem;
+
+                if (selectedItem?.Tag is string theme)
+                {
+                    SetAppTheme(theme);
+                    UpdateStatus($"{selectedItem.Content} selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error changing theme", ex);
+            }
+        }
+
+        // Upravená SetAppTheme bez potreby UpdateThemeCheckBoxes
+        private void SetAppTheme(string theme)
+        {
+            try
+            {
+                ResourceDictionary themeDict = new ResourceDictionary();
+
+                switch (theme)
+                {
+                    case "Light":
+                        themeDict.Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+                        break;
+                    case "Dark":
+                        themeDict.Source = new Uri("Themes/DarkTheme.xaml", UriKind.Relative);
+                        break;
+                    case "HighContrast":
+                        themeDict.Source = new Uri("Themes/HighContrastTheme.xaml", UriKind.Relative);
+                        break;
+                    case "System":
+                    default:
+                        var isSystemDark = IsSystemInDarkMode();
+                        themeDict.Source = isSystemDark ?
+                            new Uri("Themes/DarkTheme.xaml", UriKind.Relative) :
+                            new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+                        break;
+                }
+
+                // Odstráň existujúce theme dictionaries
+                var existingDictionaries = Application.Current.Resources.MergedDictionaries
+                    .Where(d => d.Source != null &&
+                               (d.Source.OriginalString.Contains("LightTheme.xaml") ||
+                                d.Source.OriginalString.Contains("DarkTheme.xaml") ||
+                                d.Source.OriginalString.Contains("HighContrastTheme.xaml")))
+                    .ToList();
+
+                foreach (var dict in existingDictionaries)
+                {
+                    Application.Current.Resources.MergedDictionaries.Remove(dict);
+                }
+
+                // Pridaj nový theme dictionary
+                Application.Current.Resources.MergedDictionaries.Add(themeDict);
+
+                Debug.WriteLine($"Theme changed to: {theme}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error applying theme '{theme}': {ex.Message}");
+                // Fallback handling...
+            }
+        }
+
+        /// <summary>
+        /// Zistí či je systém v dark mode pomocou Windows Registry
+        /// </summary>
+        /// <returns>True ak je dark mode aktívny, false ak light mode</returns>
+        private bool IsSystemInDarkMode()
+        {
+            try
+            {
+                // Skús najprv registry metódu (najspoľahlivejšia)
+                const string registryKeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+                const string appsValueName = "AppsUseLightTheme";
+                const string systemValueName = "SystemUsesLightTheme";
+
+                // Skontroluj apps theme preference
+                var appsValue = Registry.GetValue(registryKeyPath, appsValueName, null);
+                if (appsValue is int appsTheme)
+                {
+                    Debug.WriteLine($"Apps theme from registry: {(appsTheme == 0 ? "Dark" : "Light")}");
+                    return appsTheme == 0; // 0 = dark, 1 = light
+                }
+
+                // Fallback na system theme
+                var systemValue = Registry.GetValue(registryKeyPath, systemValueName, null);
+                if (systemValue is int sysTheme)
+                {
+                    Debug.WriteLine($"System theme from registry: {(sysTheme == 0 ? "Dark" : "Light")}");
+                    return sysTheme == 0;
+                }
+
+                // Ak registry values neexistujú, skús Win32 API
+                return TryWin32DarkModeDetection();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Registry dark mode detection failed: {ex.Message}");
+                return TryWin32DarkModeDetection();
+            }
+        }
+
+        private bool TryWin32DarkModeDetection()
+        {
+            try
+            {
+                // Skús použiť UxTheme API
+                bool shouldUseDark = ShouldAppsUseDarkMode();
+                Debug.WriteLine($"Win32 API dark mode detection: {shouldUseDark}");
+                return shouldUseDark;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Win32 API dark mode detection failed: {ex.Message}");
+
+                // Posledný fallback - skús high contrast mode
+                return DetectHighContrastMode();
+            }
+        }
+
+        private bool DetectHighContrastMode()
+        {
+            try
+            {
+                const string hcKeyPath = @"HKEY_CURRENT_USER\Control Panel\Accessibility\HighContrast";
+                const string flagsValueName = "Flags";
+
+                var hcValue = Registry.GetValue(hcKeyPath, flagsValueName, null);
+                if (hcValue is string hcFlags)
+                {
+                    // High contrast flag "1" znamená že je aktívny
+                    bool isHighContrast = hcFlags.Contains("1");
+                    if (isHighContrast)
+                    {
+                        Debug.WriteLine("High contrast mode detected, treating as dark theme");
+                        return true; // High contrast často používa tmavé farby
+                    }
+                }
+
+                Debug.WriteLine("No theme detection successful, defaulting to light mode");
+                return false; // Default light mode
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"High contrast detection failed: {ex.Message}");
+                return false; // Ultimate fallback - light mode
+            }
+        }
+
+        private bool IsSystemInDarkModeExtended()
+        {
+            try
+            {
+                // 1. Skontroluj Windows verziu
+                var osVersion = Environment.OSVersion.Version;
+                if (osVersion.Major < 10)
+                {
+                    Debug.WriteLine("Windows version < 10, no dark mode support");
+                    return false; // Windows 8.1 a staršie nemajú dark mode
+                }
+
+                // 2. Pre Windows 10 build 1809+ (17763+)
+                if (osVersion.Major == 10 && osVersion.Build >= 17763)
+                {
+                    return IsSystemInDarkMode(); // Použij plnú detekciu
+                }
+
+                // 3. Pre staršie Windows 10 buildy
+                if (osVersion.Major == 10)
+                {
+                    // Len registry-based detection
+                    const string registryKeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+                    var appsValue = Registry.GetValue(registryKeyPath, "AppsUseLightTheme", null);
+
+                    if (appsValue is int theme)
+                    {
+                        return theme == 0;
+                    }
+                }
+
+                return false; // Default light mode
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Extended dark mode detection failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void LogThemeDetectionInfo()
+        {
+            try
+            {
+                Debug.WriteLine("=== Theme Detection Debug Info ===");
+                Debug.WriteLine($"OS Version: {Environment.OSVersion.VersionString}");
+                Debug.WriteLine($"OS Build: {Environment.OSVersion.Version.Build}");
+
+                const string regPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+                var appsValue = Registry.GetValue(regPath, "AppsUseLightTheme", "Not Found");
+                var systemValue = Registry.GetValue(regPath, "SystemUsesLightTheme", "Not Found");
+
+                Debug.WriteLine($"Registry AppsUseLightTheme: {appsValue}");
+                Debug.WriteLine($"Registry SystemUsesLightTheme: {systemValue}");
+                Debug.WriteLine($"Final Detection Result: {(IsSystemInDarkMode() ? "Dark" : "Light")}");
+                Debug.WriteLine("=================================");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Theme detection logging failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Alternatívna metóda pomocou UxTheme.dll (Windows 10 build 17763+)
+        /// </summary>
+        /// <returns>True ak dark mode, false ak light mode</returns>
+        private bool IsSystemInDarkModeAdvanced()
+        {
+            try
+            {
+                // Use the class-level ShouldSystemUseDarkMode() extern method
+                return ShouldSystemUseDarkMode();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Advanced dark mode detection failed: {ex.Message}");
+                // Fallback na registry metódu
+                return IsSystemInDarkMode();
+            }
+        }
+
+        /// <summary>
+        /// Komplexná detekcia system theme s fallback možnosťami
+        /// </summary>
+        /// <returns>True ak dark mode, false ak light mode</returns>
+        private bool DetectSystemTheme()
+        {
+            try
+            {
+                // Metóda 1: Registry check (najpouživanejšia)
+                const string registryKeyPath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+                // Skontroluj apps theme
+                var appsValue = Registry.GetValue(registryKeyPath, "AppsUseLightTheme", null);
+
+                // Skontroluj system theme  
+                var systemValue = Registry.GetValue(registryKeyPath, "SystemUsesLightTheme", null);
+
+                // Preferuj apps theme, ak existuje
+                if (appsValue is int appsTheme)
+                {
+                    Debug.WriteLine($"Apps theme detected: {(appsTheme == 0 ? "Dark" : "Light")}");
+                    return appsTheme == 0; // 0 = dark, 1 = light
+                }
+
+                // Fallback na system theme
+                if (systemValue is int sysTheme)
+                {
+                    Debug.WriteLine($"System theme detected: {(sysTheme == 0 ? "Dark" : "Light")}");
+                    return sysTheme == 0;
+                }
+
+                // Ak nič neexistuje, skús high contrast mode
+                var highContrast = Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Control Panel\Accessibility\HighContrast",
+                    "Flags",
+                    null);
+
+                if (highContrast is string hcFlags && hcFlags.Contains("1"))
+                {
+                    Debug.WriteLine("High contrast mode detected, treating as dark");
+                    return true; // High contrast často používa tmavé farby
+                }
+
+                Debug.WriteLine("No theme registry values found, defaulting to light mode");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in DetectSystemTheme: {ex.Message}");
+                return false; // Default light mode
+            }
+        }
+
+        // Pre minimálne theme menu (tretia verzia) pridajte tento handler:
+
+        private void ThemeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var menuItem = sender as MenuItem;
+                if (menuItem?.Tag is string theme)
+                {
+                    // Unchecked všetky theme menu items
+                    var parentMenu = menuItem.Parent as MenuItem;
+                    if (parentMenu != null)
+                    {
+                        foreach (var item in parentMenu.Items)
+                        {
+                            // Kontrola či je item MenuItem (nie Separator)
+                            if (item is MenuItem mi && mi.Tag is string && mi.IsCheckable)
+                            {
+                                mi.IsChecked = false;
+                            }
+                        }
+                    }
+
+                    // Check current theme
+                    menuItem.IsChecked = true;
+
+                    // Apply theme
+                    SetAppTheme(theme);
+                    UpdateStatus($"{menuItem.Header} selected");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error changing theme", ex);
             }
         }
         #endregion
