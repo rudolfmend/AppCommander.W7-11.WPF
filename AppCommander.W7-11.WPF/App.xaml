@@ -368,37 +368,38 @@
                                             Background="{StaticResource Surface}" 
                                             BorderBrush="{StaticResource NeutralGray400}" 
                                             BorderThickness="1" 
-                                            CornerRadius="15"
+                                            CornerRadius="10"
                                             Effect="{StaticResource ElevationMedium}"
                                             Padding="2">
 
                                             <ScrollViewer x:Name="SubMenuScrollViewer" 
-                                Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                                Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, 
+                                                TypeInTargetAssembly={x:Type FrameworkElement}}}">
 
                                                 <Grid x:Name="Grid1" RenderOptions.ClearTypeHint="Enabled">
                                                     <Canvas x:Name="Canvas" 
-                                                HorizontalAlignment="Left" 
-                                                Height="0" 
-                                                VerticalAlignment="Top" 
-                                                Width="0">
-                                                        <Rectangle x:Name="OpaqueRect" 
-                                                    Fill="{Binding Background, ElementName=SubMenuBorder}" 
-                                                    Height="{Binding ActualHeight, ElementName=SubMenuBorder}" 
-                                                    Width="{Binding ActualWidth, ElementName=SubMenuBorder}"/>
+                                                            HorizontalAlignment="Left" 
+                                                            Height="0" 
+                                                            VerticalAlignment="Top" 
+                                                            Width="0">
+                                                    <Rectangle x:Name="OpaqueRect" 
+                                                            Fill="{Binding Background, ElementName=SubMenuBorder}" 
+                                                            Height="{Binding ActualHeight, ElementName=SubMenuBorder}" 
+                                                            Width="{Binding ActualWidth, ElementName=SubMenuBorder}"/>
 
                                                     </Canvas>
 
                                                     <Rectangle x:Name="Rectangle" 
-                                                Fill="{StaticResource NeutralGray300}" 
-                                                HorizontalAlignment="Left" 
-                                                Margin="29,2,0,2" 
-                                                Width="1"/>
+                                                            Fill="{StaticResource NeutralGray300}" 
+                                                            HorizontalAlignment="Left" 
+                                                            Margin="29,2,0,2" 
+                                                            Width="1"/>
 
                                                     <ItemsPresenter x:Name="ItemsPresenter" 
-                                                KeyboardNavigation.DirectionalNavigation="Cycle" 
-                                                Grid.IsSharedSizeScope="true" 
-                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                                                KeyboardNavigation.TabNavigation="Cycle"/>
+                                                            KeyboardNavigation.DirectionalNavigation="Cycle" 
+                                                            Grid.IsSharedSizeScope="true" 
+                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                                            KeyboardNavigation.TabNavigation="Cycle"/>
                                                 </Grid>
                                             </ScrollViewer>
                                         </Border>
@@ -473,7 +474,7 @@
                         <ControlTemplate TargetType="MenuItem">
                             <Border x:Name="border"
                         Background="{TemplateBinding Background}"
-                        CornerRadius="5"
+                        CornerRadius="4"
                         Margin="2">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -490,16 +491,22 @@
                                         VerticalAlignment="Center"
                                         RecognizesAccessKey="True"/>
                                     <TextBlock Grid.Column="2"
-                                 Text="{TemplateBinding InputGestureText}"
-                                 Foreground="{StaticResource OnSurfaceVariant}"
-                                 FontSize="12"
-                                 Margin="16,0,0,0"
-                                 VerticalAlignment="Center"/>
+                                         Text="{TemplateBinding InputGestureText}"
+                                         Foreground="{StaticResource OnSurfaceVariant}"
+                                         FontSize="12"
+                                         Margin="16,0,0,0"
+                                         VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsHighlighted" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                                    <Setter Property="Opacity" Value="0.7"/>
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect ShadowDepth="6" Direction="300" Color="#E0E0E0" Opacity="0.5" BlurRadius="6"/>
+                                        </Setter.Value>
+                                    </Setter>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>

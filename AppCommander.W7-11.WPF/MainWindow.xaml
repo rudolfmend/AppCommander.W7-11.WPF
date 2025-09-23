@@ -49,21 +49,18 @@
                     <MenuItem Header="_Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
 
-                <!-- Najjednoduchšie riešenie - priamo menu položky: -->
-                <MenuItem Header="_Settings" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="Th_emes" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
                     <!-- Theme options ako checkable menu items -->
                     <MenuItem Header="🔄 System Default" IsCheckable="True" IsChecked="True" 
-              Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}"/>
+                        Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}"/>
+                    <Separator Margin="0,4"/>
                     <MenuItem Header="☀️ Light Theme" IsCheckable="True" 
-              Click="ThemeMenuItem_Click" Tag="Light" Style="{StaticResource MenuItemStyle}"/>
-                    <MenuItem Header="🌙 Dark Theme" IsCheckable="True" 
-              Click="ThemeMenuItem_Click" Tag="Dark" Style="{StaticResource MenuItemStyle}"/>
-                    <MenuItem Header="🔍 High Contrast" IsCheckable="True" 
-              Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
+                        Click="ThemeMenuItem_Click" Tag="Light" Style="{StaticResource MenuItemStyle}"/>
 
-                    <Separator Margin="8,4"/>
-                    <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{StaticResource MenuItemStyle}"/>
-                    <MenuItem Header="_Application Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="🌙 Dark Theme" IsCheckable="True" 
+                        Click="ThemeMenuItem_Click" Tag="Dark" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="🔍 High Contrast" IsCheckable="True" 
+                        Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
                 </MenuItem>
 
 
