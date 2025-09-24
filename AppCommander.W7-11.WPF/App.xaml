@@ -8,7 +8,7 @@
             <Geometry x:Key="Checkmark">F1M10,1.2L4.7,9.1 4.5,9.1 1,5.2 2.3,3.8 4.3,6.1 8.3,0 10,1.2z</Geometry>
 
             <!-- UX-optimalizované farby -->
-            <SolidColorBrush x:Key="PrimaryBlue" Color="#7dd4fa"/>
+            <SolidColorBrush x:Key="PrimaryBlue" Color="#c5e8fc"/>   <!--#-->
             <SolidColorBrush x:Key="PrimaryBlueHover" Color="#41c2fa"/>
             <SolidColorBrush x:Key="PrimaryBluePressed" Color="#2599cc"/>
 
@@ -323,6 +323,7 @@
                                     Background="{TemplateBinding Background}" 
                                     BorderBrush="{TemplateBinding BorderBrush}" 
                                     BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5"
                                     SnapsToDevicePixels="true">
                                 <Grid x:Name="Grid">
                                     <Grid.ColumnDefinitions>
@@ -344,6 +345,7 @@
                                         FlowDirection="LeftToRight" 
                                         Fill="{TemplateBinding Foreground}" 
                                         Margin="3" 
+                                          
                                         Visibility="Collapsed" 
                                         VerticalAlignment="Center"/>
 
@@ -368,7 +370,7 @@
                                             Background="{StaticResource Surface}" 
                                             BorderBrush="{StaticResource NeutralGray400}" 
                                             BorderThickness="1" 
-                                            CornerRadius="10"
+                                            CornerRadius="5"
                                             Effect="{StaticResource ElevationMedium}"
                                             Padding="2">
 
@@ -419,20 +421,20 @@
                                     <Setter Property="Visibility" TargetName="Icon" Value="Collapsed"/>
                                 </Trigger>
 
-                                <!-- Hover efekt s opacity -->
+                                <!-- Hover efekt -->
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Opacity" Value="1"/>
                                     <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray200}"/>
                                     <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource NeutralGray300}"/>
                                 </Trigger>
 
-                                <!-- Pressed efekt s opacity -->
+                                <!-- Pressed efekt -->
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter Property="Opacity" Value="1"/>
                                     <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray300}"/>
                                 </Trigger>
 
-                                <!-- Ak je submenu otvorené, tiež nastav opacity na 1 -->
+                                <!-- Ak je submenu otvorené -->
                                 <Trigger Property="IsSubmenuOpen" Value="True">
                                     <Setter Property="Opacity" Value="1"/>
                                     <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray200}"/>
@@ -463,12 +465,13 @@
                 </Setter>
             </Style>
 
-            <!-- Moderný MenuItem s hover efektmi a access keys -->
+            <!-- MenuItem s hover efektmi a access keys -->
             <Style x:Key="MenuItemStyle" TargetType="MenuItem">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
                 <Setter Property="Padding" Value="30,8"/>
                 <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Opacity" Value="0.7"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="MenuItem">
@@ -501,7 +504,7 @@
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsHighlighted" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlue}"/>
-                                    <Setter Property="Opacity" Value="0.7"/>
+                                    <Setter Property="Opacity" Value="1"/>
                                     <Setter Property="Effect">
                                         <Setter.Value>
                                             <DropShadowEffect ShadowDepth="6" Direction="300" Color="#E0E0E0" Opacity="0.5" BlurRadius="6"/>
@@ -510,6 +513,7 @@
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
+                                    <Setter Property="Opacity" Value="1"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

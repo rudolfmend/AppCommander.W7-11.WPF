@@ -51,15 +51,15 @@
 
                 <MenuItem Header="Th_emes" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
                     <!-- Theme options ako checkable menu items -->
-                    <MenuItem Header="🔄 System Default" IsCheckable="True" IsChecked="True" 
-                        Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}"/>
+                    <MenuItem Header="System Default"  IsCheckable="True" IsChecked="True" 
+                        Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}" />
                     <Separator Margin="0,4"/>
-                    <MenuItem Header="☀️ Light Theme" IsCheckable="True" 
+                    <MenuItem Header="Light Theme"   IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="Light" Style="{StaticResource MenuItemStyle}"/>
 
-                    <MenuItem Header="🌙 Dark Theme" IsCheckable="True" 
+                    <MenuItem Header="Dark Theme"    IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="Dark" Style="{StaticResource MenuItemStyle}"/>
-                    <MenuItem Header="🔍 High Contrast" IsCheckable="True" 
+                    <MenuItem Header="High Contrast"    IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
                 </MenuItem>
 

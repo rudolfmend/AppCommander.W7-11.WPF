@@ -7,7 +7,7 @@
     <Color x:Key="AccentColor">#40E0D0</Color>
 
     <!-- Background Colors -->
-    <Color x:Key="WindowBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="WindowBackgroundColor">#dceaf2</Color>
     <Color x:Key="PanelBackgroundColor">#F8F9FA</Color>
     <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
     <Color x:Key="HoverBackgroundColor">#F3F2F1</Color>
