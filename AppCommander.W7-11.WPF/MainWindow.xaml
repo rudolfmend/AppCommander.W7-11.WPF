@@ -79,7 +79,7 @@
                     <CheckBox x:Name="HighContrastThemeCheckBox" IsChecked="False" Checked="HighContrast_Checked" Unchecked="HighContrast_Unchecked"  />
                 </MenuItem>-->
 
-                <MenuItem Header="_Help" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="_Help" Foreground="{StaticResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_About" Click="About_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
@@ -87,7 +87,7 @@
         </Border>
 
         <!-- Toolbar -->
-        <Border Grid.Row="1" Background="White" BorderBrush="#E1E1E1" BorderThickness="0,0,0,1" Padding="16">
+        <Border Grid.Row="1" Background="{StaticResource PanelBackgroundBrush}"  BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16" >
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
@@ -139,11 +139,11 @@
                     <!-- Info TextBoxes -->
                     <StackPanel Orientation="Vertical" Margin="20,6,6,6">
                         <TextBlock x:Name="txtSetCount" Text="0 sets" 
-                            Foreground="#605E5C"  FontSize="12" />
+                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" />
                         <TextBlock x:Name="txtSequenceCount" Text="0 sequences" 
-                            Foreground="#605E5C"  FontSize="12"/>
+                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
                         <TextBlock x:Name="txtCommandsCount" Text="0 commands" 
-                            Foreground="#605E5C"  FontSize="12"/>
+                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -169,10 +169,10 @@
                     <!-- Header -->
                     <Grid Grid.Row="0" Margin="0,0,0,16">
                         <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" 
-                           Foreground="#323130" VerticalAlignment="Center"/>
+                            Foreground="{StaticResource PrimaryTextBrush}" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <TextBlock x:Name="txtCommandCount" Text="0 commands" 
-                               Foreground="#605E5C" VerticalAlignment="Center" FontSize="12"/>
+                                Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" FontSize="12"/>
                         </StackPanel>
                         <TextBox x:Name="txtSequenceName" Text="Commands_Sequence" 
                              Style="{StaticResource TextBoxStyle}" Margin="207,5,87,-4" ToolTip="Name this sequence of commands."/>
@@ -235,8 +235,7 @@
                     <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" 
-                               Foreground="#323130" Margin="0,0,0,12"/>
-
+                                Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,12"/>
                             <!-- Selection Status -->
                             <Border x:Name="selectionModeIndicator" 
                             Background="#FFF4CE" BorderBrush="#F7C52D" BorderThickness="1" 
@@ -289,18 +288,18 @@
                     <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="System Status" FontSize="16" FontWeight="SemiBold" 
-                               Foreground="#323130" Margin="0,0,0,12"/>
+                                Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="lblAutoDetectionStatus" Text="Auto-Detection Inactive" 
-                                       Foreground="#605E5C" FontSize="12"/>
+                                        Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="lblUIRecordingStatus" Text="UI Scanning Inactive" 
-                                       Foreground="#605E5C" FontSize="12"/>
+                                        Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -347,9 +346,9 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Margin="0,2">
-                                            <TextBlock Text="{Binding ElementName}" FontWeight="SemiBold" Foreground="#323130"/>
+                                            <TextBlock Text="{Binding ElementName}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
                                             <TextBlock Text="{Binding UsageCount, StringFormat=Used: \{0\} times}" 
-                                               FontSize="11" Foreground="#605E5C"/>
+                                                FontSize="11" Foreground="{StaticResource SecondaryTextBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -365,7 +364,7 @@
         </Grid>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="White" BorderBrush="#E1E1E1" BorderThickness="0,1,0,0" 
+        <Border Grid.Row="3" Background="{StaticResource PanelBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" 
                 Padding="16,8">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -375,14 +374,12 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock x:Name="txtStatusBar" Grid.Column="0" 
-                           Text="Ready" FontWeight="SemiBold" Foreground="#0078D4"/>
-
+                    Text="Ready" FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}"/>
                 <TextBlock x:Name="txtTarget" Grid.Column="1" 
-                           Text="No target selected" Foreground="#605E5C" 
-                           Margin="16,0"/>
-
+                    Text="No target selected" Foreground="{StaticResource SecondaryTextBrush}" 
+                        Margin="16,0"/>
                 <TextBlock x:Name="lblStatusBarRecording" Grid.Column="2" 
-                           Text="Not Recording" Foreground="#605E5C"/>
+                    Text="Not Recording" Foreground="{StaticResource SecondaryTextBrush}"/>
             </Grid>
         </Border>
     </Grid>
