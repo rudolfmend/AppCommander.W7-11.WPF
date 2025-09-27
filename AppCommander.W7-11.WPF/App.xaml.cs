@@ -104,11 +104,19 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var lightTheme = new ResourceDictionary
+                //var lightTheme = new ResourceDictionary                
+                //{
+                //    Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative)
+                //};
+                //Application.Current.Resources.MergedDictionaries.Add(lightTheme);
+
+                var systemTheme = new ResourceDictionary
                 {
-                    Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative)
+                    Source = new Uri("Themes/SystemTheme.xaml", UriKind.Relative)
                 };
-                Application.Current.Resources.MergedDictionaries.Add(lightTheme);
+
+                Application.Current.Resources.MergedDictionaries.Add(systemTheme);
+
                 Debug.WriteLine("Default Light theme loaded successfully");
             }
             catch (Exception ex)
