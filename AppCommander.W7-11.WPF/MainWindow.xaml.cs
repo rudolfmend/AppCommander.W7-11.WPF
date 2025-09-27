@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 public class SequenceSetItem : INotifyPropertyChanged
 {
@@ -3496,11 +3497,38 @@ namespace AppCommander.W7_11.WPF
                     // Apply theme
                     SetAppTheme(theme);
                     UpdateStatus($"{menuItem.Header} selected");
+                    DebugCurrentTheme(); 
                 }
             }
             catch (Exception ex)
             {
+                DebugCurrentTheme();
                 ShowErrorMessage("Error changing theme", ex);
+            }
+        }
+
+        public static void DebugCurrentTheme()
+        {
+            try
+            {
+                //foreach (var dict in Application.Current.Resources.MergedDictionaries)
+                var panelBrush = Application.Current.Resources["PanelBackgroundBrush"] as SolidColorBrush;
+                if (panelBrush != null)
+                {
+                    Debug.WriteLine("=== Current Theme Debug Info ===");
+                    Debug.WriteLine(string.Format("Current PanelBackgroundBrush color: {0}", panelBrush.Color));
+
+                    //Debug.WriteLine($"System in dark mode: {IsSystemInDarkMode()}");
+                    Debug.WriteLine("===============================");
+                }
+                else
+                {
+                    Debug.WriteLine("PanelBackgroundBrush not found!");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Debug theme error: {0}", ex.Message));
             }
         }
         #endregion

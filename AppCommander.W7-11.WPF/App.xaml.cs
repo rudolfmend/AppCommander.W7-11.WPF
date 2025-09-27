@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -15,6 +16,9 @@ namespace AppCommander.W7_11.WPF
     public partial class App : Application
     {
         #region Single Instance Management
+
+        private static RegistryKey _themeRegistryKey;
+        private static string _lastKnownSystemTheme;
 
         private static Mutex _instanceMutex;
         private const string MUTEX_NAME = "AppCommander_W7-11_WPF_SingleInstance_D920F8A2-F7EF-472C-B0E6-F58AA4F1CAB9";
@@ -63,9 +67,6 @@ namespace AppCommander.W7_11.WPF
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // 1. NAJPRV načítaj defaultnú tému (pred base.OnStartup!)
-            LoadDefaultTheme();
-
             try
             {
                 if (!EnsureSingleInstance())
@@ -86,45 +87,26 @@ namespace AppCommander.W7_11.WPF
 
                 SetupExceptionHandling();
 
-                // 2. POTOM volaj base.OnStartup (keď je téma už načítaná)
+                // NAJPRV volaj base.OnStartup (aby sa načítali resources z App.xaml)
                 base.OnStartup(e);
 
-                Debug.WriteLine($"AppCommander started successfully on {GetWindowsVersion()}, DPI Scale: {GetDpiScale():F2}x");
+                // POTOM načítaj tému (keď sú už základné resources načítané)
+                LoadDefaultTheme();
+
+                // Spusti sledovanie systémovej témy
+                StartSystemThemeMonitoring();
+
+                // Opravené string interpolation
+                Debug.WriteLine(string.Format("AppCommander started successfully on {0}, DPI Scale: {1:F2}x",
+                    GetWindowsVersion(), GetDpiScale()));
             }
             catch (Exception ex)
             {
                 ReleaseMutex();
-                MessageBox.Show($"Application startup failed: {ex.Message}", "AppCommander Error",
+                // Opravené string interpolation
+                MessageBox.Show(string.Format("Application startup failed: {0}", ex.Message), "AppCommander Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
-            }
-        }
-
-        private void LoadDefaultTheme()
-        {
-            try
-            {
-                //var lightTheme = new ResourceDictionary                
-                //{
-                //    Source = new Uri("Themes/LightTheme.xaml", UriKind.Relative)
-                //};
-                //Application.Current.Resources.MergedDictionaries.Add(lightTheme);
-
-                var systemTheme = new ResourceDictionary
-                {
-                    Source = new Uri("Themes/SystemTheme.xaml", UriKind.Relative)
-                };
-
-                Application.Current.Resources.MergedDictionaries.Add(systemTheme);
-
-                Debug.WriteLine("Default Light theme loaded successfully");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to load default theme: {ex.Message}");
-
-                // Fallback - vytvor minimálne potrebné zdroje
-                CreateFallbackResources();
             }
         }
 
@@ -134,18 +116,305 @@ namespace AppCommander.W7_11.WPF
             {
                 var resources = Application.Current.Resources;
 
-                // Vytvor základné brushes ako fallback
-                resources["WindowBackgroundBrush"] = new SolidColorBrush(Colors.White);
-                resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xF8, 0xF9, 0xFA));
-                resources["CardBackgroundBrush"] = new SolidColorBrush(Colors.White);
-                resources["PrimaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x32, 0x31, 0x30));
-                resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x60, 0x5E, 0x5C));
+                // základné brushes ako fallback (použij Light theme farby)
+                resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xDC, 0xEA, 0xF2)); // #dceaf2
+                resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xF8, 0xF9, 0xFA));    // #F8F9FA
+                resources["CardBackgroundBrush"] = new SolidColorBrush(Colors.White);                        // #FFFFFF
+                resources["PrimaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x32, 0x31, 0x30));       // #323130
+                resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(0x60, 0x5E, 0x5C));     // #605E5C
+                resources["BorderBrush"] = new SolidColorBrush(Color.FromRgb(0xE1, 0xE1, 0xE1));            // #E1E1E1
 
                 Debug.WriteLine("Fallback theme resources created");
             }
             catch (Exception fallbackEx)
             {
                 Debug.WriteLine($"Even fallback resource creation failed: {fallbackEx.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Bezpečne prepne aplikačnú tému (.NET Framework 4.8 kompatibilná verzia)
+        /// </summary>
+        /// <param name="themeName">Názov témy: "Light", "Dark", "HighContrast", "System"</param>
+        /// <returns>True ak sa téma úspešne načítala</returns>
+        public static bool SwitchTheme(string themeName)
+        {
+            try
+            {
+                // Nahradenie switch expression s if-else (pre .NET Framework 4.8)
+                string themeFile;
+                if (themeName == "Light")
+                {
+                    themeFile = "Themes/LightTheme.xaml";
+                }
+                else if (themeName == "Dark")
+                {
+                    themeFile = "Themes/DarkTheme.xaml";
+                }
+                else if (themeName == "HighContrast")
+                {
+                    themeFile = "Themes/HighContrastTheme.xaml";
+                }
+                else if (themeName == "System")
+                {
+                    themeFile = "Themes/SystemTheme.xaml";
+                }
+                else
+                {
+                    themeFile = "Themes/LightTheme.xaml"; // fallback
+                }
+
+                // Odstráň existujúce témy (okrem štandardných App.xaml resources)
+                var mergedDictionaries = Application.Current.Resources.MergedDictionaries;
+
+                // Nájdi a odstráň existujúce theme súbory
+                for (int i = mergedDictionaries.Count - 1; i >= 0; i--)
+                {
+                    var dict = mergedDictionaries[i];
+                    if (dict.Source != null && dict.Source.OriginalString.Contains("Theme.xaml"))
+                    {
+                        mergedDictionaries.RemoveAt(i);
+                    }
+                }
+
+                // Načítaj novú tému
+                var newTheme = new ResourceDictionary
+                {
+                    Source = new Uri(themeFile, UriKind.Relative)
+                };
+
+                mergedDictionaries.Add(newTheme);
+
+                // Nahradenie string interpolation s String.Format (pre .NET Framework 4.8)
+                Debug.WriteLine(string.Format("Successfully switched to {0} theme", themeName));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Nahradenie string interpolation s String.Format
+                Debug.WriteLine(string.Format("Failed to switch to {0} theme: {1}", themeName, ex.Message));
+
+                // V prípade chyby sa pokús načítať Light theme
+                if (themeName != "Light")
+                {
+                    Debug.WriteLine("Attempting fallback to Light theme...");
+                    return SwitchTheme("Light");
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Získa názov aktuálne načítanej témy (.NET Framework 4.8 kompatibilná verzia)
+        /// </summary>
+        /// <returns>Názov témy alebo "Unknown" ak sa nedá určiť</returns>
+        public static string GetCurrentTheme()
+        {
+            try
+            {
+                var mergedDictionaries = Application.Current.Resources.MergedDictionaries;
+
+                foreach (var dict in mergedDictionaries)
+                {
+                    if (dict.Source != null && dict.Source.OriginalString.Contains("Theme.xaml"))
+                    {
+                        var fileName = dict.Source.OriginalString;
+
+                        if (fileName.Contains("LightTheme.xaml")) return "Light";
+                        if (fileName.Contains("DarkTheme.xaml")) return "Dark";
+                        if (fileName.Contains("HighContrastTheme.xaml")) return "HighContrast";
+                        if (fileName.Contains("SystemTheme.xaml")) return "System";
+                    }
+                }
+
+                return "Unknown";
+            }
+            catch (Exception ex)
+            {
+                // Nahradenie string interpolation s String.Format
+                Debug.WriteLine(string.Format("Failed to determine current theme: {0}", ex.Message));
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// Detekuje systémovú tému a načíta príslušnú tému aplikácie
+        /// </summary>
+        /// <returns>Názov detekovanej témy</returns>
+        public static string DetectAndLoadSystemTheme()
+        {
+            try
+            {
+                string detectedTheme = GetSystemTheme();
+
+                // Pokús sa načítať detekovanú tému
+                if (SwitchTheme(detectedTheme))
+                {
+                    Debug.WriteLine(string.Format("Successfully loaded system theme: {0}", detectedTheme));
+                    return detectedTheme;
+                }
+                else
+                {
+                    // Fallback na Light ak sa systémová téma nepodarí načítať
+                    Debug.WriteLine("Failed to load system theme, falling back to Light");
+                    SwitchTheme("Light");
+                    return "Light";
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error detecting system theme: {0}", ex.Message));
+                // Fallback na Light
+                SwitchTheme("Light");
+                return "Light";
+            }
+        }
+
+        /// <summary>
+        /// Získa aktuálnu systémovú tému z Windows Registry
+        /// </summary>
+        /// <returns>"Dark" alebo "Light"</returns>
+        private static string GetSystemTheme()
+        {
+            try
+            {
+                // Windows 10/11 - kontrola dark mode v Registry
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key != null)
+                    {
+                        var appsUseLightTheme = key.GetValue("AppsUseLightTheme");
+                        if (appsUseLightTheme != null)
+                        {
+                            // 0 = Dark mode, 1 = Light mode
+                            bool isLightMode = Convert.ToInt32(appsUseLightTheme) == 1;
+                            return isLightMode ? "Light" : "Dark";
+                        }
+                    }
+                }
+
+                // Fallback - ak sa registry kľúč nenájde, skús high contrast
+                if (SystemParameters.HighContrast)
+                {
+                    return "HighContrast";
+                }
+
+                // Ak nič nevyšlo, vráť Light ako default
+                return "Light";
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error reading system theme from registry: {0}", ex.Message));
+                return "Light";
+            }
+        }
+
+        /// <summary>
+        /// LoadDefaultTheme metóda ktorá používa systémovú tému
+        /// </summary>
+        private void LoadDefaultTheme()
+        {
+            try
+            {
+                // NEZMAŽE všetky resources! Iba odstráni existujúce theme súbory
+                var mergedDictionaries = Application.Current.Resources.MergedDictionaries;
+
+                // Nájde a odstrání iba theme súbory (zachovaj App.xaml resources)
+                for (int i = mergedDictionaries.Count - 1; i >= 0; i--)
+                {
+                    var dict = mergedDictionaries[i];
+                    if (dict.Source != null && dict.Source.OriginalString.Contains("Theme.xaml"))
+                    {
+                        mergedDictionaries.RemoveAt(i);
+                    }
+                }
+
+                // Detekuje a načíta systémovú tému
+                string systemTheme = DetectAndLoadSystemTheme();
+
+                Debug.WriteLine(string.Format("Default theme loaded: {0}", systemTheme));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Failed to load default theme: {0}", ex.Message));
+
+                // Fallback - vytvorí minimálne potrebné zdroje
+                CreateFallbackResources();
+            }
+        }
+
+        /// <summary>
+        /// Spustí sledovanie zmien systémovej témy
+        /// </summary>
+        public static void StartSystemThemeMonitoring()
+        {
+            try
+            {
+                _lastKnownSystemTheme = GetSystemTheme();
+
+                // Registruj listener pre zmeny v Registry
+                _themeRegistryKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+
+                if (_themeRegistryKey != null)
+                {
+                    // Vytvor timer na periodickú kontrolu (každých 5 sekúnd)
+                    var timer = new System.Windows.Threading.DispatcherTimer();
+                    timer.Interval = TimeSpan.FromSeconds(5);
+                    timer.Tick += OnThemeCheckTimer;
+                    timer.Start();
+
+                    Debug.WriteLine("System theme monitoring started");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Failed to start theme monitoring: {0}", ex.Message));
+            }
+        }
+
+        private static void OnThemeCheckTimer(object sender, EventArgs e)
+        {
+            try
+            {
+                string currentSystemTheme = GetSystemTheme();
+
+                if (currentSystemTheme != _lastKnownSystemTheme)
+                {
+                    Debug.WriteLine(string.Format("System theme changed from {0} to {1}", _lastKnownSystemTheme, currentSystemTheme));
+
+                    // Automaticky prepni tému aplikácie
+                    SwitchTheme(currentSystemTheme);
+                    _lastKnownSystemTheme = currentSystemTheme;
+
+                    // Notify user (voliteľne)
+                    Debug.WriteLine(string.Format("Application theme automatically switched to {0}", currentSystemTheme));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error checking system theme changes: {0}", ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Zastaví sledovanie systémovej témy
+        /// </summary>
+        public static void StopSystemThemeMonitoring()
+        {
+            try
+            {
+                if (_themeRegistryKey != null)
+                {
+                    _themeRegistryKey.Close();
+                    _themeRegistryKey = null;
+                }
+
+                Debug.WriteLine("System theme monitoring stopped");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error stopping theme monitoring: {0}", ex.Message));
             }
         }
 
@@ -179,7 +448,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error checking for existing instance: {ex.Message}");
+                Debug.WriteLine(string.Format("Error checking for existing instance: {0}", ex.Message));
                 // If we can't determine, allow this instance to run
                 return true;
             }
@@ -224,7 +493,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to bring existing instance to foreground: {ex.Message}");
+                Debug.WriteLine(string.Format("Failed to bring existing instance to foreground: {0}", ex.Message));
             }
         }
 
@@ -309,7 +578,7 @@ namespace AppCommander.W7_11.WPF
                     }
                     catch (COMException ex)
                     {
-                        Debug.WriteLine($"DPI Awareness already set: {ex.Message}");
+                        Debug.WriteLine(string.Format("DPI Awareness already set: {0}", ex.Message));
                         dpiAwarenessSet = true;
                     }
                 }
@@ -338,7 +607,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"DPI awareness setup failed: {ex.Message}");
+                Debug.WriteLine(string.Format("DPI awareness setup failed: {0}", ex.Message));
             }
         }
 
@@ -349,11 +618,11 @@ namespace AppCommander.W7_11.WPF
                 LogException(e.Exception, "DispatcherUnhandledException");
 
 #if DEBUG
-                MessageBox.Show($"DEBUG - Unhandled Exception:\n{e.Exception}\n\nThe application will continue running.",
+                MessageBox.Show(string.Format("DEBUG - Unhandled Exception:\n{0}\n\nThe application will continue running.", e.Exception),
                     "AppCommander Debug Error", MessageBoxButton.OK, MessageBoxImage.Warning);
 #else
-                MessageBox.Show($"An unexpected error occurred:\n{e.Exception.Message}\n\nThe application will continue running.",
-                    "AppCommander Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show(string.Format("An unexpected error occurred:\n{0}\n\nThe application will continue running.", e.Exception.Message),
+            "AppCommander Error", MessageBoxButton.OK, MessageBoxImage.Warning);
 #endif
 
                 e.Handled = true;
@@ -368,10 +637,10 @@ namespace AppCommander.W7_11.WPF
                 {
                     string message = exception?.Message ?? "Unknown critical error";
 #if DEBUG
-                    message = $"DEBUG - Critical Error:\n{exception}";
+                    message = string.Format("DEBUG - Critical Error:\n{0}", exception);
 #endif
 
-                    MessageBox.Show($"A critical error occurred and the application must close:\n{message}",
+                    MessageBox.Show(string.Format("A critical error occurred and the application must close:\n{0}", message),
                         "AppCommander Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             };
@@ -385,10 +654,10 @@ namespace AppCommander.W7_11.WPF
                 string osInfo = GetWindowsVersion();
                 double dpiScale = GetDpiScale();
 
-                Debug.WriteLine($"[{timestamp}] {source}:");
-                Debug.WriteLine($"  OS: {osInfo}");
-                Debug.WriteLine($"  DPI Scale: {dpiScale:F2}x");
-                Debug.WriteLine($"  Exception: {exception}");
+                Debug.WriteLine(string.Format("[{0}] {1}:", timestamp, source));
+                Debug.WriteLine(string.Format("  OS: {0}", osInfo));
+                Debug.WriteLine(string.Format("  DPI Scale: {0:F2}x", dpiScale));
+                Debug.WriteLine(string.Format("  Exception: {0}", exception));
                 Debug.WriteLine(new string('-', 80));
             }
             catch
@@ -435,9 +704,9 @@ namespace AppCommander.W7_11.WPF
             {
                 if (version.Build >= 22000)
                 {
-                    return $"Windows 11 (Build {version.Build})";
+                    return string.Format("Windows 11 (Build {0})", version.Build);
                 }
-                return $"Windows 10 (Build {version.Build})";
+                return string.Format("Windows 10 (Build {0})", version.Build);
             }
 
             if (version.Major == 6)
@@ -448,7 +717,7 @@ namespace AppCommander.W7_11.WPF
                 if (version.Minor == 0) return "Windows Vista";
             }
 
-            return $"Windows {version.Major}.{version.Minor} (Build {version.Build})";
+            return string.Format("Windows {0}.{1} (Build {2})", version.Major, version.Minor, version.Build);
         }
 
         private void ReleaseMutex()
@@ -473,7 +742,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error releasing mutex: {ex.Message}");
+                Debug.WriteLine(string.Format("Error releasing mutex: {0}", ex.Message));
             }
         }
 
@@ -481,14 +750,17 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                Debug.WriteLine($"AppCommander exiting gracefully (Exit Code: {e.ApplicationExitCode})");
+                Debug.WriteLine(string.Format("AppCommander exiting gracefully (Exit Code: {0})", e.ApplicationExitCode));
+
+                // Zastav sledovanie témy
+                StopSystemThemeMonitoring();
 
                 // Release the single instance mutex
                 ReleaseMutex();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error during application exit: {ex.Message}");
+                Debug.WriteLine(string.Format("Error during application exit: {0}", ex.Message));
             }
 
             base.OnExit(e);

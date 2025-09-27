@@ -5,26 +5,17 @@
     <Application.Resources>
         <ResourceDictionary>
 
-
-            <!--**************************************************************************************************************-->
-            <!-- MergedDictionaries pre načítanie default theme -->
-            <ResourceDictionary.MergedDictionaries>
-                <!-- Default Light Theme - načíta sa automaticky pri štarte -->
-                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-            <!--**************************************************************************************************************-->
-
             <!-- Geometria pre checkmark -->
             <Geometry x:Key="Checkmark">F1M10,1.2L4.7,9.1 4.5,9.1 1,5.2 2.3,3.8 4.3,6.1 8.3,0 10,1.2z</Geometry>
 
             <!-- UX-optimalizované farby -->
-            <SolidColorBrush x:Key="PrimaryBlue" Color="#c5e8fc"/>   <!--#-->
+            <SolidColorBrush x:Key="PrimaryBlue" Color="#c5e8fc"/>
             <SolidColorBrush x:Key="PrimaryBlueHover" Color="#41c2fa"/>
             <SolidColorBrush x:Key="PrimaryBluePressed" Color="#2599cc"/>
 
             <SolidColorBrush x:Key="SuccessGreen" Color="#abffe6"/>
-            <SolidColorBrush x:Key="WarningOrange" Color="DarkRed"/> <!--"#e35e3d"-->
-            <SolidColorBrush x:Key="DangerRed" Color="#fc9379"/> <!--"#fc9379"-->
+            <SolidColorBrush x:Key="WarningOrange" Color="DarkRed"/>
+            <SolidColorBrush x:Key="DangerRed" Color="#fc9379"/>
 
             <SolidColorBrush x:Key="NeutralGray100" Color="#FFFAF9F8"/>
             <SolidColorBrush x:Key="NeutralGray200" Color="#FFF3F2F1"/>
@@ -54,17 +45,8 @@
                               Opacity="0.25" 
                               Color="#FF000000"/>
 
-            <!-- Globálny Window štýl -->
-            <Style TargetType="Window">
-                <Setter Property="Background" Value="{StaticResource Background}"/>
-                <!--<Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>-->
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="UseLayoutRounding" Value="True"/>
-                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
-                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
-            </Style>
-
+            <!-- POZOR: Tieto štýly sú už definované v theme súboroch, 
+                 - odstrániť alebo ponechať ako fallback -->
 
             <!-- Primary Button + Statický gradient -->
             <Style x:Key="PrimaryButton" TargetType="Button">
@@ -214,7 +196,6 @@
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
                                     <Setter Property="Margin" Value="0,0,0,0"/>
-                                    <!--<Setter Property=""-->
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background">
@@ -240,7 +221,7 @@
 
             <!-- Moderný TextBox s fokus animáciou -->
             <Style  x:Key="TextBoxStyle" TargetType="TextBox">
-                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="Background" Value="{DynamicResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="1"/>
@@ -272,8 +253,8 @@
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
-                                            <Setter Property="Foreground" Value="{StaticResource NeutralGray700}" />
-                                        </Trigger>
+                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}" />
+                                </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -316,167 +297,7 @@
                 </Setter>
             </Style>
 
-            <Style x:Key="TopLevelMenuItem" TargetType="MenuItem" >
-                <Setter Property="Effect" Value="{StaticResource ElevationLow}"/>
-                <Setter Property="Background" Value="White"/>
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="FontWeight" Value="DemiBold" />
-                <Setter Property="Padding" Value="12,8"/>
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="Opacity" Value="0.6" />
-
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="MenuItem">
-                            <Border x:Name="templateRoot" 
-                                    Background="{TemplateBinding Background}" 
-                                    BorderBrush="{TemplateBinding BorderBrush}" 
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="5"
-                                    SnapsToDevicePixels="true">
-                                <Grid x:Name="Grid">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <ContentPresenter x:Name="Icon" 
-                                        ContentSource="Icon" 
-                                        HorizontalAlignment="Center" 
-                                        Height="16" 
-                                        Margin="3" 
-                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                                        VerticalAlignment="Center" 
-                                        Width="16"/>
-
-                                    <Path x:Name="GlyphPanel" 
-                                        Data="{StaticResource Checkmark}" 
-                                        FlowDirection="LeftToRight" 
-                                        Fill="{TemplateBinding Foreground}" 
-                                        Margin="3" 
-                                          
-                                        Visibility="Collapsed" 
-                                        VerticalAlignment="Center"/>
-
-                                    <ContentPresenter x:Name="menuHeaderContainer" 
-                                        Grid.Column="1" 
-                                        ContentSource="Header" 
-                                        HorizontalAlignment="Left" 
-                                        Margin="{TemplateBinding Padding}" 
-                                        RecognizesAccessKey="true" 
-                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                                        VerticalAlignment="Center"/>
-
-                                    <Popup x:Name="PART_Popup" 
-                                        AllowsTransparency="true" 
-                                        Focusable="false" 
-                                        IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
-                                        PopupAnimation="{DynamicResource {x:Static SystemParameters.MenuPopupAnimationKey}}" 
-                                        Placement="Bottom" 
-                                        PlacementTarget="{Binding ElementName=templateRoot}">
-
-                                        <Border x:Name="SubMenuBorder" 
-                                            Background="{StaticResource Surface}" 
-                                            BorderBrush="{StaticResource NeutralGray400}" 
-                                            BorderThickness="1" 
-                                            CornerRadius="5"
-                                            Effect="{StaticResource ElevationMedium}"
-                                            Padding="2">
-
-                                            <ScrollViewer x:Name="SubMenuScrollViewer" 
-                                                Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, 
-                                                TypeInTargetAssembly={x:Type FrameworkElement}}}">
-
-                                                <Grid x:Name="Grid1" RenderOptions.ClearTypeHint="Enabled">
-                                                    <Canvas x:Name="Canvas" 
-                                                            HorizontalAlignment="Left" 
-                                                            Height="0" 
-                                                            VerticalAlignment="Top" 
-                                                            Width="0">
-                                                    <Rectangle x:Name="OpaqueRect" 
-                                                            Fill="{Binding Background, ElementName=SubMenuBorder}" 
-                                                            Height="{Binding ActualHeight, ElementName=SubMenuBorder}" 
-                                                            Width="{Binding ActualWidth, ElementName=SubMenuBorder}"/>
-
-                                                    </Canvas>
-
-                                                    <Rectangle x:Name="Rectangle" 
-                                                            Fill="{StaticResource NeutralGray300}" 
-                                                            HorizontalAlignment="Left" 
-                                                            Margin="29,2,0,2" 
-                                                            Width="1"/>
-
-                                                    <ItemsPresenter x:Name="ItemsPresenter" 
-                                                            KeyboardNavigation.DirectionalNavigation="Cycle" 
-                                                            Grid.IsSharedSizeScope="true" 
-                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
-                                                            KeyboardNavigation.TabNavigation="Cycle"/>
-                                                </Grid>
-                                            </ScrollViewer>
-                                        </Border>
-                                    </Popup>
-                                </Grid>
-                            </Border>
-
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsSuspendingPopupAnimation" Value="true">
-                                    <Setter Property="PopupAnimation" TargetName="PART_Popup" Value="None"/>
-                                </Trigger>
-                                <Trigger Property="Icon" Value="{x:Null}">
-                                    <Setter Property="Visibility" TargetName="Icon" Value="Collapsed"/>
-                                </Trigger>
-                                <Trigger Property="IsChecked" Value="true">
-                                    <Setter Property="Visibility" TargetName="GlyphPanel" Value="Visible"/>
-                                    <Setter Property="Visibility" TargetName="Icon" Value="Collapsed"/>
-                                </Trigger>
-
-                                <!-- Hover efekt -->
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                    <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray200}"/>
-                                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource NeutralGray300}"/>
-                                </Trigger>
-
-                                <!-- Pressed efekt -->
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                    <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray300}"/>
-                                </Trigger>
-
-                                <!-- Ak je submenu otvorené -->
-                                <Trigger Property="IsSubmenuOpen" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                    <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray200}"/>
-                                </Trigger>
-
-                                <Trigger Property="IsHighlighted" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                    <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource NeutralGray200}"/>
-                                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource NeutralGray300}"/>
-                                </Trigger>
-
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="TextElement.Foreground" TargetName="menuHeaderContainer" Value="{StaticResource NeutralGray500}"/>
-                                    <Setter Property="Fill" TargetName="GlyphPanel" Value="{StaticResource NeutralGray500}"/>
-                                </Trigger>
-
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsHighlighted" Value="True"/>
-                                        <Condition Property="IsEnabled" Value="False"/>
-                                    </MultiTrigger.Conditions>
-                                    <Setter Property="Background" TargetName="templateRoot" Value="Transparent"/>
-                                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="Transparent"/>
-                                </MultiTrigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- MenuItem s hover efektmi a access keys -->
+            <!-- MenuItem s hover efektmi a access keys --><!--
             <Style x:Key="MenuItemStyle" TargetType="MenuItem">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
@@ -532,7 +353,7 @@
                 </Setter>
             </Style>
 
-            <!-- Moderný DataGrid -->
+            --><!-- Moderný DataGrid --><!--
             <Style x:Key="DataGridStyle"  TargetType="DataGrid">
                 <Setter Property="Background" Value="{StaticResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray400}"/>
@@ -548,13 +369,13 @@
                 <Setter Property="RowHeight" Value="36"/>
             </Style>
 
-            <!-- Moderný Menu -->
+            --><!-- Moderný Menu --><!--
             <Style x:Key="MenuStyle"  TargetType="Menu">
                 <Setter Property="Background" Value="{StaticResource NeutralGray100}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
                 <Setter Property="BorderThickness" Value="0,0,0,1"/>
                 <Setter Property="Padding" Value="8,4"/>
-            </Style>
+            </Style>-->
 
             <!-- Moderný StatusBar -->
             <Style x:Key="StatusBarStyle"  TargetType="StatusBar">
@@ -589,7 +410,7 @@
                 <Setter Property="FontSize" Value="12" />
             </Style>
 
-            <Style x:Key="CardStyle" TargetType="{x:Type Border}">
+            <!--<Style x:Key="CardStyle" TargetType="{x:Type Border}">
                 <Setter Property="Background" Value="White"/>
                 <Setter Property="CornerRadius" Value="8"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -599,14 +420,14 @@
                         <DropShadowEffect ShadowDepth="2" Direction="270" Color="#E0E0E0" Opacity="0.3" BlurRadius="4"/>
                     </Setter.Value>
                 </Setter>
-            </Style>
+            </Style>-->
 
             <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
                 <Setter Property="Background" Value="DarkMagenta"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="BorderBrush" Value="#E1E1"/>
                 <Setter Property="Template">
-                        <Setter.Value>
+                    <Setter.Value>
                         <ControlTemplate TargetType="ScrollViewer">
                             <Grid>
                                 <Grid.ColumnDefinitions>

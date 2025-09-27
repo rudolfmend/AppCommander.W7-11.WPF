@@ -10,7 +10,6 @@
         FontSize="14" 
         FontFamily="Segoe UI"
         Background="{DynamicResource WindowBackgroundBrush}">
-        <!-- Background="#dde7f0"> -->
 
     <Grid>
         <Grid.RowDefinitions>
@@ -22,9 +21,9 @@
         </Grid.RowDefinitions>
 
         <!-- Menu Bar -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#E1E1E1" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Menu x:Name="menuBar" Background="Transparent" Padding="8" Margin="1,0,-1,0">
-                <MenuItem Header="_File" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{StaticResource MenuItemStyle}" />
                     <Separator/>
@@ -34,7 +33,7 @@
                     <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Commands" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="_Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{StaticResource MenuItemStyle}" />
@@ -43,14 +42,14 @@
                     <MenuItem Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Tools" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="_Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_Window Selector" Click="WindowSelector_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="Th_emes" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
-                    <!-- Theme options ako checkable menu items -->
+                <MenuItem Header="Th_emes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
+                    <!-- Theme options - checkable menu items -->
                     <MenuItem Header="System Default"  IsCheckable="True" IsChecked="True" 
                         Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}" />
                     <Separator Margin="0,4"/>
@@ -63,23 +62,7 @@
                         Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
                 </MenuItem>
 
-
-
-                <!--<MenuItem Header="_Settings" Foreground="#323130" Style="{StaticResource TopLevelMenuItem}">
-                    <MenuItem Header="_System Theme" Click="SystemTheme_Click" Style="{StaticResource MenuItemStyle}" />
-                    <CheckBox x:Name="SystemThemeCheckBox" IsChecked="True" Checked="SystemTheme_Checked" Unchecked="SystemTheme_Unchecked" />
-                    
-                    <MenuItem Header="_Light Theme" Click="LightTheme_Click" Style="{StaticResource MenuItemStyle}" />
-                    <CheckBox x:Name="LightThemeCheckBox" IsChecked="False" Checked="LightThemeCheckBox_Checked" Unchecked="LightThemeCheckBox_Unchecked" />
-                    
-                    <MenuItem Header="_Dark Theme" Click="DarkTheme_Click" Style="{StaticResource MenuItemStyle}" />
-                    <CheckBox x:Name="DarkThemeCheckBox" IsChecked="False" Checked="Dark_Checked" Unchecked="Dark_Unchecked"  />
-
-                    <MenuItem Header="_High Contrast Theme" Click="HighContrastTheme_Click" Style="{StaticResource MenuItemStyle}" />
-                    <CheckBox x:Name="HighContrastThemeCheckBox" IsChecked="False" Checked="HighContrast_Checked" Unchecked="HighContrast_Unchecked"  />
-                </MenuItem>-->
-
-                <MenuItem Header="_Help" Foreground="{StaticResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="_Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
                     <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{StaticResource MenuItemStyle}" />
                     <MenuItem Header="_About" Click="About_Click" Style="{StaticResource MenuItemStyle}" />
                 </MenuItem>
@@ -87,16 +70,16 @@
         </Border>
 
         <!-- Toolbar -->
-        <Border Grid.Row="1" Background="{StaticResource PanelBackgroundBrush}"  BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16" >
+        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}"  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16" >
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
                     <Button x:Name="btnSelectTargetByClick" Content="🎯 Click to Select" 
-                            Style="{StaticResource PrimaryButton}" 
+                            Style="{DynamicResource PrimaryButton}" 
                             Click="SelectTargetByClick_Click" 
                             Margin="0,0,8,0" Height="36"/>
                     <Button x:Name="btnSelectTarget" Content="📋 Browse" 
-                            Style="{StaticResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" 
                             Click="SelectTarget_Click" Height="36"/>
                 </StackPanel>
 
@@ -105,7 +88,7 @@
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                     <Button x:Name="btnRecording" Content="🔴 Start Recording" 
-                            Style="{StaticResource DangerButton}" 
+                            Style="{DynamicResource DangerButton}" 
                             Click="ToggleRecording_Click" Height="36" Margin="0,0,8,0"/>
                 </StackPanel>
 
@@ -114,15 +97,15 @@
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="btnPlayCommands" Content="         ▶    Play            " 
-                            Style="{StaticResource PrimaryButton}" 
+                            Style="{DynamicResource PrimaryButton}" 
                             Click="PlaySequence_Click" Height="36" Margin="0,0,4,0"/>
 
                     <StackPanel Orientation="Vertical">
 
                         <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" 
-                               FontWeight="SemiBold" Foreground="#323130"/>
+                               FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                         <TextBox x:Name="txtRepeatCount" Text="1" 
-                                 Style="{StaticResource TextBoxStyle}"     
+                                 Style="{DynamicResource TextBoxStyle}"     
                                  Width="50" Height="36" TextAlignment="Center" Margin="10,0,8,18"/>
                     </StackPanel>
                         
@@ -130,20 +113,20 @@
                                   Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,-3"/>
 
                     <Button x:Name="btnPause" Content="⏸ Pause" 
-                            Style="{StaticResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" 
                             Click="PausePlayback_Click" Height="36" Margin="0,0,4,0" IsEnabled="False"/>
                     <Button x:Name="btnStop" Content="⏹ Stop" 
-                            Style="{StaticResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" 
                             Click="StopPlayback_Click" Height="36" IsEnabled="False"/>
 
                     <!-- Info TextBoxes -->
                     <StackPanel Orientation="Vertical" Margin="20,6,6,6">
                         <TextBlock x:Name="txtSetCount" Text="0 sets" 
-                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" />
+                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" />
                         <TextBlock x:Name="txtSequenceCount" Text="0 sequences" 
-                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                         <TextBlock x:Name="txtCommandsCount" Text="0 commands" 
-                            Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -158,7 +141,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Commands Panel -->
-            <Border Style="{StaticResource CardStyle}">
+            <Border Style="{DynamicResource CardStyle}">
                 <Grid Margin="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -169,16 +152,16 @@
                     <!-- Header -->
                     <Grid Grid.Row="0" Margin="0,0,0,16">
                         <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" 
-                            Foreground="{StaticResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+                            Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <TextBlock x:Name="txtCommandCount" Text="0 commands" 
-                                Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" FontSize="12"/>
+                                Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" FontSize="12"/>
                         </StackPanel>
                         <TextBox x:Name="txtSequenceName" Text="Commands_Sequence" 
-                             Style="{StaticResource TextBoxStyle}" Margin="207,5,87,-4" ToolTip="Name this sequence of commands."/>
+                             Style="{DynamicResource TextBoxStyle}" Margin="207,5,87,-4" ToolTip="Name this sequence of commands."/>
                     </Grid>
 
-                    <DataGrid x:Name="dgUnified" AutoGenerateColumns="False" Style="{StaticResource DataGridStyle}">
+                    <DataGrid x:Name="dgUnified" AutoGenerateColumns="False" Style="{DynamicResource DataGridStyle}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="#" Binding="{Binding StepNumber}" Width="40"/>
                             <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" Width="100"/>
@@ -194,7 +177,7 @@
                         </DataGrid.Columns>
 
                         <!-- Custom row styling based on ItemType -->
-                        <DataGrid.RowStyle>
+                        <!--<DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Type}" Value="Command">
@@ -205,41 +188,40 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </DataGrid.RowStyle>
+                        </DataGrid.RowStyle>-->
                     </DataGrid>
 
                     <StackPanel Orientation="Horizontal" Grid.Row="2">
 
-                        <Button Content=" ✏ Edit   " Click="EditItem_Click" Margin="0,2,8,0"  Style="{StaticResource SecondaryButton}"/>
-                        <!--<Button Content="🗑 Delete" Click="DeleteItem_Click" Margin="0,0,8,0"  Style="{StaticResource DangerButton}"/>-->
+                        <Button Content=" ✏ Edit   " Click="EditItem_Click" Margin="0,2,8,0"  Style="{DynamicResource SecondaryButton}"/>
+                        <!--<Button Content="🗑 Delete" Click="DeleteItem_Click" Margin="0,0,8,0"  Style="{DynamicResource DangerButton}"/>-->
 
                         <!-- Reordering -->
-                        <Button Content="⬆ Move Up   " Click="MoveUp_Click" Margin="2,2,8,0"  Style="{StaticResource SecondaryButton}"/>
-                        <Button Content="⬇ Move Down " Click="MoveDown_Click" Margin="0,2,8,2"  Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="⬆ Move Up   " Click="MoveUp_Click" Margin="2,2,8,0"  Style="{DynamicResource SecondaryButton}"/>
+                        <Button Content="⬇ Move Down " Click="MoveDown_Click" Margin="0,2,8,2"  Style="{DynamicResource SecondaryButton}"/>
 
-                        <Button Content="➕ Add  Sequence" Click="AddSequence_Click"  Margin="0,0,8,0" Style="{StaticResource PrimaryButton}"/>
-                        <Button Content="📁Add Cmd" Click="AddFromCommands_Click"  Margin="2,2,8,2" Style="{StaticResource SecondaryButton}"/>
+                        <Button Content="➕ Add  Sequence" Click="AddSequence_Click"  Margin="0,0,8,0" Style="{DynamicResource PrimaryButton}"/>
+                        <Button Content="📁Add Cmd" Click="AddFromCommands_Click"  Margin="2,2,8,2" Style="{DynamicResource SecondaryButton}"/>
 
-                        <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,2,8,2"  Style="{StaticResource SecondaryButton}"/>
-
+                        <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,2,8,2"  Style="{DynamicResource SecondaryButton}"/>
                         
                     </StackPanel>
-
                 </Grid>
             </Border>
 
             <!-- Side Panel -->
-            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{StaticResource ScrollViewerStyle}">
+            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{DynamicResource ScrollViewerStyle}">
                 <StackPanel>
                     <!-- Target Information Card -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                    <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" 
-                                Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
                             <!-- Selection Status -->
                             <Border x:Name="selectionModeIndicator" 
-                            Background="#FFF4CE" BorderBrush="#F7C52D" BorderThickness="1" 
+                             BorderThickness="1" 
                             CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
+                                <!--Background="#FFF4CE" BorderBrush="#F7C52D"-->
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
                                     <TextBlock x:Name="txtSelectionMode" Text="Click Selection Active" 
@@ -259,13 +241,13 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Window:" 
-                                   FontWeight="SemiBold" Margin="0,0,8,4" Foreground="#323130"/>
+                                   FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="lblTargetWindow" Grid.Row="0" Grid.Column="1" 
                                    Text="No target selected" Foreground="#605E5C" 
                                    TextWrapping="Wrap" Margin="0,0,0,4"/>
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Process:" 
-                                   FontWeight="SemiBold" Margin="0,0,8,4" Foreground="#323130"/>
+                                   FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="txtTargetProcess" Grid.Row="1" Grid.Column="1" 
                                    Text="-" Foreground="#605E5C" Margin="0,0,0,4"/>
                             </Grid>
@@ -274,39 +256,39 @@
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <Button x:Name="btnQuickReselect" Content="🔄 Reselect" 
                                 Click="SelectTargetByClick_Click" 
-                                Style="{StaticResource SecondaryButton}" 
+                                Style="{DynamicResource SecondaryButton}" 
                                 Height="32" Padding="8,4" Margin="0,0,8,0" FontSize="12"/>
                                 <Button x:Name="btnQuickBrowse" Content="📋 Browse" 
                                 Click="SelectTarget_Click" 
-                                Style="{StaticResource SecondaryButton}" 
+                                Style="{DynamicResource SecondaryButton}" 
                                 Height="32" Padding="8,4" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Status Card -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                    <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="System Status" FontSize="16" FontWeight="SemiBold" 
-                                Foreground="{StaticResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="lblAutoDetectionStatus" Text="Auto-Detection Inactive" 
-                                        Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                                        Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="lblUIRecordingStatus" Text="UI Scanning Inactive" 
-                                        Foreground="{StaticResource SecondaryTextBrush}" FontSize="12"/>
+                                        Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                             </StackPanel>
 
                             <!-- Auto Mode Toggle -->
                             <Button x:Name="btnToggleAutoMode" Content="🎯 Auto Mode OFF" 
                             Click="ToggleAutomaticMode_Click" 
-                            Style="{StaticResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" 
                             HorizontalAlignment="Stretch" Height="32" Margin="0,8,0,0"/>
 
                             <ProgressBar x:Name="progressEnhancedRecording" Height="4" 
@@ -316,46 +298,46 @@
                     </Border>
 
                     <!-- Quick Actions Card -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                    <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Quick Actions" FontSize="16" FontWeight="SemiBold" 
-                               Foreground="#323130" Margin="0,0,0,12"/>
+                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <StackPanel>
                                 <Button Content="🔍 Element Inspector" Click="ElementInspector_Click" 
-                                Style="{StaticResource SecondaryButton}" 
+                                Style="{DynamicResource SecondaryButton}" 
                                 HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,8"/>
                                 <Button Content="⚙ Settings" Click="Settings_Click" 
-                                Style="{StaticResource SecondaryButton}" 
+                                Style="{DynamicResource SecondaryButton}" 
                                 HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,8"/>
                                 <Button Content="📊 Debug Info" Click="ExportSequenceForDebug_Click" 
-                                Style="{StaticResource SecondaryButton}" 
+                                Style="{DynamicResource SecondaryButton}" 
                                 HorizontalAlignment="Stretch" Height="36"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Element Statistics Card -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                    <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Element Statistics" FontSize="16" FontWeight="SemiBold" 
-                               Foreground="#323130" Margin="0,0,0,12"/>
+                               Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <ListBox x:Name="lstElementStats" Height="120" Background="Transparent" 
                              BorderThickness="0" FontSize="12">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Margin="0,2">
-                                            <TextBlock Text="{Binding ElementName}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                            <TextBlock Text="{Binding ElementName}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                             <TextBlock Text="{Binding UsageCount, StringFormat=Used: \{0\} times}" 
-                                                FontSize="11" Foreground="{StaticResource SecondaryTextBrush}"/>
+                                                FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
 
                             <Button Content="↻ Refresh Stats" Click="AutoRefreshAllUIElements_Click" 
-                            Style="{StaticResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" 
                             HorizontalAlignment="Stretch" Height="32" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
@@ -364,7 +346,7 @@
         </Grid>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="{StaticResource PanelBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" 
+        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
                 Padding="16,8">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -374,12 +356,12 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock x:Name="txtStatusBar" Grid.Column="0" 
-                    Text="Ready" FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}"/>
+                    Text="Ready" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}"/>
                 <TextBlock x:Name="txtTarget" Grid.Column="1" 
-                    Text="No target selected" Foreground="{StaticResource SecondaryTextBrush}" 
+                    Text="No target selected" Foreground="{DynamicResource SecondaryTextBrush}" 
                         Margin="16,0"/>
                 <TextBlock x:Name="lblStatusBarRecording" Grid.Column="2" 
-                    Text="Not Recording" Foreground="{StaticResource SecondaryTextBrush}"/>
+                    Text="Not Recording" Foreground="{DynamicResource SecondaryTextBrush}"/>
             </Grid>
         </Border>
     </Grid>
