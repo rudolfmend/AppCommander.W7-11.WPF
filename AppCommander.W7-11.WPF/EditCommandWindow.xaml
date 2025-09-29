@@ -5,8 +5,266 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
         mc:Ignorable="d"
-        Title="EditCommandWindow" Height="450" Width="800">
-    <Grid>
+        Title="Command details" Height="550" Width="700"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Background}"
+        ResizeMode="CanResize">
+    
+    <!--<Window.Resources>
+        --><!-- Štýl pre TextBlock nadpisy --><!--
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,10,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        </Style>
         
+        --><!-- Štýl pre hodnoty --><!--
+        <Style x:Key="ValueStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        
+        --><!-- Štýl pre TextBoxy --><!--
+        <Style x:Key="EditTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#D1D1D1"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        </Style>
+    </Window.Resources>-->
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Hlavička -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource Surface}" 
+                Padding="15,10" 
+                Margin="-20,-20,-20,15"
+                CornerRadius="0">
+            <StackPanel>
+                <TextBlock x:Name="txtTitle" 
+                          Text="Order details" 
+                          FontSize="18" 
+                          FontWeight="Bold"
+                          Foreground="White"/>
+                <TextBlock x:Name="txtSubtitle" 
+                          Text="Viewing and editing a command"
+                          FontSize="12"
+                          Foreground="#E0E0E0"
+                          Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Obsah -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Základné informácie -->
+                <GroupBox Header="📋 Basic information" 
+                         Padding="15" 
+                         Margin="0,0,0,15"
+                         BorderBrush="#D1D1D1"
+                         BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBox x:Name="txtName" 
+                                Grid.Row="2" Grid.Column="1" 
+                                Style="{StaticResource TextBoxStyle}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBox x:Name="txtValue" 
+                                Grid.Row="4" Grid.Column="1" 
+                                Style="{StaticResource TextBoxStyle}"
+                                Height="60"
+                                TextWrapping="Wrap"
+                                AcceptsReturn="True"
+                                VerticalScrollBarVisibility="Auto"/>
+                    </Grid>
+                </GroupBox>
+                
+                <!-- Detaily elementu -->
+                <GroupBox x:Name="grpElementDetails"
+                         Header="🎯 UI Element details" 
+                         Padding="15" 
+                         Margin="0,0,0,15"
+                         BorderBrush="#D1D1D1"
+                         BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                    </Grid>
+                </GroupBox>
+                
+                <!-- Nastavenia vykonávania -->
+                <GroupBox Header="⚙️ Execution settings" 
+                         Padding="15" 
+                         Margin="0,0,0,15"
+                         BorderBrush="#D1D1D1"
+                         BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Number of repetitions:" Style="{StaticResource TextBlockStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <TextBox x:Name="txtRepeatCount" 
+                                    Width="100" 
+                                    Style="{StaticResource TextBoxStyle}"
+                                    Margin="0,0,10,10"/>
+                            <TextBlock Text="× (1 = to do once)" 
+                                      VerticalAlignment="Center"
+                                      Foreground="#999999"
+                                      Margin="0,0,0,10"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Created:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtTimestamp" Grid.Row="2" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                    </Grid>
+                </GroupBox>
+                
+                <!-- Cesta k súboru (pre sekvencie) -->
+                <GroupBox x:Name="grpFilePath"
+                         Header="📁 Referencia na sekvenciu" 
+                         Padding="15" 
+                         Margin="0,0,0,15"
+                         BorderBrush="#D1D1D1"
+                         BorderThickness="1"
+                         Visibility="Collapsed">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Cesta k súboru:" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock x:Name="txtFilePath" 
+                                  Grid.Row="0" Grid.Column="1" 
+                                  Style="{StaticResource TextBlockStyle}"
+                                  TextWrapping="Wrap"/>
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Tlačidlá -->
+        <Border Grid.Row="2" 
+                BorderThickness="0,1,0,0" 
+                BorderBrush="#D1D1D1"
+                Padding="0,15,0,0"
+                Margin="-20,15,-20,-20"
+                Background="{DynamicResource Background}">
+            <StackPanel Orientation="Horizontal" 
+                       HorizontalAlignment="Right"
+                       Margin="20,0">
+                <Button x:Name="ButtonSaveCommands" 
+                       Content="💾 Save changes" 
+                       Width="130"
+                       Height="35"
+                       Margin="0,0,10,0"
+                       Click="ButtonSaveCommands_Click"
+                       IsDefault="True">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#0078D4"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#005A9E"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                
+                <Button x:Name="ButtonCancelEdit" 
+                       Content="❌ Cancel" 
+                       Width="100"
+                       Height="35"
+                       Click="ButtonCancelEdit_Click"
+                       IsCancel="True">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#F3F3F3"/>
+                            <Setter Property="Foreground" Value="#333333"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="BorderBrush" Value="#D1D1D1"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
+    

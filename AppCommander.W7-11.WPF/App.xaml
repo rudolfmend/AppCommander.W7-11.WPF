@@ -4,6 +4,11 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- načítanie témy podľa nastavenia systému
+                ak bude systém  užívateľa tmavý, načíta sa dark, ináč light -->
+                <ResourceDictionary Source="Themes/DarkTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
             <!-- Geometria pre checkmark -->
             <Geometry x:Key="Checkmark">F1M10,1.2L4.7,9.1 4.5,9.1 1,5.2 2.3,3.8 4.3,6.1 8.3,0 10,1.2z</Geometry>
@@ -45,10 +50,7 @@
                               Opacity="0.25" 
                               Color="#FF000000"/>
 
-            <!-- POZOR: Tieto štýly sú už definované v theme súboroch, 
-                 - odstrániť alebo ponechať ako fallback -->
-
-            <!-- Primary Button + Statický gradient -->
+            <!-- Primary Button + Statický gradient --><!--
             <Style x:Key="PrimaryButton" TargetType="Button">
                 <Setter Property="Background">
                     <Setter.Value>
@@ -103,7 +105,7 @@
                 </Setter>
             </Style>
 
-            <!-- Secondary Button + Statický gradient -->
+            --><!-- Secondary Button + Statický gradient --><!--
             <Style x:Key="SecondaryButton" TargetType="Button">
                 <Setter Property="Background">
                     <Setter.Value>
@@ -155,7 +157,7 @@
                 </Setter>
             </Style>
 
-            <!-- Red Danger Button + Statický gradient -->
+            --><!-- Red Danger Button + Statický gradient --><!--
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                 <Setter Property="Background">
                     <Setter.Value>
@@ -217,9 +219,9 @@
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
-            </Style>
+            </Style>-->
 
-            <!-- Moderný TextBox s fokus animáciou -->
+            <!-- TextBox s fokus animáciou -->
             <Style  x:Key="TextBoxStyle" TargetType="TextBox">
                 <Setter Property="Background" Value="{DynamicResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
@@ -261,199 +263,9 @@
                 </Setter>
             </Style>
 
-            <!-- Moderný GroupBox s tieňom -->
-            <Style x:Key="GroupBoxStyle"  TargetType="GroupBox">
-                <Setter Property="Background" Value="{StaticResource Surface}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Margin" Value="8"/>
-                <Setter Property="Padding" Value="16"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="GroupBox">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <Border Grid.Row="0" Grid.RowSpan="2"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="6"/>
-                                <TextBlock Grid.Row="0" 
-                                          Text="{TemplateBinding Header}"
-                                          FontWeight="{TemplateBinding FontWeight}"
-                                          FontSize="16"
-                                          Foreground="{StaticResource PrimaryBluePressed}"
-                                          Margin="16,12,16,8"/>
-                                <ContentPresenter Grid.Row="1" 
-                                                Margin="{TemplateBinding Padding}"/>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
 
-            <!-- MenuItem s hover efektmi a access keys --><!--
-            <Style x:Key="MenuItemStyle" TargetType="MenuItem">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="Padding" Value="30,8"/>
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="Opacity" Value="0.7"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="MenuItem">
-                            <Border x:Name="border"
-                        Background="{TemplateBinding Background}"
-                        CornerRadius="4"
-                        Margin="2">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ContentPresenter Grid.Column="0" 
-                                        Content="{TemplateBinding Icon}"
-                                        Margin="0,0,8,0"/>
-                                    <ContentPresenter Grid.Column="1"
-                                        Content="{TemplateBinding Header}"
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"
-                                        RecognizesAccessKey="True"/>
-                                    <TextBlock Grid.Column="2"
-                                         Text="{TemplateBinding InputGestureText}"
-                                         Foreground="{StaticResource OnSurfaceVariant}"
-                                         FontSize="12"
-                                         Margin="16,0,0,0"
-                                         VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsHighlighted" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlue}"/>
-                                    <Setter Property="Opacity" Value="1"/>
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect ShadowDepth="6" Direction="300" Color="#E0E0E0" Opacity="0.5" BlurRadius="6"/>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
-                                    <Setter Property="Opacity" Value="1"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
 
-            --><!-- Moderný DataGrid --><!--
-            <Style x:Key="DataGridStyle"  TargetType="DataGrid">
-                <Setter Property="Background" Value="{StaticResource Surface}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray400}"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-                <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource NeutralGray300}"/>
-                <Setter Property="AlternatingRowBackground" Value="{StaticResource NeutralGray100}"/>
-                <Setter Property="RowBackground" Value="{StaticResource Surface}"/>
-                <Setter Property="HeadersVisibility" Value="Column"/>
-                <Setter Property="CanUserSortColumns" Value="True"/>
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="13"/>
-                <Setter Property="RowHeight" Value="36"/>
-            </Style>
 
-            --><!-- Moderný Menu --><!--
-            <Style x:Key="MenuStyle"  TargetType="Menu">
-                <Setter Property="Background" Value="{StaticResource NeutralGray100}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
-                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                <Setter Property="Padding" Value="8,4"/>
-            </Style>-->
-
-            <!-- Moderný StatusBar -->
-            <Style x:Key="StatusBarStyle"  TargetType="StatusBar">
-                <Setter Property="Background" Value="{StaticResource NeutralGray100}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray300}"/>
-                <Setter Property="BorderThickness" Value="0,1,0,0"/>
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Padding" Value="8,4"/>
-            </Style>
-
-            <!-- CheckBox s moderným dizajnom -->
-            <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="Padding" Value="8,0,0,0"/>
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-            </Style>
-
-            <!-- Label -->
-            <Style x:Key="LabelStyle" TargetType="Label">
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="FontSize" Value="11" />
-            </Style>
-
-            <!-- TextBlock -->
-            <Style x:Key="TextBlockStyle" TargetType="TextBlock">
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="FontSize" Value="12" />
-            </Style>
-
-            <!--<Style x:Key="CardStyle" TargetType="{x:Type Border}">
-                <Setter Property="Background" Value="White"/>
-                <Setter Property="CornerRadius" Value="8"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="BorderBrush" Value="#E1E1E1"/>
-                <Setter Property="Effect">
-                    <Setter.Value>
-                        <DropShadowEffect ShadowDepth="2" Direction="270" Color="#E0E0E0" Opacity="0.3" BlurRadius="4"/>
-                    </Setter.Value>
-                </Setter>
-            </Style>-->
-
-            <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
-                <Setter Property="Background" Value="DarkMagenta"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="BorderBrush" Value="#E1E1"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ScrollViewer">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <ScrollContentPresenter Grid.Column="0" Grid.Row="0" Content="{TemplateBinding Content}" />
-                                <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Grid.Row="0" Orientation="Vertical" 
-                                           Maximum="{TemplateBinding ScrollableHeight}" 
-                                           ViewportSize="{TemplateBinding ViewportHeight}" 
-                                           Value="{TemplateBinding VerticalOffset}" 
-                                           Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                                <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" 
-                                           Maximum="{TemplateBinding ScrollableWidth}" 
-                                           ViewportSize="{TemplateBinding ViewportWidth}" 
-                                           Value="{TemplateBinding HorizontalOffset}" 
-                                           Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

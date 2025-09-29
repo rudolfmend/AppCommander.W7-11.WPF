@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 public class SequenceSetItem : INotifyPropertyChanged
@@ -2154,38 +2155,151 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void EditCommand_Click(object sender, RoutedEventArgs e)
+        private void dgUnified_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             try
             {
-                var selectedCommand = dgUnified.SelectedItem as Command;
-                if (selectedCommand == null)
+                // Skontrolovať, či je vybraný nejaký item
+                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
                 {
-                    MessageBox.Show("Please select a command to edit.", "No Selection",
-                                  MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
+                    OpenEditCommandWindow(selectedItem);
                 }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening command details", ex);
+            }
+        }
 
-                string newValue = ShowInputDialog("Edit command value:", "Edit Command", selectedCommand.Value);
+        private void OpenEditCommandWindow(UnifiedItem item)
+        {
+            try
+            {
+                var editWindow = new EditCommandWindow();
 
-                if (!string.IsNullOrEmpty(newValue))
+                if (editWindow.txtStepNumber != null) editWindow.txtStepNumber.Text = item.StepNumber.ToString();
+                if (editWindow.txtType != null) editWindow.txtType.Text = item.TypeDisplay;
+                if (editWindow.txtName != null) editWindow.txtName.Text = item.Name;
+                if (editWindow.txtAction != null) editWindow.txtAction.Text = item.Action;
+                if (editWindow.txtValue != null) editWindow.txtValue.Text = item.Value;
+                if (editWindow.txtRepeatCount != null) editWindow.txtRepeatCount.Text = item.RepeatCount.ToString();
+                if (editWindow.txtStatus != null) editWindow.txtStatus.Text = item.Status;
+                if (editWindow.txtTimestamp != null) editWindow.txtTimestamp.Text = item.Timestamp.ToString("G");
+                if (editWindow.txtFilePath != null) editWindow.txtFilePath.Text = item.FilePath;
+                if (editWindow.txtElementX != null) editWindow.txtElementX.Text = item.ElementX?.ToString() ?? "";
+                if (editWindow.txtElementY != null) editWindow.txtElementY.Text = item.ElementY?.ToString() ?? "";
+                if (editWindow.txtElementId != null) editWindow.txtElementId.Text = item.ElementId;
+                if (editWindow.txtClassName != null) editWindow.txtClassName.Text = item.ClassName;
+
+                editWindow.Owner = this;
+
+                bool? result = editWindow.ShowDialog();
+
+                // If changes were saved, update the UnifiedItem from the dialog fields
+                if (result == true && editWindow.WasSaved)
                 {
-                    selectedCommand.Value = newValue;
+                    item.Name = editWindow.txtName?.Text ?? item.Name;
+                    item.Action = editWindow.txtAction?.Text ?? item.Action;
+                    item.Value = editWindow.txtValue?.Text ?? item.Value;
+                    if (int.TryParse(editWindow.txtRepeatCount?.Text, out int repeatCount))
+                        item.RepeatCount = repeatCount;
+                    item.Status = editWindow.txtStatus?.Text ?? item.Status;
+                    if (DateTime.TryParse(editWindow.txtTimestamp?.Text, out DateTime timestamp))
+                        item.Timestamp = timestamp;
+                    item.FilePath = editWindow.txtFilePath?.Text ?? item.FilePath;
+                    if (int.TryParse(editWindow.txtElementX?.Text, out int elementX))
+                        item.ElementX = elementX;
+                    if (int.TryParse(editWindow.txtElementY?.Text, out int elementY))
+                        item.ElementY = elementY;
+                    item.ElementId = editWindow.txtElementId?.Text ?? item.ElementId;
+                    item.ClassName = editWindow.txtClassName?.Text ?? item.ClassName;
 
-                    if (selectedCommand.Type == CommandType.LoopStart && int.TryParse(newValue, out int repeatCount))
-                    {
-                        selectedCommand.RepeatCount = repeatCount;
-                    }
-
-                    _hasUnsavedChanges = true;
+                    _hasUnsavedUnifiedChanges = true;
                     dgUnified.Items.Refresh();
-                    UpdateStatus("Command edited");
+                    UpdateStatus($"Command '{item.Name}' updated");
                 }
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error editing command", ex);
             }
+        }
+
+        //private void OpenEditCommandWindow(UnifiedItem item)
+        //{
+        //    try
+        //    {
+        //        var editWindow = new EditCommandWindow(item);
+        //        editWindow.Owner = this;
+
+        //        bool? result = editWindow.ShowDialog();
+
+        //        // Ak boli uložené zmeny, obnoviť UI
+        //        if (result == true && editWindow.WasSaved)
+        //        {
+        //            _hasUnsavedUnifiedChanges = true;
+
+        //            // Obnoviť zobrazenie v DataGrid
+        //            dgUnified.Items.Refresh();
+
+        //            UpdateStatus($"Command '{item.Name}' updated");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error editing command", ex);
+        //    }
+        //}
+
+        private void EditCommand_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+                {
+                    OpenEditCommandWindow(selectedItem);
+                }
+                else
+                {
+                    MessageBox.Show("Please select a command to edit.", "No Selection",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error editing command", ex);
+            }
+
+            //try
+            //{
+            //    var selectedCommand = dgUnified.SelectedItem as Command;
+            //    if (selectedCommand == null)
+            //    {
+            //        MessageBox.Show("Please select a command to edit.", "No Selection",
+            //                      MessageBoxButton.OK, MessageBoxImage.Information);
+            //        return;
+            //    }
+
+            //    string newValue = ShowInputDialog("Edit command value:", "Edit Command", selectedCommand.Value);
+
+            //    if (!string.IsNullOrEmpty(newValue))
+            //    {
+            //        selectedCommand.Value = newValue;
+
+            //        if (selectedCommand.Type == CommandType.LoopStart && int.TryParse(newValue, out int repeatCount))
+            //        {
+            //            selectedCommand.RepeatCount = repeatCount;
+            //        }
+
+            //        _hasUnsavedChanges = true;
+            //        dgUnified.Items.Refresh();
+            //        UpdateStatus("Command edited");
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    ShowErrorMessage("Error editing command", ex);
+            //}
         }
 
         private void DeleteCommand_Click(object sender, RoutedEventArgs e)
@@ -3529,6 +3643,73 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 Debug.WriteLine(string.Format("Debug theme error: {0}", ex.Message));
+            }
+        }
+        #endregion
+        #region Context Menu Handlers
+        private void ContextMenu_Edit_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+            {
+                OpenEditCommandWindow(selectedItem);
+            }
+        }
+
+        private void ContextMenu_Delete_Click(object sender, RoutedEventArgs e)
+        {
+            // Použite existujúci DeleteCommand_Click alebo vytvorte nový
+            DeleteCommand_Click(sender, e);
+        }
+
+        private void ContextMenu_Copy_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+            {
+                // Skopírovať detaily do schránky
+                var details = $"Krok: {selectedItem.StepNumber}\n" +
+                             $"Typ: {selectedItem.TypeDisplay}\n" +
+                             $"Názov: {selectedItem.Name}\n" +
+                             $"Akcia: {selectedItem.Action}\n" +
+                             $"Hodnota: {selectedItem.Value}";
+
+                Clipboard.SetText(details);
+                UpdateStatus("Command details copied to clipboard");
+            }
+        }
+
+        private void ContextMenu_Duplicate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+                {
+                    // Vytvoriť kópiu
+                    var duplicate = new UnifiedItem
+                    {
+                        StepNumber = _unifiedItems.Count + 1,
+                        Type = selectedItem.Type,
+                        Name = selectedItem.Name + " (kópia)",
+                        Action = selectedItem.Action,
+                        Value = selectedItem.Value,
+                        RepeatCount = selectedItem.RepeatCount,
+                        Status = "Ready",
+                        Timestamp = DateTime.Now,
+                        FilePath = selectedItem.FilePath,
+                        ElementX = selectedItem.ElementX,
+                        ElementY = selectedItem.ElementY,
+                        ElementId = selectedItem.ElementId,
+                        ClassName = selectedItem.ClassName
+                    };
+
+                    _unifiedItems.Add(duplicate);
+                    _hasUnsavedUnifiedChanges = true;
+                    RecalculateStepNumbers();
+                    UpdateStatus($"Command duplicated: {duplicate.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error duplicating command", ex);
             }
         }
         #endregion
