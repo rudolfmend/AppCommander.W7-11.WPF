@@ -164,7 +164,7 @@
 
     <!-- DataGrid Style -->
     <Style x:Key="DataGridStyle" TargetType="DataGrid">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{StaticResource NeutralGray700}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -177,7 +177,7 @@
             <Setter.Value>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="{StaticResource PanelBackgroundBrush}"/>
-                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/> 
                     <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
                     <Setter Property="BorderThickness" Value="0,0,1,1"/>
                     <Setter Property="Padding" Value="8,6"/>
@@ -187,7 +187,7 @@
         </Setter>
     </Style>
 
-    <!-- TopLevelMenuItem štýl pre Dark Theme -->
+    <!-- TopLevelMenuItem -->
     <Style x:Key="TopLevelMenuItem" TargetType="MenuItem">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -441,9 +441,6 @@
         </Setter>
     </Style>
 
-
-
-
     <!-- ======================================= -->
     <!--SCROLLVIEWER STYLE -->
     <!-- ======================================= -->
@@ -465,7 +462,7 @@
                 <ControlTemplate TargetType="Thumb">
                     <Border x:Name="ThumbBorder"
                         Background="{StaticResource SecondaryTextBrush}"
-                        CornerRadius="8"
+                        CornerRadius="4"
                         Width="12"
                         Margin="2">
                         <Border.Effect>
@@ -495,7 +492,7 @@
                 <ControlTemplate TargetType="ScrollBar">
                     <Grid>
                         <Border Background="{TemplateBinding Background}"
-                            CornerRadius="8"
+                            CornerRadius="4"
                             Margin="2"/>
 
                         <Track x:Name="PART_Track"
@@ -531,7 +528,7 @@
                         <ControlTemplate TargetType="ScrollBar">
                             <Grid>
                                 <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="8"
+                                    CornerRadius="4"
                                     Margin="2"/>
 
                                 <Track x:Name="PART_Track"
@@ -547,7 +544,7 @@
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Border x:Name="ThumbBorder"
                                                         Background="{StaticResource SecondaryTextBrush}"
-                                                        CornerRadius="8"
+                                                        CornerRadius="4"
                                                         Height="12"
                                                         Margin="2"/>
                                                     <ControlTemplate.Triggers>
@@ -571,6 +568,46 @@
                 </Setter>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- ======================================= -->
+    <!-- GROUPBOX STYLE -->
+    <!-- ======================================= -->
+    <Style x:Key="GroupBoxStyle" TargetType="GroupBox">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Margin" Value="0,8"/>
+    </Style>
+
+    <!-- ======================================= -->
+    <!-- LABEL & TEXTBLOCK STYLES -->
+    <!-- ======================================= -->
+
+    <Style x:Key="LabelStyle" TargetType="Label">
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+    </Style>
+
+    <Style x:Key="TextBlockStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+    </Style>
+
+    <!-- ======================================= -->
+    <!-- STATUSBAR STYLE -->
+    <!-- ======================================= -->
+
+    <Style x:Key="StatusBarStyle" TargetType="StatusBar">
+        <Setter Property="Background" Value="{StaticResource PanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="8,4"/>
     </Style>
 
 </ResourceDictionary>

@@ -786,7 +786,7 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                object value = element.GetCurrentPropertyValue(property);
+                object value = element.GetCurrentPropertyValue(property); // tu je chyba pri písaní do sledovaného UI elementu 
                 return value?.ToString() ?? "";
             }
             catch

@@ -87,21 +87,21 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
                         
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
                         
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBox x:Name="txtName" 
                                 Grid.Row="2" Grid.Column="1" 
-                                Style="{StaticResource TextBoxStyle}"/>
+                                Style="{DynamicResource TextBoxStyle}"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBox x:Name="txtValue" 
                                 Grid.Row="4" Grid.Column="1" 
                                 Style="{StaticResource TextBoxStyle}"
@@ -131,17 +131,17 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
                     </Grid>
                 </GroupBox>
                 
@@ -174,11 +174,11 @@
                                       Margin="0,0,0,10"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Created:" Style="{StaticResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtTimestamp" Grid.Row="2" Grid.Column="1" Style="{StaticResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Created:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock x:Name="txtTimestamp" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
                     </Grid>
                 </GroupBox>
                 
@@ -199,10 +199,10 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Cesta k súboru:" Style="{StaticResource LabelStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Cesta k súboru:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBlock x:Name="txtFilePath" 
                                   Grid.Row="0" Grid.Column="1" 
-                                  Style="{StaticResource TextBlockStyle}"
+                                  Style="{DynamicResource TextBlockStyle}"
                                   TextWrapping="Wrap"/>
                     </Grid>
                 </GroupBox>

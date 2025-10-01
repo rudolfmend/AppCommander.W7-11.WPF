@@ -461,6 +461,66 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         #endregion
+
+
+        //#region Equality Members
+
+        ///// <summary>
+        ///// Overrides Equals to compare UnifiedItems based on their unique properties
+        ///// </summary>
+        //public override bool Equals(object obj)
+        //{
+        //    if (obj == null || !(obj is UnifiedItem))
+        //        return false;
+
+        //    if (ReferenceEquals(this, obj))
+        //        return true;
+
+        //    UnifiedItem other = (UnifiedItem)obj;
+
+        //    // Compare based on StepNumber and Timestamp to ensure uniqueness
+        //    // StepNumber alone may not be unique during operations
+        //    return this.StepNumber == other.StepNumber &&
+        //           this.Timestamp == other.Timestamp &&
+        //           this.Type == other.Type;
+        //}
+
+        ///// <summary>
+        ///// Overrides GetHashCode to generate unique hash based on key properties
+        ///// </summary>
+        //public override int GetHashCode()
+        //{
+        //    unchecked
+        //    {
+        //        // Use multiple properties to generate a more unique hash
+        //        int hash = 17;
+        //        hash = hash * 23 + StepNumber.GetHashCode();
+        //        hash = hash * 23 + Timestamp.GetHashCode();
+        //        hash = hash * 23 + Type.GetHashCode();
+        //        return hash;
+        //    }
+        //}
+
+        ///// <summary>
+        ///// Implements equality operator
+        ///// </summary>
+        //public static bool operator ==(UnifiedItem left, UnifiedItem right)
+        //{
+        //    if (ReferenceEquals(left, null))
+        //        return ReferenceEquals(right, null);
+
+        //    return left.Equals(right);
+        //}
+
+        ///// <summary>
+        ///// Implements inequality operator
+        ///// </summary>
+        //public static bool operator !=(UnifiedItem left, UnifiedItem right)
+        //{
+        //    return !(left == right);
+        //}
+
+        //#endregion
     }
 
     #region Supporting Classes

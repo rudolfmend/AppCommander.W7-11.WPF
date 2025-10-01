@@ -21,7 +21,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
+ 
         <!-- Menu Bar -->
         <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Menu x:Name="menuBar" Background="Transparent" Padding="8" Margin="1,0,-1,0">
@@ -161,17 +161,17 @@
                     </Grid>
 
                     <!-- DataGrid -->
-                    <DataGrid Grid.Row="1" x:Name="dgUnified"
+                    <DataGrid Grid.Row="1" x:Name="dgUnified" Style="{DynamicResource DataGridStyle}"
                               AutoGenerateColumns="False"
                               MouseDoubleClick="dgUnified_MouseDoubleClick"
                               SelectionMode="Single"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
+                              
+             IsSynchronizedWithCurrentItem="False"
                               GridLinesVisibility="Horizontal"
                               HeadersVisibility="All"
-                              AlternatingRowBackground="#F9F9F9"
-                              RowBackground="White"
-                              Margin="0,0,0,10">
+                              Margin="0,0,0,10"  >                       
 
                         <DataGrid.ContextMenu>
                             <ContextMenu>
@@ -195,22 +195,6 @@
                             <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" IsReadOnly="True"/>
                         </DataGrid.Columns>
-
-                        <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow">
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#E8F4FD"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#CCE4F7"/>
-                                        <Setter Property="BorderBrush" Value="#0078D4"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.RowStyle>
                     </DataGrid>
 
                     <!-- Action Buttons -->
