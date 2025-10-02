@@ -304,9 +304,164 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="MenuItemStyle" TargetType="MenuItem">
+    <!-- ======================================= -->
+    <!--                MenuItem                 -->
+    <!-- ======================================= -->
+    
+        <Style x:Key="MenuItemStyle" TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="16,6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="templateRoot"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="Transparent"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGTColumnGroup"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icon/Checkmark Column -->
+                            <ContentPresenter x:Name="Icon"
+                                    Grid.Column="0"
+                                    ContentSource="Icon"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Width="16"
+                                    Height="16"
+                                    Margin="8,0,8,0"
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+
+                            <Border x:Name="GlyphPanel"
+                            Grid.Column="0"
+                            Width="16"
+                            Height="16"
+                            Margin="8,0,8,0"
+                            Visibility="Collapsed"
+                            Background="Transparent"
+                            BorderThickness="0">
+                                <Path x:Name="Glyph"
+                              Data="M0,5.5 L1.5,7 L4.5,4"
+                              Stroke="{StaticResource PrimaryTextBrush}"
+                              StrokeThickness="2"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Header Text -->
+                            <ContentPresenter x:Name="menuHeaderContainer"
+                                    Grid.Column="1"
+                                    ContentSource="Header"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"
+                                    RecognizesAccessKey="True"
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+
+                            <!-- Input Gesture Text (Skratka) -->
+                            <TextBlock x:Name="InputGestureText"
+                               Grid.Column="2"
+                               Text="{TemplateBinding InputGestureText}"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="16,0,8,0"/>
+
+                            <!-- Submenu Arrow -->
+                            <Path x:Name="SubMenuArrow"
+                          Grid.Column="3"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource PrimaryTextBrush}"
+                          StrokeThickness="1"
+                          VerticalAlignment="Center"
+                          Margin="8,0,8,0"
+                          Visibility="Collapsed"/>
+
+                            <!-- Submenu Popup -->
+                            <Popup x:Name="PART_Popup"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                           PopupAnimation="Fade"
+                           Placement="Right"
+                           HorizontalOffset="-2"
+                           VerticalOffset="-3">
+                                <Border x:Name="SubMenuBorder"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Effect="{StaticResource ElevationMedium}"
+                                Padding="2">
+                                    <ScrollViewer Style="{DynamicResource {ComponentResourceKey 
+                                          ResourceId=MenuScrollViewer, 
+                                          TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"
+                                              KeyboardNavigation.TabNavigation="Cycle"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <!-- Zobrazenie ikon -->
+                        <Trigger Property="Icon" Value="{x:Null}">
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+
+                        <!-- Checkable MenuItem -->
+                        <Trigger Property="IsCheckable" Value="True">
+                            <Setter TargetName="GlyphPanel" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+
+                        <!-- Submenu šípka -->
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="SubMenuArrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+
+                        <!-- IsHighlighted efekt s corner radius a opacity -->
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="templateRoot" Property="Background" Value="#FF0078D7"/>
+                            <Setter TargetName="templateRoot" Property="Opacity" Value="1"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter TargetName="InputGestureText" Property="Foreground" Value="White"/>
+                            <Setter TargetName="Glyph" Property="Stroke" Value="White"/>
+                            <Setter TargetName="SubMenuArrow" Property="Stroke" Value="White"/>
+                        </Trigger>
+
+                        <!-- Disabled stav -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+                            <Setter TargetName="InputGestureText" Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+                            <Setter TargetName="Glyph" Property="Stroke" Value="{StaticResource DisabledTextBrush}"/>
+                        </Trigger>
+
+                        <!-- Popup animation -->
+                        <Trigger Property="IsSuspendingPopupAnimation" Value="True">
+                            <Setter TargetName="PART_Popup" Property="PopupAnimation" Value="None"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- TopLevelMenuItem štýl pre Light Theme -->
@@ -385,12 +540,6 @@
                                                     Width="{Binding ActualWidth, ElementName=SubMenuBorder}"/>
                                             </Canvas>
 
-                                            <Rectangle x:Name="Rectangle" 
-                                                    Fill="{StaticResource BorderBrush}" 
-                                                    HorizontalAlignment="Left" 
-                                                    Margin="29,2,0,2" 
-                                                    Width="1"/>
-
                                             <ItemsPresenter x:Name="ItemsPresenter" 
                                                     KeyboardNavigation.DirectionalNavigation="Cycle" 
                                                     Grid.IsSharedSizeScope="true" 
@@ -416,6 +565,7 @@
                             <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource HoverBackgroundBrush}"/>
                             <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource HoverBorderBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                            <Setter Property="Opacity" Value="0.1"/>
                         </Trigger>
 
                         <!-- Pressed efekt -->
@@ -477,7 +627,7 @@
                 <ControlTemplate TargetType="Thumb">
                     <Border x:Name="ThumbBorder"
                         Background="{StaticResource SecondaryTextBrush}"
-                        CornerRadius="8"
+                        CornerRadius="3"
                         Width="12"
                         Margin="2">
                         <Border.Effect>
@@ -507,7 +657,7 @@
                 <ControlTemplate TargetType="ScrollBar">
                     <Grid>
                         <Border Background="{TemplateBinding Background}"
-                            CornerRadius="8"
+                            CornerRadius="3"
                             Margin="2"/>
 
                         <Track x:Name="PART_Track"
@@ -543,7 +693,7 @@
                         <ControlTemplate TargetType="ScrollBar">
                             <Grid>
                                 <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="8"
+                                    CornerRadius="3"
                                     Margin="2"/>
 
                                 <Track x:Name="PART_Track"
@@ -559,7 +709,7 @@
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Border x:Name="ThumbBorder"
                                                         Background="{StaticResource SecondaryTextBrush}"
-                                                        CornerRadius="8"
+                                                        CornerRadius="3"
                                                         Height="12"
                                                         Margin="2"/>
                                                     <ControlTemplate.Triggers>

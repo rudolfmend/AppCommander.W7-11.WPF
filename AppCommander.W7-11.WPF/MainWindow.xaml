@@ -23,48 +23,50 @@
         </Grid.RowDefinitions>
  
         <!-- Menu Bar -->
-        <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+        <!--<Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">-->
+        <Border Grid.Row="0" BorderThickness="0,0,0,1">
+
             <Menu x:Name="menuBar" Background="Transparent" Padding="8" Margin="1,0,-1,0">
-                <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
-                    <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{StaticResource MenuItemStyle}" />
-                    <Separator/>
-                    <MenuItem Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{StaticResource MenuItemStyle}" />
-                    <Separator/>
-                    <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{StaticResource MenuItemStyle}" />
+                <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
+                    <Separator Margin="-20,4,10,4"/>
+                    <MenuItem Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{DynamicResource MenuItemStyle}" />
+                    <Separator Margin="-20,4,10,4"/>
+                    <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
-                    <MenuItem Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{StaticResource MenuItemStyle}" />
-                    <Separator/>
-                    <MenuItem Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{StaticResource MenuItemStyle}" />
+                <MenuItem Header="_Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <Separator Margin="-20,4,10,4"/>
+                    <MenuItem Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
-                    <MenuItem Header="_Window Selector" Click="WindowSelector_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="_Settings" Click="Settings_Click" Style="{StaticResource MenuItemStyle}" />
+                <MenuItem Header="_Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="Th_emes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
+                <MenuItem Header="Th_emes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="System Default" IsCheckable="True" IsChecked="True" 
-                        Click="ThemeMenuItem_Click" Tag="System" Style="{StaticResource MenuItemStyle}" />
-                    <Separator Margin="0,4"/>
+                        Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
+                    <Separator Margin="-20,4,10,4"/>
                     <MenuItem Header="Light Theme" IsCheckable="True" 
-                        Click="ThemeMenuItem_Click" Tag="Light" Style="{StaticResource MenuItemStyle}"/>
+                        Click="ThemeMenuItem_Click" Tag="Light" Style="{DynamicResource MenuItemStyle}"/>
                     <MenuItem Header="Dark Theme" IsCheckable="True" 
-                        Click="ThemeMenuItem_Click" Tag="Dark" Style="{StaticResource MenuItemStyle}"/>
+                        Click="ThemeMenuItem_Click" Tag="Dark" Style="{DynamicResource MenuItemStyle}"/>
                     <MenuItem Header="High Contrast" IsCheckable="True" 
-                        Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{StaticResource MenuItemStyle}"/>
+                        Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{DynamicResource MenuItemStyle}"/>
                 </MenuItem>
 
-                <MenuItem Header="_Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource TopLevelMenuItem}">
-                    <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{StaticResource MenuItemStyle}" />
-                    <MenuItem Header="_About" Click="About_Click" Style="{StaticResource MenuItemStyle}" />
+                <MenuItem Header="_Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
             </Menu>
         </Border>
