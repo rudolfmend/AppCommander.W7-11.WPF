@@ -223,8 +223,7 @@
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="4,,,,,,5
-                36"/>
+        <Setter Property="BorderThickness" Value="4"/>
         <!-- Hrubší border -->
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="16"/>
@@ -451,12 +450,14 @@
                         <Trigger Property="IsPressed" Value="True">
                             <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource HoverBackgroundBrush}"/>
                             <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource AccentBrush}"/>
+                            <Setter Property="BorderThickness" Value="3" />
                             <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}"/>
                         </Trigger>
 
                         <Trigger Property="IsSubmenuOpen" Value="True">
                             <Setter Property="Background" TargetName="templateRoot" Value="{StaticResource HoverBackgroundBrush}"/>
-                            <Setter Property="BorderBrush" TargetName="templateRoot" Value="{StaticResource BorderBrush}"/>
+                            <Setter Property="BorderBrush" TargetName="templateRoot" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="3" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -475,7 +476,7 @@
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="MinHeight" Value="40"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderThickness" Value="2"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>

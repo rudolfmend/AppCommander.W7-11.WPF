@@ -164,11 +164,11 @@
                     </Grid>
 
                     <!-- DataGrid -->
-                    <DataGrid Grid.Row="1" x:Name="dgUnified" Style="{DynamicResource DataGridStyle}"
+                    <DataGrid Grid.Row="1" x:Name="MainCommandTable" Style="{DynamicResource DataGridStyle}"
                               AutomationProperties.Name="Main command table"
                               AutomationProperties.HelpText="Main command table"
                               AutoGenerateColumns="False"
-                              MouseDoubleClick="dgUnified_MouseDoubleClick"
+                              MouseDoubleClick="MainCommandTable_MouseDoubleClick"
                               SelectionMode="Single"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
@@ -220,7 +220,7 @@
                     <!-- Target Information Card -->
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
-                            <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" 
+                            <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" AutomationProperties.Name="Target Information"
                                 Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <!-- Selection Status -->
@@ -245,13 +245,13 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Window:" 
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Window:" AutomationProperties.Name="Window"
                                            FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="lblTargetWindow" Grid.Row="0" Grid.Column="1" 
                                            Text="No target selected" Foreground="#605E5C" 
                                            TextWrapping="Wrap" Margin="0,0,0,4"/>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Process:" 
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Process:" AutomationProperties.Name="Process"
                                            FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="txtTargetProcess" Grid.Row="1" Grid.Column="1" 
                                            Text="-" Foreground="#605E5C" Margin="0,0,0,4"/>
@@ -262,10 +262,12 @@
                                 <Button x:Name="btnQuickReselect" Content="🔄 Reselect" 
                                         Click="SelectTargetByClick_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
+                                        AutomationProperties.Name="Reselect"
                                         Height="32" Padding="8,4" Margin="0,0,8,0" FontSize="12"/>
                                 <Button x:Name="btnQuickBrowse" Content="📋 Browse" 
                                         Click="SelectTarget_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
+                                        AutomationProperties.Name="Browse"
                                         Height="32" Padding="8,4" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
@@ -294,6 +296,7 @@
                             <Button x:Name="btnToggleAutoMode" Content="🎯 Auto Mode OFF" 
                                     Click="ToggleAutomaticMode_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
+                                    AutomationProperties.Name="Auto Mode"
                                     HorizontalAlignment="Stretch" Height="32" Margin="0,8,0,0"/>
 
                             <ProgressBar x:Name="progressEnhancedRecording" Height="4" 
@@ -306,17 +309,21 @@
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Quick Actions" FontSize="16" FontWeight="SemiBold" 
-                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"
+                                       AutomationProperties.Name="Quick Actions"/>
 
                             <StackPanel>
                                 <Button Content="🔍 Element Inspector" Click="ElementInspector_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
+                                        AutomationProperties.Name="Element Inspector"
                                         HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,8"/>
                                 <Button Content="⚙ Settings" Click="Settings_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
+                                        AutomationProperties.Name="Settings"
                                         HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,8"/>
                                 <Button Content="📊 Debug Info" Click="ExportSequenceForDebug_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
+                                        AutomationProperties.Name="Debug Info"
                                         HorizontalAlignment="Stretch" Height="36"/>
                             </StackPanel>
                         </StackPanel>
@@ -343,6 +350,7 @@
 
                             <Button Content="↻ Refresh Stats" Click="AutoRefreshAllUIElements_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
+                                    AutomationProperties.Name="Refresh Stats"
                                     HorizontalAlignment="Stretch" Height="32" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>

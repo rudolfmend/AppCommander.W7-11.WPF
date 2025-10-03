@@ -178,10 +178,10 @@ namespace AppCommander.W7_11.WPF
             _currentUnifiedSequenceFilePath = string.Empty;
             _hasUnsavedUnifiedChanges = false;
 
-            // Nastavte DataContext pre dgUnified
-            if (dgUnified != null)
+            // Nastavte DataContext pre MainCommandTable
+            if (MainCommandTable != null)
             {
-                dgUnified.ItemsSource = _unifiedItems;
+                MainCommandTable.ItemsSource = _unifiedItems;
             }
 
             Debug.WriteLine("Unified table initialized");
@@ -1669,7 +1669,7 @@ namespace AppCommander.W7_11.WPF
                         }
                         else if (_hasUnsavedSequenceSetChanges)
                         {
-                            btnSaveSetAs_Click(null, null);
+                            BtnSaveSetAs_Click(null, null);
                         }
                     }
                     else if (result == MessageBoxResult.Cancel)
@@ -1707,7 +1707,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null || selectedItem.StepNumber <= 1)
                 {
                     UpdateStatus("Cannot move item up - select an item that is not first");
@@ -1722,7 +1722,7 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedUnifiedChanges = true;
 
                     // Keep selection on moved item
-                    dgUnified.SelectedItem = selectedItem;
+                    MainCommandTable.SelectedItem = selectedItem;
                     UpdateStatus($"Moved '{selectedItem.Name}' up");
                 }
             }
@@ -1739,7 +1739,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null || selectedItem.StepNumber >= _unifiedItems.Count)
                 {
                     UpdateStatus("Cannot move item down - select an item that is not last");
@@ -1754,7 +1754,7 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedUnifiedChanges = true;
 
                     // Keep selection on moved item
-                    dgUnified.SelectedItem = selectedItem;
+                    MainCommandTable.SelectedItem = selectedItem;
                     UpdateStatus($"Moved '{selectedItem.Name}' down");
                 }
             }
@@ -1920,7 +1920,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select an item to edit.",
@@ -1995,7 +1995,7 @@ namespace AppCommander.W7_11.WPF
                 if (wasModified)
                 {
                     _hasUnsavedUnifiedChanges = true;
-                    dgUnified.Items.Refresh();
+                    MainCommandTable.Items.Refresh();
                 }
             }
             catch (Exception ex)
@@ -2011,7 +2011,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as UnifiedItem;
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select an item to delete.",
@@ -2155,12 +2155,12 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void dgUnified_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void MainCommandTable_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             try
             {
                 // Skontrolovať, či je vybraný nejaký item
-                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
                 {
                     OpenEditCommandWindow(selectedItem);
                 }
@@ -2215,7 +2215,7 @@ namespace AppCommander.W7_11.WPF
                     item.ClassName = editWindow.txtClassName?.Text ?? item.ClassName;
 
                     _hasUnsavedUnifiedChanges = true;
-                    dgUnified.Items.Refresh();
+                    MainCommandTable.Items.Refresh();
                     UpdateStatus($"Command '{item.Name}' updated");
                 }
             }
@@ -2240,7 +2240,7 @@ namespace AppCommander.W7_11.WPF
         //            _hasUnsavedUnifiedChanges = true;
 
         //            // Obnoviť zobrazenie v DataGrid
-        //            dgUnified.Items.Refresh();
+        //            MainCommandTable.Items.Refresh();
 
         //            UpdateStatus($"Command '{item.Name}' updated");
         //        }
@@ -2255,7 +2255,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
                 {
                     OpenEditCommandWindow(selectedItem);
                 }
@@ -2272,7 +2272,7 @@ namespace AppCommander.W7_11.WPF
 
             //try
             //{
-            //    var selectedCommand = dgUnified.SelectedItem as Command;
+            //    var selectedCommand = MainCommandTable.SelectedItem as Command;
             //    if (selectedCommand == null)
             //    {
             //        MessageBox.Show("Please select a command to edit.", "No Selection",
@@ -2292,7 +2292,7 @@ namespace AppCommander.W7_11.WPF
             //        }
 
             //        _hasUnsavedChanges = true;
-            //        dgUnified.Items.Refresh();
+            //        MainCommandTable.Items.Refresh();
             //        UpdateStatus("Command edited");
             //    }
             //}
@@ -2306,7 +2306,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedCommand = dgUnified.SelectedItem as Command;
+                var selectedCommand = MainCommandTable.SelectedItem as Command;
                 if (selectedCommand == null)
                 {
                     MessageBox.Show("Please select a command to delete.", "No Selection",
@@ -2658,7 +2658,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         // Pridajte handler pre TextChanged event ak existuje
-        private void txtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
+        private void TtxtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
             {
@@ -2949,7 +2949,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as SequenceSetItem;
+                var selectedItem = MainCommandTable.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to edit.",
@@ -2998,7 +2998,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = dgUnified.SelectedItem as SequenceSetItem;
+                var selectedItem = MainCommandTable.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to remove.",
@@ -3040,7 +3040,7 @@ namespace AppCommander.W7_11.WPF
         /// <summary>
         /// Uloží set sekvencií - rýchle uloženie
         /// </summary>
-        private void btnSaveSetAs_Click(object sender, RoutedEventArgs e)
+        private void BtnSaveSetAs_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -3197,9 +3197,9 @@ namespace AppCommander.W7_11.WPF
                 // this.Title = $"AppCommander - {setName}{hasChanges}";
 
                 // Refresh DataGrid
-                if (dgUnified != null)
+                if (MainCommandTable != null)
                 {
-                    dgUnified.Items.Refresh();
+                    MainCommandTable.Items.Refresh();
                 }
             }
             catch (Exception ex)
@@ -3649,7 +3649,7 @@ namespace AppCommander.W7_11.WPF
         #region Context Menu Handlers
         private void ContextMenu_Edit_Click(object sender, RoutedEventArgs e)
         {
-            if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+            if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
             {
                 OpenEditCommandWindow(selectedItem);
             }
@@ -3663,7 +3663,7 @@ namespace AppCommander.W7_11.WPF
 
         private void ContextMenu_Copy_Click(object sender, RoutedEventArgs e)
         {
-            if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+            if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
             {
                 // Skopírovať detaily do schránky
                 var details = $"Krok: {selectedItem.StepNumber}\n" +
@@ -3681,7 +3681,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (dgUnified.SelectedItem is UnifiedItem selectedItem)
+                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
                 {
                     // Vytvoriť kópiu
                     var duplicate = new UnifiedItem
