@@ -26,7 +26,7 @@
         <!--<Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">-->
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
 
-            <Menu x:Name="menuBar" Background="Transparent" Padding="8" Margin="1,0,-1,0">
+            <Menu x:Name="menuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
                 <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
@@ -37,7 +37,7 @@
                     <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                <MenuItem Header="_Commands" AutomationProperties.Name="Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
@@ -46,25 +46,25 @@
                     <MenuItem Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                <MenuItem Header="_Tools" AutomationProperties.Name="Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="Th_emes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                <MenuItem Header="Th_emes" AutomationProperties.Name="Themes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="System Default" IsCheckable="True" IsChecked="True" 
                         Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
                     <Separator Margin="-20,4,10,4"/>
-                    <MenuItem Header="Light Theme" IsCheckable="True" 
+                    <MenuItem Header="Light Theme" AutomationProperties.Name="Light Theme" IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="Light" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem Header="Dark Theme" IsCheckable="True" 
+                    <MenuItem Header="Dark Theme" AutomationProperties.Name="Dark Theme" IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="Dark" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem Header="High Contrast" IsCheckable="True" 
+                    <MenuItem Header="High Contrast" AutomationProperties.Name="High Contrast Theme" IsCheckable="True" 
                         Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{DynamicResource MenuItemStyle}"/>
                 </MenuItem>
 
-                <MenuItem Header="_Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                <MenuItem Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
@@ -77,11 +77,11 @@
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
                     <Button x:Name="btnSelectTargetByClick" Content="🎯 Click to Select" 
-                            Style="{DynamicResource PrimaryButton}" 
+                            Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
                             Click="SelectTargetByClick_Click" 
                             Margin="0,0,8,0" Height="36"/>
                     <Button x:Name="btnSelectTarget" Content="📋 Browse" 
-                            Style="{DynamicResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}"  AutomationProperties.Name="Target by browsing"
                             Click="SelectTarget_Click" Height="36"/>
                 </StackPanel>
 
@@ -89,8 +89,8 @@
 
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                    <Button x:Name="btnRecording" Content="🔴 Start Recording" 
-                            Style="{DynamicResource DangerButton}" 
+                    <Button x:Name="btnRecording" Content="🔴 Start Recording"  AutomationProperties.Name="Recording"
+                            Style="{DynamicResource DangerButton}"  AutomationProperties.HelpText="Start recording"
                             Click="ToggleRecording_Click" Height="36" Margin="0,0,8,0"/>
                 </StackPanel>
 
@@ -99,25 +99,26 @@
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="btnPlayCommands" Content="         ▶    Play            " 
-                            Style="{DynamicResource PrimaryButton}" 
+                            Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Play commands" AutomationProperties.HelpText="Play commands"
                             Click="PlaySequence_Click" Height="36" Margin="0,0,4,0"/>
 
                     <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" 
+                        <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" AutomationProperties.Name="Repeat" 
                                FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                        <TextBox x:Name="txtRepeatCount" Text="1" 
+                        <TextBox x:Name="txtRepeatCount" Text="1" AutomationProperties.Name="Repeat count" AutomationProperties.HelpText="Write the number of repetitions"
                                  Style="{DynamicResource TextBoxStyle}"     
                                  Width="50" Height="36" TextAlignment="Center" Margin="10,0,8,18"/>
                     </StackPanel>
 
                     <CheckBox x:Name="chkInfiniteLoop" Content="∞" VerticalAlignment="Center" FontStretch="UltraExpanded" FontWeight="ExtraBold"
+                              AutomationProperties.Name="Infinite Loop" AutomationProperties.HelpText="Infinite Loop"
                               Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,-3"/>
 
                     <Button x:Name="btnPause" Content="⏸ Pause" 
-                            Style="{DynamicResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Pause" AutomationProperties.HelpText="Pause the current execution"
                             Click="PausePlayback_Click" Height="36" Margin="0,0,4,0" IsEnabled="False"/>
                     <Button x:Name="btnStop" Content="⏹ Stop" 
-                            Style="{DynamicResource SecondaryButton}" 
+                            Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Stop" AutomationProperties.HelpText="Terminate the current execution"
                             Click="StopPlayback_Click" Height="36" IsEnabled="False"/>
 
                     <!-- Info TextBoxes -->
@@ -152,7 +153,7 @@
 
                     <!-- Header -->
                     <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" 
+                        <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" AutomationProperties.Name="Recorded Commands"
                             Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <TextBlock x:Name="txtCommandCount" Text="0 commands" 
@@ -164,6 +165,8 @@
 
                     <!-- DataGrid -->
                     <DataGrid Grid.Row="1" x:Name="dgUnified" Style="{DynamicResource DataGridStyle}"
+                              AutomationProperties.Name="Main command table"
+                              AutomationProperties.HelpText="Main command table"
                               AutoGenerateColumns="False"
                               MouseDoubleClick="dgUnified_MouseDoubleClick"
                               SelectionMode="Single"

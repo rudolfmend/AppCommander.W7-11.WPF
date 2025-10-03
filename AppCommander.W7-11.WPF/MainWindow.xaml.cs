@@ -3315,7 +3315,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 ResourceDictionary themeDict = new ResourceDictionary();
-
+                Debug.WriteLine("SetAppTheme");
                 switch (theme)
                 {
                     case "Light":

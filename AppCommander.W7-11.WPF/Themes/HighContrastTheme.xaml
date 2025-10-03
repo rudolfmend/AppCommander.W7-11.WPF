@@ -69,14 +69,14 @@
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
 
     <!-- ======================================= -->
-    <!-- BUTTON STYLES -->
+    <!--              BUTTON STYLES              -->
     <!-- ======================================= -->
 
     <Style x:Key="PrimaryButton" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="Black"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="BorderThickness" Value="4"/>
         <!-- Hrubší border pre viditeľnosť -->
         <Setter Property="Padding" Value="20,10"/>
         <!-- Väčší padding pre ľahšie klikanie -->
@@ -107,12 +107,13 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource SecondaryBrush}"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="5"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource DisabledTextBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource DisabledTextBrush}"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                         </Trigger>
                         <!-- Fokus indikátor -->
                         <Trigger Property="IsFocused" Value="True">
@@ -129,7 +130,7 @@
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="BorderThickness" Value="4"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="MinHeight" Value="50"/>
         <Setter Property="FontWeight" Value="Bold"/>
@@ -156,11 +157,12 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#2A2A2A"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="5"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#1A1A1A"/>
                             <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderBrush}"/>
@@ -176,7 +178,7 @@
         <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="BorderThickness" Value="4"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="MinHeight" Value="50"/>
         <Setter Property="FontWeight" Value="Bold"/>
@@ -202,7 +204,7 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#CC0000"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="5"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderBrush}"/>
@@ -221,7 +223,8 @@
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="BorderThickness" Value="4,,,,,,5
+                36"/>
         <!-- Hrubší border -->
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="16"/>
@@ -235,7 +238,7 @@
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderThickness" Value="3"/>
         <Setter Property="Padding" Value="10,8"/>
         <Setter Property="MinHeight" Value="36"/>
         <Setter Property="FontWeight" Value="Bold"/>
@@ -264,7 +267,7 @@
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderBrush}"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="4"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="3"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -313,7 +316,7 @@
                 <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
                 <Setter Property="Foreground" Value="Black"/>
                 <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                <Setter Property="BorderThickness" Value="3"/>
+                <Setter Property="BorderThickness" Value="2"/>
                 <Setter Property="FontWeight" Value="ExtraBold"/>
             </Trigger>
         </Style.Triggers>
@@ -369,7 +372,7 @@
         <Setter Property="Padding" Value="16,10"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="16"/>
-        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderThickness" Value="3"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
