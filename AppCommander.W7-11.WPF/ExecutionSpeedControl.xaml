@@ -21,10 +21,10 @@
         </Style>
     </UserControl.Resources>
 
-    <Border Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="15">
+    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="15">
         <StackPanel>
             <!-- Hlavný nadpis -->
-            <TextBlock Text="Rýchlosť vykonávania príkazov" FontSize="16" FontWeight="Bold" Margin="0,0,0,15" Foreground="{StaticResource PrimaryTextBrush}"/>
+            <TextBlock Text="Rýchlosť vykonávania príkazov" FontSize="16" FontWeight="Bold" Margin="0,0,0,15" Foreground="{DynamicResource PrimaryTextBrush}"/>
 
             <!-- Hlavný slider pre rýchlosť -->
             <Grid>
@@ -34,11 +34,11 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Základná rýchlosť:" Style="{StaticResource SpeedLabelStyle}"/>
+                <TextBlock Grid.Row="0" Text="Základná rýchlosť:" Style="{DynamicResource SpeedLabelStyle}"/>
 
                 <Slider x:Name="speedSlider" 
                         Grid.Row="1"
-                        Style="{StaticResource SliderStyle}"
+                        Style="{DynamicResource SliderStyle}"
                         Minimum="0" 
                         Maximum="5" 
                         Value="2"
@@ -80,9 +80,9 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="testButton" Content="Test" Padding="10,5" Margin="5,0" Click="TestButton_Click" 
-                                Style="{StaticResource SecondaryButton}" Width="55" />
+                                Style="{DynamicResource SecondaryButton}" Width="55" />
                     <Button x:Name="resetButton" Content="Reset" Padding="10,5" Click="ResetButton_Click" 
-                                Style="{StaticResource SecondaryButton}" />
+                                Style="{DynamicResource SecondaryButton}" />
                 </StackPanel>
             </Grid>
 
@@ -98,7 +98,7 @@
                 <StackPanel Margin="10">
 
                     <!-- Delay medzi príkazmi -->
-                    <TextBlock Text="Pauza medzi príkazmi (ms):" Style="{StaticResource SpeedLabelStyle}"/>
+                    <TextBlock Text="Pauza medzi príkazmi (ms):" Style="{DynamicResource SpeedLabelStyle}"/>
                     <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -106,7 +106,7 @@
                         </Grid.ColumnDefinitions>
                         <Slider x:Name="defaultDelaySlider"
                                 Grid.Column="0"
-                                Style="{StaticResource AdvancedSliderStyle}"
+                                Style="{DynamicResource AdvancedSliderStyle}"
                                 Minimum="50" 
                                 Maximum="5000" 
                                 Value="500"
@@ -117,7 +117,7 @@
                     </Grid>
 
                     <!-- Čakanie na element -->
-                    <TextBlock Text="Max. čakanie na element (ms):" Style="{StaticResource SpeedLabelStyle}"/>
+                    <TextBlock Text="Max. čakanie na element (ms):" Style="{DynamicResource SpeedLabelStyle}"/>
                     <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -125,7 +125,7 @@
                         </Grid.ColumnDefinitions>
                         <Slider x:Name="elementWaitSlider"
                                 Grid.Column="0"
-                                Style="{StaticResource AdvancedSliderStyle}"
+                                Style="{DynamicResource AdvancedSliderStyle}"
                                 Minimum="1000" 
                                 Maximum="15000" 
                                 Value="5000"
@@ -136,7 +136,7 @@
                     </Grid>
 
                     <!-- Čakanie na zmenu stavu -->
-                    <TextBlock Text="Max. čakanie na zmenu stavu (ms):" Style="{StaticResource SpeedLabelStyle}"/>
+                    <TextBlock Text="Max. čakanie na zmenu stavu (ms):" Style="{DynamicResource SpeedLabelStyle}"/>
                     <Grid Margin="0,0,0,15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -144,7 +144,7 @@
                         </Grid.ColumnDefinitions>
                         <Slider x:Name="stateWaitSlider"
                                 Grid.Column="0"
-                                Style="{StaticResource AdvancedSliderStyle}"
+                                Style="{DynamicResource AdvancedSliderStyle}"
                                 Minimum="500" 
                                 Maximum="10000" 
                                 Value="3000"
@@ -191,7 +191,7 @@
             </Expander>
 
             <!-- Status panel -->
-            <Grid Margin="0,15,0,0" Background="{StaticResource PanelBackgroundBrush}" Height="30">
+            <Grid Margin="0,15,0,0" Background="{DynamicResource PanelBackgroundBrush}" Height="30">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="Auto"/>
@@ -202,14 +202,14 @@
                        Text="Pripravené na vykonávanie príkazov" 
                        VerticalAlignment="Center" 
                        Margin="10,0"
-                       Foreground="{StaticResource SuccessBrush}"/>
+                       Foreground="{DynamicResource SuccessBrush}"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
                     <Ellipse x:Name="statusIndicator" 
                              Width="8" Height="8" 
                              Fill="Green" 
                              Margin="0,0,5,0"/>
-                    <TextBlock x:Name="statusSpeedLabel" Text="Normálna" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}"/>
+                    <TextBlock x:Name="statusSpeedLabel" Text="Normálna" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </StackPanel>
             </Grid>
 

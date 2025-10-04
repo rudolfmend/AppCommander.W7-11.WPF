@@ -7,37 +7,9 @@
         mc:Ignorable="d"
         Title="Command details" Height="550" Width="700"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource Background}"
+        Background="{DynamicResource WindowBackgroundBrush}"
         ResizeMode="CanResize">
-    
-    <!--<Window.Resources>
-        --><!-- Štýl pre TextBlock nadpisy --><!--
-        <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,10,5"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-        </Style>
-        
-        --><!-- Štýl pre hodnoty --><!--
-        <Style x:Key="ValueStyle" TargetType="TextBlock">
-            <Setter Property="Margin" Value="0,0,0,5"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
-        
-        --><!-- Štýl pre TextBoxy --><!--
-        <Style x:Key="EditTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#D1D1D1"/>
-            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-        </Style>
-    </Window.Resources>-->
-    
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -47,21 +19,15 @@
         
         <!-- Hlavička -->
         <Border Grid.Row="0" 
-                Background="{DynamicResource Surface}" 
+                Background="{DynamicResource OnSurface}" 
                 Padding="15,10" 
                 Margin="-20,-20,-20,15"
                 CornerRadius="0">
             <StackPanel>
                 <TextBlock x:Name="txtTitle" 
-                          Text="Order details" 
-                          FontSize="18" 
-                          FontWeight="Bold"
-                          Foreground="White"/>
-                <TextBlock x:Name="txtSubtitle" 
                           Text="Viewing and editing a command"
-                          FontSize="12"
-                          Foreground="#E0E0E0"
-                          Margin="0,4,0,0"/>
+                          Style="{DynamicResource TextBlockStyle}"/>
+
             </StackPanel>
         </Border>
         
@@ -70,10 +36,8 @@
             <StackPanel>
                 <!-- Základné informácie -->
                 <GroupBox Header="📋 Basic information" 
-                         Padding="15" 
-                         Margin="0,0,0,15"
-                         BorderBrush="#D1D1D1"
-                         BorderThickness="1">
+                          Style="{DynamicResource GroupBoxStyle}"
+                          Padding="10,20,10,25" Margin="5">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -104,8 +68,7 @@
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBox x:Name="txtValue" 
                                 Grid.Row="4" Grid.Column="1" 
-                                Style="{StaticResource TextBoxStyle}"
-                                Height="60"
+                                Style="{DynamicResource TextBoxStyle}"
                                 TextWrapping="Wrap"
                                 AcceptsReturn="True"
                                 VerticalScrollBarVisibility="Auto"/>
@@ -114,11 +77,9 @@
                 
                 <!-- Detaily elementu -->
                 <GroupBox x:Name="grpElementDetails"
-                         Header="🎯 UI Element details" 
-                         Padding="15" 
-                         Margin="0,0,0,15"
-                         BorderBrush="#D1D1D1"
-                         BorderThickness="1">
+                          Style="{DynamicResource GroupBoxStyle}"
+                          Header="🎯 UI Element details" 
+                          Padding="10,20,10,25" Margin="5">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -131,26 +92,32 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
+                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
+                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
+                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,5"/>
+                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,5"/>
                     </Grid>
                 </GroupBox>
                 
                 <!-- Nastavenia vykonávania -->
                 <GroupBox Header="⚙️ Execution settings" 
-                         Padding="15" 
-                         Margin="0,0,0,15"
-                         BorderBrush="#D1D1D1"
-                         BorderThickness="1">
+                          Style="{DynamicResource GroupBoxStyle}"
+                          Padding="10,20,10,25" Margin="5">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -162,20 +129,27 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Number of repetitions:" Style="{StaticResource TextBlockStyle}"/>
-                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Number of " Style="{DynamicResource TextBlockStyle}"
+                                   Padding="0,0,10,5" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="repetitions:" Style="{DynamicResource TextBlockStyle}"
+                                   Padding="0,15,10,5" />
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                    Margin="0">
                             <TextBox x:Name="txtRepeatCount" 
                                     Width="100" 
-                                    Style="{StaticResource TextBoxStyle}"
+                                    Style="{DynamicResource TextBoxStyle}"
                                     Margin="0,0,10,10"/>
                             <TextBlock Text="× (1 = to do once)" 
-                                      VerticalAlignment="Center"
-                                      Foreground="#999999"
-                                      Margin="0,0,0,10"/>
+                                       Style="{DynamicResource TextBlockStyle}"
+                                       VerticalAlignment="Center"
+                                       Foreground="#999999"
+                                       Margin="0,0,0,10"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,15"/>
+                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,12,10,10"/>
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Created:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBlock x:Name="txtTimestamp" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
@@ -184,12 +158,9 @@
                 
                 <!-- Cesta k súboru (pre sekvencie) -->
                 <GroupBox x:Name="grpFilePath"
-                         Header="📁 Referencia na sekvenciu" 
-                         Padding="15" 
-                         Margin="0,0,0,15"
-                         BorderBrush="#D1D1D1"
-                         BorderThickness="1"
-                         Visibility="Collapsed">
+                         Header="📁 Sequence reference link" 
+                         Visibility="Visible" Style="{DynamicResource GroupBoxStyle}"
+                          Padding="10,20,10,25" Margin="5">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -198,8 +169,8 @@
                             <ColumnDefinition Width="130"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Cesta k súboru:" Style="{DynamicResource TextBlockStyle}"/>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="File path:" Style="{DynamicResource TextBlockStyle}"/>
                         <TextBlock x:Name="txtFilePath" 
                                   Grid.Row="0" Grid.Column="1" 
                                   Style="{DynamicResource TextBlockStyle}"
@@ -213,56 +184,29 @@
         <Border Grid.Row="2" 
                 BorderThickness="0,1,0,0" 
                 BorderBrush="#D1D1D1"
-                Padding="0,15,0,0"
-                Margin="-20,15,-20,-20"
-                Background="{DynamicResource Background}">
+                Padding="0,3,0,0"
+                Margin="-20, -18"
+                Background="{DynamicResource CardBackgroundBrush}">
+            
             <StackPanel Orientation="Horizontal" 
                        HorizontalAlignment="Right"
-                       Margin="20,0">
+                       Margin="20,15">
                 <Button x:Name="ButtonSaveCommands" 
-                       Content="💾 Save changes" 
-                       Width="130"
-                       Height="35"
-                       Margin="0,0,10,0"
-                       Click="ButtonSaveCommands_Click"
-                       IsDefault="True">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="#0078D4"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#005A9E"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                
-                <Button x:Name="ButtonCancelEdit" 
-                       Content="❌ Cancel" 
-                       Width="100"
-                       Height="35"
-                       Click="ButtonCancelEdit_Click"
-                       IsCancel="True">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="#F3F3F3"/>
-                            <Setter Property="Foreground" Value="#333333"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="BorderBrush" Value="#D1D1D1"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#E5E5E5"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                        Content="💾 Save changes" 
+                        MinWidth="100" MaxWidth="180" 
+                        MinHeight="50" MaxHeight="70"
+                        Margin="0,0,10,0"
+                        Click="ButtonSaveCommands_Click"
+                        IsDefault="True"
+                        Style="{DynamicResource PrimaryButton}"/>
+
+                    <Button x:Name="ButtonCancelEdit" 
+                            Content="❌ Cancel"  
+                            MinWidth="100" MaxWidth="130" 
+                            MinHeight="50" MaxHeight="70"
+                            Click="ButtonCancelEdit_Click"
+                            IsCancel="True"
+                            Style="{DynamicResource DangerButton}"/>
             </StackPanel>
         </Border>
     </Grid>

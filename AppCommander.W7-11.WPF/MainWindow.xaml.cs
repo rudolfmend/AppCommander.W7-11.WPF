@@ -419,13 +419,13 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                btnSelectTargetByClick.Content = "🎯 Click to Select";
-                btnSelectTargetByClick.IsEnabled = true;
-                btnSelectTarget.IsEnabled = true;
-                btnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
+                BtnSelectTargetByClick.Content = "🎯 Click to Select";
+                BtnSelectTargetByClick.IsEnabled = true;
+                BtnSelectTarget.IsEnabled = true;
+                BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
 
                 // Skryje selection indicator
-                selectionModeIndicator.Visibility = Visibility.Collapsed;
+                SelectionModeIndicator.Visibility = Visibility.Collapsed;
             }
             catch (Exception ex)
             {
@@ -444,33 +444,33 @@ namespace AppCommander.W7_11.WPF
                 {
                     var processName = windowInfo.ProcessName ?? "Unknown Process";
                     var title = windowInfo.Title ?? "Unknown Title";
-                    lblTargetWindow.Text = $"{processName} - {title}";
+                    LblTargetWindow.Text = $"{processName} - {title}";
 
                     // Update UI state
-                    btnRecording.IsEnabled = true;
+                    BtnRecording.IsEnabled = true;
 
-                    lblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
-                    txtTargetProcess.Text = windowInfo.ProcessName;
+                    LblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
+                    TxtTargetProcess.Text = windowInfo.ProcessName;
                     _targetWindowHandle = windowInfo.WindowHandle;
                     Debug.WriteLine($"Target window updated: Handle=0x{_targetWindowHandle.ToInt64():X8}, Process={windowInfo.ProcessName}, Title={windowInfo.Title}");
 
                     UpdateStatus($"Target window set to: {windowInfo.ProcessName}");
-                    btnRecording.IsEnabled = true;
+                    BtnRecording.IsEnabled = true;
                     UpdateUI();
                 }
                 else
                 {
-                    lblTargetWindow.Text = "No target selected";
-                    txtTargetProcess.Text = "-";
-                    btnRecording.IsEnabled = false;
+                    LblTargetWindow.Text = "No target selected";
+                    TxtTargetProcess.Text = "-";
+                    BtnRecording.IsEnabled = false;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error updating target window info: {ex.Message}");
-                txtTargetProcess.Text = "-";
-                lblTargetWindow.Text = "Error loading target info";
-                btnRecording.IsEnabled = false;
+                TxtTargetProcess.Text = "-";
+                LblTargetWindow.Text = "Error loading target info";
+                BtnRecording.IsEnabled = false;
             }
             finally
             {
@@ -488,13 +488,13 @@ namespace AppCommander.W7_11.WPF
                 if (isRecording)
                 {
                     // OPRAVA: TextBlock používa .Text namiesto .Content
-                    lblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
-                    lblUIRecordingStatus.Text = "🟢 UI Scanning Active";
+                    LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
+                    LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
                 }
                 else
                 {
-                    lblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
-                    lblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
+                    LblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
+                    LblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
                 }
             }
             catch (Exception ex)
@@ -534,14 +534,14 @@ namespace AppCommander.W7_11.WPF
                 _windowTracker.StartTracking(targetProcess);
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
-                btnRecording.Content = "⏹ Stop Recording";
-                btnRecording.Style = (Style)FindResource("DangerButton");
+                BtnRecording.Content = "⏹ Stop Recording";
+                BtnRecording.Style = (Style)FindResource("DangerButton");
 
                 // OPRAVA: Používa novú metódu
                 UpdateStatusLabels(true);
 
-                progressEnhancedRecording.Visibility = Visibility.Visible;
-                progressEnhancedRecording.IsIndeterminate = true;
+                ProgressEnhancedRecording.Visibility = Visibility.Visible;
+                ProgressEnhancedRecording.IsIndeterminate = true;
 
                 UpdateStatus($"Recording started: {sequenceName}");
             }
@@ -559,14 +559,13 @@ namespace AppCommander.W7_11.WPF
                 _windowTracker.StopTracking();
                 _automaticUIManager.StopMonitoring();
 
-                btnRecording.Content = "🔴 Start Recording";
-                btnRecording.Style = (Style)FindResource("DangerButton");
+                BtnRecording.Content = "🔴 Start Recording";
+                BtnRecording.Style = (Style)FindResource("DangerButton");
 
-                // OPRAVA: Používa novú metódu
                 UpdateStatusLabels(false);
 
-                progressEnhancedRecording.Visibility = Visibility.Collapsed;
-                progressEnhancedRecording.IsIndeterminate = false;
+                ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
+                ProgressEnhancedRecording.IsIndeterminate = false;
 
                 UpdateStatus("Recording stopped");
             }
@@ -588,14 +587,14 @@ namespace AppCommander.W7_11.WPF
                 {
                     _player.Resume();
                     // OPRAVA: Podmienečná kontrola či btnPause existuje
-                    if (btnPause != null)
-                        btnPause.Content = "⏸ Pause";
+                    if (BtnPause != null)
+                        BtnPause.Content = "⏸ Pause";
                 }
                 else if (_player.IsPlaying)
                 {
                     _player.Pause();
-                    if (btnPause != null)
-                        btnPause.Content = "▶ Resume";
+                    if (BtnPause != null)
+                        BtnPause.Content = "▶ Resume";
                 }
             }
             catch (Exception ex)
@@ -610,8 +609,8 @@ namespace AppCommander.W7_11.WPF
             {
                 _player.Stop();
                 // OPRAVA: Podmienečná kontrola
-                if (btnPause != null)
-                    btnPause.Content = "⏸ Pause";
+                if (BtnPause != null)
+                    BtnPause.Content = "⏸ Pause";
                 UpdateStatus("Playback stopped");
             }
             catch (Exception ex)
@@ -633,29 +632,29 @@ namespace AppCommander.W7_11.WPF
                 bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
 
                 // Recording button state
-                btnRecording.IsEnabled = hasTargetWindow || isRecording;
+                BtnRecording.IsEnabled = hasTargetWindow || isRecording;
 
-                btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
-                if (btnPlayCommands != null)
-                    btnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                if (BtnPlayCommands != null)
+                    BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
-                if (btnPause != null)
-                    btnPause.IsEnabled = isPlaying;
+                if (BtnPause != null)
+                    BtnPause.IsEnabled = isPlaying;
 
-                if (btnStop != null)
-                    btnStop.IsEnabled = isPlaying;
+                if (BtnStop != null)
+                    BtnStop.IsEnabled = isPlaying;
 
                 // Target selection buttons - disable počas recordingu
-                btnSelectTargetByClick.IsEnabled = !isRecording;
-                btnSelectTarget.IsEnabled = !isRecording;
+                BtnSelectTargetByClick.IsEnabled = !isRecording;
+                BtnSelectTarget.IsEnabled = !isRecording;
 
                 // Commands count
                 var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
                 string commandText = loopCount > 0 ?
                     string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
                     string.Format("Commands: {0}", _commands.Count);
-                txtCommandCount.Text = commandText;
+                TxtCommandCount.Text = commandText;
 
                 // Window title
                 string title = "AppCommander";
@@ -674,8 +673,8 @@ namespace AppCommander.W7_11.WPF
                 {
                     var processName = GetProcessNameFromWindow(_targetWindowHandle);
                     var windowTitle = GetWindowTitle(_targetWindowHandle);
-                    lblTargetWindow.Text = $"{processName} - {windowTitle}";
-                    txtTargetProcess.Text = processName;
+                    LblTargetWindow.Text = $"{processName} - {windowTitle}";
+                    TxtTargetProcess.Text = processName;
                 }
             }
             catch (Exception ex)
@@ -693,9 +692,9 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // OPRAVA: podmienečná kontrola či lstElementStats existuje
-                if (lstElementStats == null) return;
+                if (LstElementStats == null) return;
 
-                lstElementStats.Items.Clear();
+                LstElementStats.Items.Clear();
 
                 var elementGroups = _commands
                     .Where(c => !string.IsNullOrEmpty(c.ElementName))
@@ -711,7 +710,7 @@ namespace AppCommander.W7_11.WPF
 
                 foreach (var element in elementGroups)
                 {
-                    lstElementStats.Items.Add(element);
+                    LstElementStats.Items.Add(element);
                 }
 
                 UpdateStatus(string.Format("Element statistics refreshed: {0} unique elements", elementGroups.Count));
@@ -733,9 +732,9 @@ namespace AppCommander.W7_11.WPF
                 _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
 
                 // OPRAVA: podmienečná kontrola
-                if (btnToggleAutoMode != null)
+                if (BtnToggleAutoMode != null)
                 {
-                    btnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
+                    BtnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
                 }
 
                 var message = _isAutoTrackingEnabled ?
@@ -764,16 +763,16 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 // Zobraz selection indicator
-                selectionModeIndicator.Visibility = Visibility.Visible;
+                SelectionModeIndicator.Visibility = Visibility.Visible;
                 txtSelectionMode.Text = "Click Selection Active";
 
                 // Zmeni tlačidlo na cancel mode
-                btnSelectTargetByClick.Content = "❌ Cancel Selection";
-                btnSelectTargetByClick.IsEnabled = true;
+                BtnSelectTargetByClick.Content = "❌ Cancel Selection";
+                BtnSelectTargetByClick.IsEnabled = true;
 
                 // Disable ostatné controls počas výberu
-                btnSelectTarget.IsEnabled = false;
-                btnRecording.IsEnabled = false;
+                BtnSelectTarget.IsEnabled = false;
+                BtnRecording.IsEnabled = false;
 
                 UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
 
@@ -843,7 +842,7 @@ namespace AppCommander.W7_11.WPF
 
                     // Nastav target window
                     _targetWindowHandle = windowInfo.WindowHandle;
-                    lblTargetWindow.Text = string.Format("{0} - {1}",
+                    LblTargetWindow.Text = string.Format("{0} - {1}",
                         windowInfo.ProcessName, windowInfo.Title);
 
                     UpdateUI();
@@ -940,7 +939,7 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
                 {
                     _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    lblTargetWindow.Text = string.Format("{0} - {1}",
+                    LblTargetWindow.Text = string.Format("{0} - {1}",
                         dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
 
                     UpdateUI();
@@ -1431,9 +1430,9 @@ namespace AppCommander.W7_11.WPF
 
         private void UpdateUnifiedUI()
         {
-            txtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
-            txtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-            txtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
+            TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
             //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
             //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
 
@@ -1458,22 +1457,22 @@ namespace AppCommander.W7_11.WPF
             this.Title = title;
 
             // Aktualizuje status bar
-            txtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
 
             // Aktualizuje enabled stav menu položiek
-            menuBar.IsEnabled = _unifiedItems.Count > 0;
+            MenuBar.IsEnabled = _unifiedItems.Count > 0;
             //menuItem.IsEnabled = _hasUnsavedUnifiedChanges && _unifiedItems.Count > 0;
 
             // Aktualizuje enabled stav playback tlačidiel
-            btnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            btnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            btnPause.IsEnabled = _player?.IsPlaying ?? false;
-            btnStop.IsEnabled = _player?.IsPlaying ?? false;
+            BtnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            BtnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            BtnPause.IsEnabled = _player?.IsPlaying ?? false;
+            BtnStop.IsEnabled = _player?.IsPlaying ?? false;
 
             // Aktualizuje enabled stav recording tlačidiel
-            btnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
-            btnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
-            btnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
+            BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
+            BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
+            BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
 
             // Aktualizuje stavový riadok
             if (_recorder?.IsRecording ?? false)
@@ -1546,10 +1545,10 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 int repeatCount = 1;
-                if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                if (!int.TryParse(TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
                 {
                     repeatCount = 1;
-                    txtRepeatCount.Text = "1";
+                    TxtRepeatCount.Text = "1";
                 }
 
                 // Convert unified sequence to traditional format for playback
@@ -1598,10 +1597,10 @@ namespace AppCommander.W7_11.WPF
                     }
 
                     int repeatCount = 1;
-                    if (!int.TryParse(txtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                    if (!int.TryParse(TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
                     {
                         repeatCount = 1;
-                        txtRepeatCount.Text = "1";
+                        TxtRepeatCount.Text = "1";
                     }
 
                     var sequence = new CommandSequence
@@ -2621,8 +2620,8 @@ namespace AppCommander.W7_11.WPF
 
                 _isUpdatingRepeatCount = true;
 
-                txtRepeatCount.IsEnabled = false;
-                txtRepeatCount.Text = "∞";
+                TxtRepeatCount.IsEnabled = false;
+                TxtRepeatCount.Text = "∞";
                 UpdateStatus("Infinite loop enabled");
             }
             catch (Exception ex)
@@ -2643,8 +2642,8 @@ namespace AppCommander.W7_11.WPF
 
                 _isUpdatingRepeatCount = true;
 
-                txtRepeatCount.IsEnabled = true;
-                txtRepeatCount.Text = "1";
+                TxtRepeatCount.IsEnabled = true;
+                TxtRepeatCount.Text = "1";
                 UpdateStatus("Infinite loop disabled");
             }
             catch (Exception ex)
@@ -2765,7 +2764,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                txtStatusBar.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
+                TxtStatusBar.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
                 Debug.WriteLine(string.Format("Status: {0}", message));
             }
             catch (Exception ex)
@@ -2780,11 +2779,11 @@ namespace AppCommander.W7_11.WPF
             {
                 if (isRecording)
                 {
-                    lblStatusBarRecording.Text = isPaused ? "Recording Paused" : "Recording";
+                    LblStatusBarRecording.Text = isPaused ? "Recording Paused" : "Recording";
                 }
                 else
                 {
-                    lblStatusBarRecording.Text = "Not Recording";
+                    LblStatusBarRecording.Text = "Not Recording";
                 }
             }
             catch (Exception ex)
@@ -3180,11 +3179,11 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                txtSequenceCount = this.FindName("txtSequenceCount") as TextBlock;
+                TxtSequenceCount = this.FindName("txtSequenceCount") as TextBlock;
                 // Aktualizuj počet sekvencií
-                if (txtSequenceCount != null)
+                if (TxtSequenceCount != null)
                 {
-                    txtSequenceCount.Text = $"{_sequenceSetItems.Count} sequences";
+                    TxtSequenceCount.Text = $"{_sequenceSetItems.Count} sequences";
                 }
 
                 // Aktualizuj title bar ak je potrebné

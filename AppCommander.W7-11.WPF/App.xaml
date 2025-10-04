@@ -67,7 +67,7 @@
                 <Setter Property="Padding" Value="16,8"/>
                 <Setter Property="MinHeight" Value="32"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Effect" Value="{StaticResource ElevationLow}"/>
+                <Setter Property="Effect" Value="{DynamicResource ElevationLow}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -84,19 +84,19 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBlueHover}"/>
-                                    <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray100}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryBlueHover}"/>
+                                    <Setter Property="Effect" Value="{DynamicResource ElevationMedium}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource NeutralGray100}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBluePressed}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryBluePressed}"/>
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NeutralGray300}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource NeutralGray700}"/>
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -118,14 +118,14 @@
                 <Setter Property="BorderThickness" Value="1.2"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="{StaticResource OnSurface}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray900}"/>
+                <Setter Property="Foreground" Value="{DynamicResource OnSurface}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource NeutralGray900}"/>
                 <Setter Property="BorderThickness" Value="0.8"/>
                 <Setter Property="Padding" Value="16,8"/>
                 <Setter Property="MinHeight" Value="28"/>
                 <Setter Property="FontWeight" Value="Normal"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Effect" Value="{StaticResource ElevationLow}"/>
+                <Setter Property="Effect" Value="{DynamicResource ElevationLow}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -140,13 +140,13 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
-                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NeutralGray300}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource NeutralGray500}"/>
                                     <Setter Property="FontWeight" Value="DemiBold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray500}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NeutralGray500}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
@@ -158,7 +158,7 @@
             </Style>
 
             --><!-- Red Danger Button + Statický gradient --><!--
-            <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+            <Style x:Key="DangerButton" TargetType="Button" BasedOn="{DynamicResource SecondaryButton}">
                 <Setter Property="Background">
                     <Setter.Value>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -194,7 +194,7 @@
                                             </LinearGradientBrush>
                                         </Setter.Value>
                                     </Setter>
-                                    <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+                                    <Setter Property="Effect" Value="{DynamicResource ElevationMedium}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Setter Property="BorderThickness" Value="0"/>
                                     <Setter Property="Margin" Value="0,0,0,0"/>
@@ -211,8 +211,8 @@
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="border" Property="Background" Value="{StaticResource NeutralGray300}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}"/>
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NeutralGray300}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource NeutralGray700}"/>
                                     <Setter Property="Effect" Value="{x:Null}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -224,13 +224,13 @@
             <!-- TextBox s fokus animáciou -->
             <Style  x:Key="TextBoxStyle" TargetType="TextBox">
                 <Setter Property="Background" Value="{DynamicResource Surface}"/>
-                <Setter Property="BorderBrush" Value="{StaticResource NeutralGray500}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource NeutralGray500}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="1"/>
                 <Setter Property="MinHeight" Value="34" />
                 <Setter Property="FontFamily" Value="Segoe UI"/>
                 <Setter Property="FontSize" Value="18"/>
-                <Setter Property="Foreground" Value="{StaticResource GrayBlueColor}" />
+                <Setter Property="Foreground" Value="{DynamicResource GrayBlueColor}" />
                 <Setter Property="Cursor" Value="IBeam" />
                 <Setter Property="Template">
                     <Setter.Value>
@@ -245,17 +245,17 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBlueHover}"/>
-                                    <Setter Property="Foreground" Value="{StaticResource PrimaryBlueHover}" />
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryBlueHover}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBlueHover}" />
                                 </Trigger>
                                 <Trigger Property="IsFocused" Value="True">
-                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBluePressed}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryBluePressed}"/>
                                     <Setter TargetName="border" Property="BorderThickness" Value="2"/>
-                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray900}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource NeutralGray900}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
-                                    <Setter Property="Foreground" Value="{StaticResource NeutralGray700}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource NeutralGray700}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
