@@ -633,11 +633,11 @@
                                 <Storyboard>
                                     <ColorAnimation Storyboard.TargetName="ThumbBorder"
                                                 Storyboard.TargetProperty="(Border.Background).(LinearGradientBrush.GradientStops)[0].(GradientStop.Color)"
-                                                To="{DynamicResource PrimaryColor}"
+                                                To="{StaticResource PrimaryColor}"
                                                 Duration="0:0:0.25"/>
                                     <ColorAnimation Storyboard.TargetName="ThumbBorder"
                                                 Storyboard.TargetProperty="(Border.Background).(LinearGradientBrush.GradientStops)[1].(GradientStop.Color)"
-                                                To="{DynamicResource PrimaryColor}"
+                                                To="{StaticResource PrimaryColor}"
                                                 Duration="0:0:0.25"/>
                                     <DoubleAnimation Storyboard.TargetName="ThumbBorder"
                                                  Storyboard.TargetProperty="Opacity"
@@ -653,11 +653,11 @@
                                 <Storyboard>
                                     <ColorAnimation Storyboard.TargetName="ThumbBorder"
                                                 Storyboard.TargetProperty="(Border.Background).(LinearGradientBrush.GradientStops)[0].(GradientStop.Color)"
-                                                To="{DynamicResource SecondaryColor}"
+                                                To="{StaticResource SecondaryColor}"
                                                 Duration="0:0:0.3"/>
                                     <ColorAnimation Storyboard.TargetName="ThumbBorder"
                                                 Storyboard.TargetProperty="(Border.Background).(LinearGradientBrush.GradientStops)[1].(GradientStop.Color)"
-                                                To="{DynamicResource SecondaryColor}"
+                                                To="{StaticResource SecondaryColor}"
                                                 Duration="0:0:0.3"/>
                                     <DoubleAnimation Storyboard.TargetName="ThumbBorder"
                                                  Storyboard.TargetProperty="Opacity"

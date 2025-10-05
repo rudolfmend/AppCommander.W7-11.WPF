@@ -96,14 +96,12 @@ namespace AppCommander.W7_11.WPF
                 // Spusti sledovanie systémovej témy
                 StartSystemThemeMonitoring();
 
-                // Opravené string interpolation
                 Debug.WriteLine(string.Format("AppCommander started successfully on {0}, DPI Scale: {1:F2}x",
                     GetWindowsVersion(), GetDpiScale()));
             }
             catch (Exception ex)
             {
                 ReleaseMutex();
-                // Opravené string interpolation
                 MessageBox.Show(string.Format("Application startup failed: {0}", ex.Message), "AppCommander Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
@@ -116,7 +114,7 @@ namespace AppCommander.W7_11.WPF
             {
                 var resources = Application.Current.Resources;
 
-                // základné brushes ako fallback (použij Light theme farby)
+                // základné brushes ako fallback (použije Light theme farby)
                 resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xDC, 0xEA, 0xF2)); // #dceaf2
                 resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0xF8, 0xF9, 0xFA));    // #F8F9FA
                 resources["CardBackgroundBrush"] = new SolidColorBrush(Colors.White);                        // #FFFFFF
@@ -615,17 +613,20 @@ namespace AppCommander.W7_11.WPF
         {
             this.DispatcherUnhandledException += (sender, e) =>
             {
+                e.Handled = true;  
+
                 LogException(e.Exception, "DispatcherUnhandledException");
 
 #if DEBUG
-                MessageBox.Show(string.Format("DEBUG - Unhandled Exception:\n{0}\n\nThe application will continue running.", e.Exception),
-                    "AppCommander Debug Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Debug.WriteLine("═══════════════════════════════════════════════════════");
+                Debug.WriteLine("DEBUG - UNHANDLED EXCEPTION:");
+                Debug.WriteLine(e.Exception.ToString());
+                Debug.WriteLine("═══════════════════════════════════════════════════════");
 #else
-        MessageBox.Show(string.Format("An unexpected error occurred:\n{0}\n\nThe application will continue running.", e.Exception.Message),
-            "AppCommander Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(string.Format("An unexpected error occurred:\n{0}\n\nThe application will continue running.", e.Exception.Message),
+                "AppCommander Error", MessageBoxButton.OK, MessageBoxImage.Warning);
 #endif
 
-                e.Handled = true;
             };
 
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
@@ -636,12 +637,29 @@ namespace AppCommander.W7_11.WPF
                 if (e.IsTerminating)
                 {
                     string message = exception?.Message ?? "Unknown critical error";
-#if DEBUG
-                    message = string.Format("DEBUG - Critical Error:\n{0}", exception);
-#endif
+                    //#if DEBUG
+                    //                    message = string.Format("DEBUG - Critical Error:\n{0}", exception);
+                    //#endif
 
-                    MessageBox.Show(string.Format("A critical error occurred and the application must close:\n{0}", message),
-                        "AppCommander Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    //                    MessageBox.Show(string.Format("A critical error occurred and the application must close:\n{0}", message),
+                    //                        "AppCommander Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                #if DEBUG
+                    Debug.WriteLine("═══════════════════════════════════════════════════════");
+                    Debug.WriteLine("DEBUG - CRITICAL ERROR (TERMINATING):");
+                    Debug.WriteLine(exception?.ToString() ?? "Unknown error");
+                    Debug.WriteLine("═══════════════════════════════════════════════════════");
+                #else
+                    try
+                    {
+                        MessageBox.Show(string.Format("A critical error occurred and the application must close:\n{0}", message),
+                            "AppCommander Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    catch
+                    {
+                        Debug.WriteLine(string.Format("Failed to show critical error: {0}", message));
+                    }
+                #endif
                 }
             };
         }

@@ -24,17 +24,18 @@ namespace AppCommander.W7_11.WPF
                 if (string.IsNullOrWhiteSpace(txtName.Text))
                 {
                     MessageBox.Show("Commands cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    return;  // Skončí BEZ nastavenia WasSaved = true
                 }
+
+                // ✅ OPRAVENÉ: WasSaved sa nastaví IBA ak validácia prešla
+                WasSaved = true;
+                this.DialogResult = true;  // Nastaví výsledok dialógu
+                this.Close();  // Zatvorí okno
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error saving commands: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            finally
-            {
-                WasSaved = true;
+                // WasSaved zostane false pri chybe
             }
         }
 
@@ -42,22 +43,21 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (WasSaved) 
+                if (WasSaved)
                 {
-                MessageBox.Show("You have already saved the commands. Close the window or cancel to discard changes.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                    MessageBox.Show("You have already saved the commands. Close the window or cancel to discard changes.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
+
+                // ✅ OPRAVENÉ: WasSaved sa nastaví na false IBA keď Cancel skutočne prebehne
+                WasSaved = false;
+                this.DialogResult = false;  // Nastaví výsledok dialógu
+                this.Close();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error cancelling edit: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
             }
-            finally
-            {
-                WasSaved = false;
-            }
-            this.Close();
         }
     }
 }
