@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
         mc:Ignorable="d"
-        Title="Command details" Height="550" Width="700"
+        Title="Command details" MinHeight="600" Width="700"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}"
         ResizeMode="CanResize">
@@ -18,11 +18,8 @@
         </Grid.RowDefinitions>
         
         <!-- Hlavička -->
-        <Border Grid.Row="0" 
-                Background="{DynamicResource OnSurface}" 
-                Padding="15,10" 
-                Margin="-20,-20,-20,15"
-                CornerRadius="0">
+        <Border Grid.Row="0"  
+                Margin="10,0,-20,15" >
             <StackPanel>
                 <TextBlock x:Name="txtTitle" 
                           Text="Viewing and editing a command"
@@ -51,27 +48,37 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
-                        
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
-                        
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 9"/>
+                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="4, 9"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 9"/>
+                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 9"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 15"/>
                         <TextBox x:Name="txtName" 
                                 Grid.Row="2" Grid.Column="1" 
-                                Style="{DynamicResource TextBoxStyle}"/>
+                                Style="{DynamicResource TextBoxStyle}"
+                                   Margin="0, 9"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 9"/>
+                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 9"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{DynamicResource TextBlockStyle}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0, 15"/>
                         <TextBox x:Name="txtValue" 
                                 Grid.Row="4" Grid.Column="1" 
                                 Style="{DynamicResource TextBoxStyle}"
                                 TextWrapping="Wrap"
                                 AcceptsReturn="True"
-                                VerticalScrollBarVisibility="Auto"/>
+                                VerticalScrollBarVisibility="Auto"
+                                   Margin="0, 9"/>
                     </Grid>
                 </GroupBox>
                 

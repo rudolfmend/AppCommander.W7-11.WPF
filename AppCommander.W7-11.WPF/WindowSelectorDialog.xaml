@@ -62,7 +62,7 @@
 
         <!-- Buttons -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="btnRefresh" Content="🔄 Refresh" Width="111" 
+            <Button Name="btnRefresh" Content="Refresh" Width="111" 
                                 Style="{DynamicResource SecondaryButton}" 
                     Margin="0,0,10,0" Click="Refresh_Click"/>
             <Button Name="btnOK" Content="OK" MinWidth="90" MaxWidth="120" 

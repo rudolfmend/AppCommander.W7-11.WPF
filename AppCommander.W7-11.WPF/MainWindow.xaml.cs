@@ -9,10 +9,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.VisualBasic;
 
 public class SequenceSetItem : INotifyPropertyChanged
 {
@@ -131,6 +133,9 @@ namespace AppCommander.W7_11.WPF
         private CommandRecorder _recorder;
         private CommandPlayer _player;
         private AutomaticUIManager _automaticUIManager;
+
+        // Sequence of commands
+        private string _currentSequenceName = string.Empty;
 
         // Collections
         private ObservableCollection<Command> _commands;
@@ -405,10 +410,6 @@ namespace AppCommander.W7_11.WPF
         }
 
         #endregion
-
-
-
-        // OPRAVY PRE C# KÓD - nahraďte existujúce metódy
 
         #region UI Update Fixes
 
@@ -805,8 +806,6 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-
-
         #region Window Click Selection
 
         private WindowClickSelector _windowClickSelector;
@@ -1073,8 +1072,6 @@ namespace AppCommander.W7_11.WPF
         }
 
         #endregion
-
-
 
         #region Recording Controls
 
@@ -1344,12 +1341,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void LoadUnifiedSequenceFromFile(string fileName)
-        {
-            throw new NotImplementedException();
-        }
-
-
         /// <summary>
         /// Aktualizuje metódu pre uloženie aby automaticky rozhodla medzi formátmi
         /// </summary>
@@ -1382,11 +1373,6 @@ namespace AppCommander.W7_11.WPF
             {
                 ShowErrorMessage("Error saving sequence", ex);
             }
-        }
-
-        private void SaveUnifiedSequenceToFile(string currentUnifiedSequenceFilePath)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1690,9 +1676,228 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void SaveAsSet_Click(object value1, object value2)
+        /// <summary>
+        /// Uloží unified sekvenciu ako nový súbor (.uniseq)
+        /// </summary>
+        private void SaveAsSet_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Kontrola, či existujú unified items
+                if (_unifiedItems == null || _unifiedItems.Count == 0)
+                {
+                    MessageBox.Show("Cannot save empty sequence. Please add commands or sequences first.",
+                                    "Empty Sequence",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Validácia sekvencie
+                if (!_currentUnifiedSequence.IsValid(out List<string> errors))
+                {
+                    var errorMessage = "Validation warnings found:\n" +
+                                      string.Join("\n", errors.Take(5)) +
+                                      (errors.Count > 5 ? $"\n... and {errors.Count - 5} more errors." : "") +
+                                      "\n\nDo you want to save anyway?";
+
+                    var validationResult = MessageBox.Show(errorMessage, "Validation Warnings",
+                                                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (validationResult == MessageBoxResult.No)
+                        return;
+                }
+
+                // Získanie názvu sekvencie z textboxu
+                string defaultName = "UnifiedSequence_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                if (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text))
+                {
+                    defaultName = textBox.Text;
+                }
+
+                // SaveFileDialog
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "Unified Sequence Files (*.uniseq)|*.uniseq|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    DefaultExt = ".uniseq",
+                    Title = "Save Unified Sequence As",
+                    FileName = defaultName
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    SaveUnifiedSequenceToFile(dialog.FileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving unified sequence", ex);
+            }
+        }
+
+        /// <summary>
+        /// Uloží unified sekvenciu do súboru
+        /// </summary>
+        private void SaveUnifiedSequenceToFile(string filePath)
+        {
+            try
+            {
+                if (_unifiedItems == null || _unifiedItems.Count == 0)
+                {
+                    MessageBox.Show("Cannot save empty sequence.",
+                                    "Empty Sequence",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Aktualizácia _currentUnifiedSequence
+                _currentUnifiedSequence.Name = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                                                textBox.Text :
+                                                Path.GetFileNameWithoutExtension(filePath);
+
+                _currentUnifiedSequence.Description = $"Unified sequence created on {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+                _currentUnifiedSequence.Items = _unifiedItems.ToList();
+                _currentUnifiedSequence.LastModified = DateTime.Now;
+                _currentUnifiedSequence.FilePath = filePath;
+
+                // Ak je to prvé uloženie, nastav Created
+                if (_currentUnifiedSequence.Created == default(DateTime))
+                {
+                    _currentUnifiedSequence.Created = DateTime.Now;
+                }
+
+                // Serializácia do JSON
+                var json = JsonConvert.SerializeObject(_currentUnifiedSequence, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+
+                // Aktualizácia stavu
+                _currentUnifiedSequenceFilePath = filePath;
+                _hasUnsavedUnifiedChanges = false;
+
+                UpdateUnifiedUI();
+                UpdateStatus($"Unified sequence saved: {Path.GetFileName(filePath)} ({_unifiedItems.Count} items)");
+
+                Debug.WriteLine($"Unified sequence saved to: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving unified sequence to file", ex);
+            }
+        }
+
+        /// <summary>
+        /// Načíta unified sekvenciu zo súboru
+        /// </summary>
+        private void LoadUnifiedSequenceFromFile(string filePath)
+        {
+            try
+            {
+                // Kontrola existencie súboru
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File '{filePath}' does not exist.",
+                                    "File Not Found",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                    return;
+                }
+
+                // Kontrola neuložených zmien
+                if (_hasUnsavedUnifiedChanges)
+                {
+                    var result = MessageBox.Show(
+                        "You have unsaved changes. Do you want to save before loading a new sequence?",
+                        "Unsaved Changes",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        SaveAsSet_Click(null, null);
+                    }
+                    else if (result == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+                }
+
+                // Načítanie a deserializácia JSON súboru
+                var json = File.ReadAllText(filePath);
+                var unifiedSequence = JsonConvert.DeserializeObject<UnifiedSequence>(json);
+
+                if (unifiedSequence == null)
+                {
+                    MessageBox.Show("Invalid unified sequence file format.",
+                                    "Invalid File",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                    return;
+                }
+
+                // Validácia Items
+                if (unifiedSequence.Items == null)
+                {
+                    unifiedSequence.Items = new List<UnifiedItem>();
+                }
+
+                // Vyčistenie a naplnenie _unifiedItems
+                _unifiedItems.Clear();
+
+                foreach (var item in unifiedSequence.Items)
+                {
+                    // Validácia položiek
+                    if (item.Type == UnifiedItem.ItemType.SequenceReference)
+                    {
+                        // Kontrola, či referencovaný súbor existuje
+                        if (!string.IsNullOrEmpty(item.FilePath) && !File.Exists(item.FilePath))
+                        {
+                            item.Status = "File Missing";
+                            Debug.WriteLine($"Warning: Referenced sequence file not found: {item.FilePath}");
+                        }
+                    }
+
+                    _unifiedItems.Add(item);
+                }
+
+                // Prepočítanie step numbers
+                for (int i = 0; i < _unifiedItems.Count; i++)
+                {
+                    _unifiedItems[i].StepNumber = i + 1;
+                }
+
+                // Aktualizácia stavu
+                _currentUnifiedSequence = unifiedSequence;
+                _currentUnifiedSequenceFilePath = filePath;
+                _hasUnsavedUnifiedChanges = false;
+
+                // Aktualizácia názvu v textboxe
+                if (txtSequenceName_Copy is TextBox textBox)
+                {
+                    textBox.Text = unifiedSequence.Name ?? Path.GetFileNameWithoutExtension(filePath);
+                }
+
+                UpdateUnifiedUI();
+                UpdateStatus($"Unified sequence loaded: {Path.GetFileName(filePath)} ({_unifiedItems.Count} items)");
+
+                Debug.WriteLine($"Unified sequence loaded from: {filePath}");
+                Debug.WriteLine($"  Name: {unifiedSequence.Name}");
+                Debug.WriteLine($"  Items: {_unifiedItems.Count}");
+                Debug.WriteLine($"  Created: {unifiedSequence.Created}");
+                Debug.WriteLine($"  Last Modified: {unifiedSequence.LastModified}");
+            }
+            catch (JsonException ex)
+            {
+                MessageBox.Show($"Error parsing unified sequence file:\n\n{ex.Message}",
+                                "Invalid JSON",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                Debug.WriteLine($"JSON parse error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error loading unified sequence", ex);
+            }
         }
 
         #endregion
@@ -2046,6 +2251,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         #endregion
+
         #region Menu Handlers - Commands
 
         private void AddWaitCommand_Click(object sender, RoutedEventArgs e)
@@ -2215,7 +2421,8 @@ namespace AppCommander.W7_11.WPF
 
                     _hasUnsavedUnifiedChanges = true;
                     MainCommandTable.Items.Refresh();
-                    UpdateStatus($"Command '{item.Name}' updated");
+                    
+                    string.Format("Command '{0}' updated", item.Name);
                 }
             }
             catch (Exception ex)
@@ -3645,6 +3852,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
         #endregion
+
         #region Context Menu Handlers
         private void ContextMenu_Edit_Click(object sender, RoutedEventArgs e)
         {
@@ -3712,5 +3920,741 @@ namespace AppCommander.W7_11.WPF
             }
         }
         #endregion
+
+
+        #region Advanced Execution Features
+
+        #endregion
+
+        #region Command Duplication and Templates
+
+        /// <summary>
+        /// Prenumeruje všetky príkazy
+        /// </summary>
+        private void RenumberCommands()
+        {
+            for (int i = 0; i < _commands.Count; i++)
+            {
+                _commands[i].StepNumber = i + 1;
+            }
+        }
+
+        #endregion
+
+        #region Keyboard Shortcuts Support
+
+        /// <summary>
+        /// Spracovanie klávesových skratiek v okne
+        /// </summary>
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                // Ctrl + E = Edit selected command
+                if (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    if (MainCommandTable.SelectedItem != null)
+                    {
+                        EditCommand_Click(sender, e);
+                        e.Handled = true;
+                    }
+                }
+                // Ctrl + D = Duplicate command
+                else if (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    if (MainCommandTable.SelectedItem != null)
+                    {
+                        DuplicateCommand_Click(sender, e);
+                        e.Handled = true;
+                    }
+                }
+                // F5 = Execute sequence
+                else if (e.Key == Key.F5)
+                {
+                    ExecuteModifiedSequence_Click(sender, e);
+                    e.Handled = true;
+                }
+                // Ctrl + T = Test command
+                else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    if (MainCommandTable.SelectedItem != null)
+                    {
+                        TestCommand_Click(sender, e);
+                        e.Handled = true;
+                    }
+                }
+                // Delete = Delete command
+                else if (e.Key == Key.Delete)
+                {
+                    if (MainCommandTable.SelectedItem != null)
+                    {
+                        DeleteCommand_Click(sender, e);
+                        e.Handled = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling keyboard shortcut: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Execute Modified Sequence - OPRAVENÉ METÓDY
+
+        /// <summary>
+        /// Spustí aktuálnu (upravenú) sekvenciu príkazov
+        /// </summary>
+        private async void ExecuteModifiedSequence_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Kontrola, či existujú príkazy
+                if (_unifiedItems == null || _unifiedItems.Count == 0)
+                {
+                    MessageBox.Show(
+                        "No commands to execute. Please load or record a sequence first.",
+                        "No Commands",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Upozornenie na neuložené zmeny
+                if (_hasUnsavedUnifiedChanges)
+                {
+                    var result = MessageBox.Show(
+                        "You have unsaved changes in your sequence.\n\n" +
+                        "Do you want to continue executing without saving?\n\n" +
+                        "Click 'Yes' to execute anyway\n" +
+                        "Click 'No' to save first\n" +
+                        "Click 'Cancel' to abort",
+                        "Unsaved Changes",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+                    else if (result == MessageBoxResult.No)
+                    {
+                        // Pokus o uloženie
+                        SaveSequence_Click(sender, e);
+                        if (_hasUnsavedUnifiedChanges) // Ak sa neuložilo (cancel), neexekuovať
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                // Potvrdenie spustenia
+                var confirmResult = MessageBox.Show(
+                    string.Format("Execute sequence with {0} commands?\n\n" +
+                    "The automation will start in 3 seconds.\n" +
+                    "Press ESC to stop execution at any time.", _unifiedItems.Count),
+                    "Execute Sequence",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.OK)
+                {
+                    return;
+                }
+
+                // Deaktivácia UI počas exekúcie
+                SetUIEnabled(false);
+                UpdateStatus("Preparing to execute sequence...");
+
+                // 3 sekundové odpočítavanie
+                for (int i = 3; i > 0; i--)
+                {
+                    UpdateStatus(string.Format("Starting in {0}...", i));
+                    await Task.Delay(1000);
+                }
+
+                UpdateStatus("Executing sequence...");
+
+                // Vytvorenie CommandSequence z unified items
+                var sequence = _currentUnifiedSequence.ToCommandSequence();
+                sequence.Name = _currentSequenceName ?? "Modified Sequence";
+
+                // Spustenie sekvencie
+                await ExecuteSequenceAsync(sequence);
+
+                UpdateStatus("Sequence execution completed");
+
+                MessageBox.Show(
+                    "Sequence execution completed successfully!",
+                    "Execution Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error executing sequence", ex);
+            }
+            finally
+            {
+                SetUIEnabled(true);
+            }
+        }
+
+        /// <summary>
+        /// Asynchronné vykonanie sekvencie príkazov
+        /// </summary>
+        private async Task ExecuteSequenceAsync(CommandSequence sequence)
+        {
+            try
+            {
+                if (_player == null)
+                {
+                    _player = new CommandPlayer();
+                }
+
+                // Získanie rýchlosti z ExecutionSpeedControl (ak existuje)
+                double speedMultiplier = 1.0;
+
+                // Pokus o nájdenie ExecutionSpeedCtrl - podmienečne
+                var speedControl = this.FindName("ExecutionSpeedCtrl");
+                if (speedControl != null)
+                {
+                    // Ak existuje a má property SpeedMultiplier
+                    var speedProperty = speedControl.GetType().GetProperty("SpeedMultiplier");
+                    if (speedProperty != null)
+                    {
+                        var speedValue = speedProperty.GetValue(speedControl);
+                        if (speedValue != null && speedValue is double)
+                        {
+                            speedMultiplier = (double)speedValue;
+                        }
+                    }
+                }
+
+                // Spustenie sekvencie
+                await Task.Run(() =>
+                {
+                    _player.PlaySequence(sequence, 1);
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format("Sequence execution failed: {0}", ex.Message), ex);
+            }
+        }
+
+        /// <summary>
+        /// Nastaví stav UI elementov (enable/disable)
+        /// </summary>
+        private void SetUIEnabled(bool enabled)
+        {
+            try
+            {
+                // Recording buttons 
+                if (BtnRecording != null)
+                    BtnRecording.IsEnabled = enabled || !enabled;
+
+                // Ak existuje ButtonStartRecording
+                var btnStartRec = this.FindName("ButtonStartRecording") as Button;
+                if (btnStartRec != null)
+                    btnStartRec.IsEnabled = enabled;
+
+                // Ak existuje ButtonStopRecording  
+                var btnStopRec = this.FindName("ButtonStopRecording") as Button;
+                if (btnStopRec != null)
+                    btnStopRec.IsEnabled = !enabled;
+
+                // Save/Load buttons - rôzne možné názvy
+                var btnSaveSeq = this.FindName("BtnSaveSequence") as Button;
+                if (btnSaveSeq != null)
+                    btnSaveSeq.IsEnabled = enabled;
+
+                var btnLoadSeq = this.FindName("BtnLoadSequence") as Button;
+                if (btnLoadSeq != null)
+                    btnLoadSeq.IsEnabled = enabled;
+
+                // Playback buttons
+                if (BtnPlayCommands != null)
+                    BtnPlayCommands.IsEnabled = enabled;
+
+                if (BtnPause != null)
+                    BtnPause.IsEnabled = !enabled;
+
+                if (BtnStop != null)
+                    BtnStop.IsEnabled = !enabled;
+
+                // Command table
+                if (MainCommandTable != null)
+                    MainCommandTable.IsEnabled = enabled;
+
+                // Selection buttons
+                if (BtnSelectTargetByClick != null)
+                    BtnSelectTargetByClick.IsEnabled = enabled;
+
+                if (BtnSelectTarget != null)
+                    BtnSelectTarget.IsEnabled = enabled;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(string.Format("Error setting UI state: {0}", ex.Message));
+            }
+        }
+
+        #endregion
+
+        #region Advanced Execution Features - OPRAVENÉ
+
+        /// <summary>
+        /// Spustí sekvenciu od vybraného príkazu
+        /// </summary>
+        private async void ExecuteFromSelected_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select a command to start execution from.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var startIndex = MainCommandTable.SelectedIndex;
+
+                if (startIndex < 0 || startIndex >= _unifiedItems.Count)
+                {
+                    MessageBox.Show(
+                        "Invalid command selection.",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                var confirmResult = MessageBox.Show(
+                    string.Format("Execute sequence starting from command #{0}?\n\n" +
+                    "Command: {1}\n" +
+                    "Remaining commands: {2}\n\n" +
+                    "Execution will start in 3 seconds.\n" +
+                    "Press ESC to stop at any time.",
+                    startIndex + 1, selectedItem.Name, _unifiedItems.Count - startIndex),
+                    "Execute From Selected",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.OK)
+                {
+                    return;
+                }
+
+                // Deaktivácia UI
+                SetUIEnabled(false);
+
+                // Odpočítavanie
+                for (int i = 3; i > 0; i--)
+                {
+                    UpdateStatus(string.Format("Starting in {0}...", i));
+                    await Task.Delay(1000);
+                }
+
+                UpdateStatus(string.Format("Executing from command #{0}...", startIndex + 1));
+
+                // Vytvorenie čiastkovej sekvencie
+                var partialItems = new List<UnifiedItem>();
+                for (int i = startIndex; i < _unifiedItems.Count; i++)
+                {
+                    partialItems.Add(_unifiedItems[i]);
+                }
+
+                var partialSequence = new UnifiedSequence
+                {
+                    Name = string.Format("{0} (from #{1})",
+                        _currentSequenceName ?? "Sequence", startIndex + 1),
+                    Items = partialItems,
+                    Created = DateTime.Now,
+                    LastModified = DateTime.Now
+                };
+
+                // Konverzia na CommandSequence
+                var commandSequence = partialSequence.ToCommandSequence();
+
+                // Spustenie
+                await ExecuteSequenceAsync(commandSequence);
+
+                UpdateStatus("Partial sequence execution completed");
+
+                MessageBox.Show(
+                    string.Format("Executed {0} commands successfully!", partialItems.Count),
+                    "Execution Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error executing from selected command", ex);
+            }
+            finally
+            {
+                SetUIEnabled(true);
+            }
+        }
+
+        /// <summary>
+        /// Spustí iba vybraný príkaz (single step execution)
+        /// </summary>
+        private async void ExecuteSingleCommand_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select a command to execute.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var confirmResult = MessageBox.Show(
+                    string.Format("Execute single command?\n\n" +
+                    "Command: {0}\n" +
+                    "Action: {1}\n" +
+                    "Value: {2}",
+                    selectedItem.Name, selectedItem.Action, selectedItem.Value),
+                    "Execute Single Command",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.OK)
+                {
+                    return;
+                }
+
+                SetUIEnabled(false);
+                UpdateStatus(string.Format("Executing command: {0}...", selectedItem.Name));
+
+                // Vytvorenie sekvencie s jediným príkazom
+                var singleCommandSequence = new CommandSequence
+                {
+                    Name = "Single Command",
+                    Commands = new List<Command> { selectedItem.ToCommand() },
+                    Created = DateTime.Now,
+                    LastModified = DateTime.Now
+                };
+
+                await ExecuteSequenceAsync(singleCommandSequence);
+
+                UpdateStatus("Single command executed");
+
+                MessageBox.Show(
+                    "Command executed successfully!",
+                    "Execution Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error executing single command", ex);
+            }
+            finally
+            {
+                SetUIEnabled(true);
+            }
+        }
+
+        /// <summary>
+        /// Testuje príkaz bez jeho spustenia (dry run)
+        /// </summary>
+        private void TestCommand_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select a command to test.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                // Validácia príkazu
+                string errorMessage;
+                if (!selectedItem.IsValid(out errorMessage))
+                {
+                    MessageBox.Show(
+                        string.Format("Command validation failed:\n\n{0}", errorMessage),
+                        "Validation Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                // Zobrazenie detailov príkazu
+                var details = new System.Text.StringBuilder();
+                details.AppendLine("✅ Command is valid");
+                details.AppendLine();
+                details.AppendLine(string.Format("Step: {0}", selectedItem.StepNumber));
+                details.AppendLine(string.Format("Type: {0}", selectedItem.TypeDisplay));
+                details.AppendLine(string.Format("Name: {0}", selectedItem.Name));
+                details.AppendLine(string.Format("Action: {0}", selectedItem.Action));
+                details.AppendLine(string.Format("Value: {0}", selectedItem.Value));
+                details.AppendLine(string.Format("Repeat: {0}x", selectedItem.RepeatCount));
+
+                if (selectedItem.ElementX.HasValue && selectedItem.ElementY.HasValue)
+                {
+                    details.AppendLine(string.Format("Position: ({0}, {1})",
+                        selectedItem.ElementX, selectedItem.ElementY));
+                }
+
+                // Dodatočné info podľa typu
+                switch (selectedItem.Type)
+                {
+                    case UnifiedItem.ItemType.LoopStart:
+                        details.AppendLine();
+                        details.AppendLine(string.Format("⚠️ This will repeat next commands {0} times",
+                            selectedItem.RepeatCount));
+                        break;
+                    case UnifiedItem.ItemType.Wait:
+                        details.AppendLine();
+                        details.AppendLine(string.Format("⏱ This will pause execution for {0}",
+                            selectedItem.Value));
+                        break;
+                    case UnifiedItem.ItemType.Command:
+                        if (selectedItem.ElementX.HasValue && selectedItem.ElementY.HasValue)
+                        {
+                            var screen = System.Windows.SystemParameters.PrimaryScreenWidth;
+                            var screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+
+                            if (selectedItem.ElementX > screen || selectedItem.ElementY > screenHeight)
+                            {
+                                details.AppendLine();
+                                details.AppendLine("⚠️ WARNING: Coordinates are outside screen bounds!");
+                                details.AppendLine(string.Format("   Screen: {0}x{1}", screen, screenHeight));
+                            }
+                        }
+                        break;
+                }
+
+                MessageBox.Show(
+                    details.ToString(),
+                    "Command Test Results",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error testing command", ex);
+            }
+        }
+
+        #endregion
+
+        #region Command Duplication - OPRAVENÉ
+
+        /// <summary>
+        /// Duplikuje vybraný príkaz
+        /// </summary>
+        private void DuplicateCommand_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select a command to duplicate.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var duplicatedItem = new UnifiedItem(selectedItem.Type)
+                {
+                    StepNumber = _unifiedItems.Count + 1,
+                    Name = selectedItem.Name + " (Copy)",
+                    Action = selectedItem.Action,
+                    Value = selectedItem.Value,
+                    RepeatCount = selectedItem.RepeatCount,
+                    Status = "Duplicated",
+                    Timestamp = DateTime.Now,
+                    FilePath = selectedItem.FilePath,
+                    ElementX = selectedItem.ElementX,
+                    ElementY = selectedItem.ElementY,
+                    ElementId = selectedItem.ElementId,
+                    ClassName = selectedItem.ClassName
+                };
+
+                // Vložiť hneď za vybraný príkaz
+                var insertIndex = MainCommandTable.SelectedIndex + 1;
+
+                // Pridať do unified items
+                if (insertIndex < _unifiedItems.Count)
+                {
+                    _unifiedItems.Insert(insertIndex, duplicatedItem);
+                }
+                else
+                {
+                    _unifiedItems.Add(duplicatedItem);
+                }
+
+                // Prenumerovať položky
+                RecalculateStepNumbers();
+
+                _hasUnsavedUnifiedChanges = true;
+                UpdateUI();
+
+                // Vybrať nový príkaz
+                MainCommandTable.SelectedIndex = insertIndex;
+
+                UpdateStatus(string.Format("Command duplicated: {0}", selectedItem.Name));
+
+                MessageBox.Show(
+                    string.Format("Command '{0}' was duplicated successfully.", selectedItem.Name),
+                    "Command Duplicated",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error duplicating command", ex);
+            }
+        }
+
+        /// <summary>
+        /// Vytvorí šablónu z vybraného príkazu
+        /// </summary>
+        private void CreateTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                {
+                    MessageBox.Show(
+                        "Please select a command to create template from.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                string templateName = ShowInputDialog(
+                    "Enter template name:",
+                    "Create Command Template",
+                    string.Format("{0}_Template", selectedItem.Name));
+
+                if (string.IsNullOrWhiteSpace(templateName))
+                {
+                    return;
+                }
+
+                // Vytvorenie šablóny (uloženie do súboru)
+                var templatePath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "AppCommander",
+                    "Templates",
+                    string.Format("{0}.json", templateName));
+
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(templatePath));
+
+                var templateCommand = selectedItem.ToCommand();
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(templateCommand,
+                    Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(templatePath, json);
+
+                UpdateStatus(string.Format("Template created: {0}", templateName));
+
+                MessageBox.Show(
+                    string.Format("Template '{0}' created successfully!\n\nLocation: {1}",
+                        templateName, templatePath),
+                    "Template Created",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error creating template", ex);
+            }
+        }
+
+        #endregion
+
+        #region Batch Edit - OPRAVENÉ
+
+        /// <summary>
+        /// Hromadná editácia označených príkazov
+        /// </summary>
+        private void BatchEditCommands_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItems = MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList();
+
+                if (!selectedItems.Any())
+                {
+                    MessageBox.Show(
+                        "Please select one or more commands to edit.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                string input = ShowInputDialog(
+                    string.Format("Enter multiplier for repeat count ({0} commands selected):", selectedItems.Count),
+                    "Batch Edit",
+                    "2");
+
+                if (string.IsNullOrEmpty(input))
+                {
+                    return;
+                }
+
+                int multiplier;
+                if (!int.TryParse(input, out multiplier))
+                {
+                    MessageBox.Show(
+                        "Please enter a valid number.",
+                        "Invalid Input",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Aplikovanie zmeny na všetky vybrané príkazy
+                foreach (var item in selectedItems)
+                {
+                    item.RepeatCount *= multiplier;
+                }
+
+                _hasUnsavedUnifiedChanges = true;
+                MainCommandTable.Items.Refresh();
+
+                UpdateStatus(string.Format("Batch updated {0} commands", selectedItems.Count));
+
+                MessageBox.Show(
+                    string.Format("Successfully updated {0} commands.", selectedItems.Count),
+                    "Batch Edit Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error in batch edit", ex);
+            }
+        }
+
+        #endregion
+
     }
 }

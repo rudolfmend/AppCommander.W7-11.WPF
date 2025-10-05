@@ -90,7 +90,7 @@
                             Margin="0,0,8,0" />
                     
                     <Button x:Name="BtnSelectTarget" Content="📋 Browse" 
-                            Style="{DynamicResource SecondaryButton}"  AutomationProperties.Name="Target by browsing"
+                            Style="{DynamicResource PrimaryButton}"  AutomationProperties.Name="Target by browsing"
                             Click="SelectTarget_Click" />
                     
                 </StackPanel>
@@ -181,7 +181,8 @@
                                 <TextBlock x:Name="TxtCommandCount" Text="0 commands" 
                                     Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" FontSize="12" Margin="0,0,16,0"/>
                                 <TextBox x:Name="txtSequenceName" Text="Commands_Sequence" 
-                                     Style="{DynamicResource TextBoxStyle}" Width="200" ToolTip="Name this sequence of commands."/>
+                                     Style="{DynamicResource TextBoxStyle}"  ToolTip="Name this sequence of commands."
+                                         Margin="3,0"/>
                             </StackPanel>
                         </Grid>
 
@@ -190,7 +191,7 @@
                         <DataGrid Grid.Row="1" x:Name="MainCommandTable" Style="{DynamicResource DataGridStyle}"
                               AutomationProperties.Name="Main command table"
                               AutomationProperties.HelpText="Main command table"
-                                  
+                                  AlternationCount="2"
                             AutomationProperties.LabeledBy="{Binding ElementName=txtCommandCount}"
                             AutomationProperties.ItemStatus="Command list loaded"
                             AutomationProperties.LiveSetting="Polite"
@@ -205,7 +206,6 @@
                               GridLinesVisibility="Vertical"
                               HeadersVisibility="All"
                               HorizontalAlignment="Left"
-                              Width="750"
                               Margin="-1,0,1,10">                            
 
                             <DataGrid.ContextMenu>

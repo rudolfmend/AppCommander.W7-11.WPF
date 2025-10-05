@@ -77,16 +77,12 @@
     <Style x:Key="PrimaryButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="Black"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="Black"/>
         <Setter Property="BorderThickness" Value="4"/>
-        <!-- Hrubší border pre viditeľnosť -->
         <Setter Property="Padding" Value="20,10"/>
-        <!-- Väčší padding pre ľahšie klikanie -->
-        <Setter Property="MinHeight" Value="50"/>
-        <!-- Minimálna výška pre prístupnosť -->
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="16"/>
-        <!-- Väčšie písmo -->
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -129,12 +125,13 @@
     </Style>
 
     <Style x:Key="SecondaryButton" TargetType="Button">
-        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <!--<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>-->
+        <Setter Property="Background" Value="LightSlateGray"/>
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="BorderBrush" Value="Black"/>
         <Setter Property="BorderThickness" Value="4"/>
         <Setter Property="Padding" Value="20,10"/>
-        <Setter Property="MinHeight" Value="50"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -153,9 +150,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource HoverBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             <Setter TargetName="border" Property="BorderThickness" Value="4"/>
+                            <Setter Property="Foreground" Value="Black"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#2A2A2A"/>
@@ -179,10 +177,10 @@
     <Style x:Key="DangerButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
         <Setter Property="Foreground" Value="White"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="black"/>
         <Setter Property="BorderThickness" Value="4"/>
         <Setter Property="Padding" Value="20,10"/>
-        <Setter Property="MinHeight" Value="50"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -203,6 +201,8 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#FF4444"/>
                             <Setter TargetName="border" Property="BorderThickness" Value="4"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="#FF4444"/>
+                            <Setter Property="Foreground" Value="Black"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#CC0000"/>
@@ -294,6 +294,7 @@
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="RowHeight" Value="40"/>
+        <Setter Property="Width" Value="980"/>        
     </Style>
 
     <!-- ======================================= -->
@@ -306,6 +307,11 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Style.Triggers>
+            <!-- Alternujúca farba pre párne riadky -->
+            <Trigger Property="AlternationIndex" Value="1">
+                <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
+            </Trigger>
+
             <!-- Hover efekt -->
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
@@ -357,6 +363,11 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                <Setter Property="BorderThickness" Value="0,0,2,4"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource NeutralGray700}"/>
                 <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
                 <Setter Property="BorderThickness" Value="0,0,2,4"/>
             </Trigger>

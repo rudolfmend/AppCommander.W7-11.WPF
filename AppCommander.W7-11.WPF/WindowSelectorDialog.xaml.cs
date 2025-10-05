@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -22,6 +23,9 @@ namespace AppCommander.W7_11.WPF
             dgWindows.ItemsSource = windows;
             dgWindows.SelectionChanged += DgWindows_SelectionChanged;
 
+            // PRIDANÉ: Handler pre dvojklik na riadok
+            dgWindows.MouseDoubleClick += DgWindows_MouseDoubleClick;
+
             LoadWindows();
         }
 
@@ -31,7 +35,7 @@ namespace AppCommander.W7_11.WPF
 
             try
             {
-                // OPRAVENÉ: Použitie WindowTracker namiesto WindowTrackingInfo instance
+                // Použitie WindowTracker pre získanie všetkých okien
                 var windowTracker = new WindowTracker();
                 var allWindowHandles = windowTracker.GetAllWindows();
 
@@ -155,7 +159,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Fallback window loading failed: {ex.Message}");
+                Debug.WriteLine($"Fallback window loading failed: {ex.Message}");
             }
         }
 
@@ -227,6 +231,36 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        // PRIDANÉ: Handler pre dvojklik na DataGrid
+        private void DgWindows_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Overiť, či sa kliklo na riadok (nie na prázdnu oblasť alebo hlavičku)
+            var dataGrid = sender as DataGrid;
+            if (dataGrid?.SelectedItem is WindowTrackingInfo selectedWindow)
+            {
+                // Skontrolovať, že nie je to neplatný záznam
+                if (selectedWindow.WindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a valid window.",
+                                  "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Nastaviť vybraté okno a zavrieť dialóg
+                SelectedWindow = selectedWindow;
+
+                // Debug informácie
+                Debug.WriteLine($"=== WindowSelectorDialog DoubleClick ===");
+                Debug.WriteLine($"Selected Window Handle: 0x{SelectedWindow.WindowHandle:X8}");
+                Debug.WriteLine($"Selected Process: {SelectedWindow.ProcessName}");
+                Debug.WriteLine($"Selected Title: {SelectedWindow.Title}");
+                Debug.WriteLine($"========================================");
+
+                DialogResult = true;
+                Close();
+            }
+        }
+
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             LoadWindows();
@@ -243,13 +277,13 @@ namespace AppCommander.W7_11.WPF
                 return;
             }
 
-            // PRIDANÉ: Debug informácie
-            System.Diagnostics.Debug.WriteLine($"=== WindowSelectorDialog OK_Click ===");
-            System.Diagnostics.Debug.WriteLine($"Selected Window Handle: 0x{SelectedWindow.WindowHandle:X8}");
-            System.Diagnostics.Debug.WriteLine($"Selected Process: {SelectedWindow.ProcessName}");
-            System.Diagnostics.Debug.WriteLine($"Selected Title: {SelectedWindow.Title}");
-            System.Diagnostics.Debug.WriteLine($"Handle is Zero: {SelectedWindow.WindowHandle == IntPtr.Zero}");
-            System.Diagnostics.Debug.WriteLine($"=====================================");
+            // Debug informácie
+            Debug.WriteLine($"=== WindowSelectorDialog OK_Click ===");
+            Debug.WriteLine($"Selected Window Handle: 0x{SelectedWindow.WindowHandle:X8}");
+            Debug.WriteLine($"Selected Process: {SelectedWindow.ProcessName}");
+            Debug.WriteLine($"Selected Title: {SelectedWindow.Title}");
+            Debug.WriteLine($"Handle is Zero: {SelectedWindow.WindowHandle == IntPtr.Zero}");
+            Debug.WriteLine($"=====================================");
 
             DialogResult = true;
             Close();
