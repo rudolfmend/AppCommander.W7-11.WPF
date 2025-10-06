@@ -1977,7 +1977,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Pridá príkazy z dgCommands do unified tabuľky
+        /// Pridá príkazy z tabuľky MainCommandTable do unified tabuľky
         /// </summary>
         private void AddFromCommands_Click(object sender, RoutedEventArgs e)
         {
@@ -2014,6 +2014,9 @@ namespace AppCommander.W7_11.WPF
                     // If No, continue with adding unsaved commands
                 }
 
+                // Uložíme index odkiaľ začíname pridávať, aby sme vedeli ktoré položky zmazať
+                int startIndex = _unifiedItems.Count;
+
                 // Convert commands to unified items
                 int addedCount = 0;
                 foreach (var command in _commands)
@@ -2027,19 +2030,66 @@ namespace AppCommander.W7_11.WPF
                 RecalculateStepNumbers();
                 UpdateStatus($"Added {addedCount} commands to unified sequence");
 
-                // Optionally clear the original commands after adding
-                var clearResult = MessageBox.Show(
-                    $"Successfully added {addedCount} commands to the unified list.\n\n" +
-                    "Do you want to clear the original recorded commands list?",
-                    "Clear Original Commands",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                // NOVÁ LOGIKA: Ponúkni zmazanie len ak užívateľ zaznamenal DRUHÚ sadu príkazov
+                // Kontrolujeme či unified items už obsahovali nejaké príkazy pred týmto pridaním
+                bool hadPreviousCommands = startIndex > 0;
 
-                if (clearResult == MessageBoxResult.Yes)
+                if (hadPreviousCommands)
                 {
-                    _commands.Clear();
-                    _hasUnsavedChanges = false;
-                    UpdateUI();
+                    // Optionally clear the original commands after adding
+                    // PRVÝ MESSAGE BOX - informačný
+                    var clearResult = MessageBox.Show(
+                        $"Successfully added {addedCount} commands to the unified list.\n\n" +
+                        "Do you want to delete the previous list of recorded commands?\n\n" +
+                        "⚠️ Note: This will remove commands from the recording area,\n" +
+                        "but they will remain in the main table (unified sequence).",
+                        "Clear Original Commands",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (clearResult == MessageBoxResult.Yes)
+                    {
+                        // DRUHÝ MESSAGE BOX - bezpečnostné potvrdenie
+                        var confirmResult = MessageBox.Show(
+                            "⚠️ CONFIRMATION REQUIRED ⚠️\n\n" +
+                            $"Are you absolutely sure you want to clear {_commands.Count} recorded commands?\n\n" +
+                            "This action will:\n" +
+                            "• Clear the original recording list\n" +
+                            "• Keep the commands in the unified sequence (main table)\n" +
+                            "• Cannot be undone\n\n" +
+                            "Do you want to proceed?",
+                            "Confirm Clear Commands",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+
+                        if (confirmResult == MessageBoxResult.Yes)
+                        {
+                            // Vymazanie príkazov
+                            _commands.Clear();
+                            _hasUnsavedChanges = false;
+
+                            // Aktualizácia UI
+                            UpdateUI();
+
+                            UpdateStatus($"✓ Recorded commands cleared. {addedCount} commands remain in unified sequence.");
+
+                            MessageBox.Show(
+                                $"✓ Original commands cleared successfully!\n\n" +
+                                $"{addedCount} commands are still available in the main unified sequence.",
+                                "Commands Cleared",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            UpdateStatus("Clear operation cancelled by user");
+                        }
+                    }
+                }
+                else
+                {
+                    // Ak toto bola prvá sada príkazov, len informuj užívateľa
+                    UpdateStatus($"First set of {addedCount} commands added. Record more commands to enable clear option.");
                 }
             }
             catch (Exception ex)
@@ -2431,32 +2481,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        //private void OpenEditCommandWindow(UnifiedItem item)
-        //{
-        //    try
-        //    {
-        //        var editWindow = new EditCommandWindow(item);
-        //        editWindow.Owner = this;
-
-        //        bool? result = editWindow.ShowDialog();
-
-        //        // Ak boli uložené zmeny, obnoviť UI
-        //        if (result == true && editWindow.WasSaved)
-        //        {
-        //            _hasUnsavedUnifiedChanges = true;
-
-        //            // Obnoviť zobrazenie v DataGrid
-        //            MainCommandTable.Items.Refresh();
-
-        //            UpdateStatus($"Command '{item.Name}' updated");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ShowErrorMessage("Error editing command", ex);
-        //    }
-        //}
-
         private void EditCommand_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -2474,38 +2498,7 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error editing command", ex);
-            }
-
-            //try
-            //{
-            //    var selectedCommand = MainCommandTable.SelectedItem as Command;
-            //    if (selectedCommand == null)
-            //    {
-            //        MessageBox.Show("Please select a command to edit.", "No Selection",
-            //                      MessageBoxButton.OK, MessageBoxImage.Information);
-            //        return;
-            //    }
-
-            //    string newValue = ShowInputDialog("Edit command value:", "Edit Command", selectedCommand.Value);
-
-            //    if (!string.IsNullOrEmpty(newValue))
-            //    {
-            //        selectedCommand.Value = newValue;
-
-            //        if (selectedCommand.Type == CommandType.LoopStart && int.TryParse(newValue, out int repeatCount))
-            //        {
-            //            selectedCommand.RepeatCount = repeatCount;
-            //        }
-
-            //        _hasUnsavedChanges = true;
-            //        MainCommandTable.Items.Refresh();
-            //        UpdateStatus("Command edited");
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    ShowErrorMessage("Error editing command", ex);
-            //}
+            }                       
         }
 
         private void DeleteCommand_Click(object sender, RoutedEventArgs e)
