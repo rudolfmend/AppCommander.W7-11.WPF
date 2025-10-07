@@ -213,6 +213,11 @@
                                     <MenuItem Header="📝 Edit Command" Click="ContextMenu_Edit_Click" FontWeight="SemiBold"/>
                                     <MenuItem Header="🗑️ Delete Command" Click="ContextMenu_Delete_Click"/>
                                     <Separator/>
+                                    <MenuItem Header="📋 Open Sequence Editor" Click="OpenSequenceEditor_Click" FontWeight="Bold"/>
+                                    <Separator/>
+                                    <MenuItem Header="Edit Selected Commands Only" Click="OpenSequenceEditorForSelection_Click"/>
+                                    <MenuItem Header="⚡ Quick Edit Value"  Click="QuickEditItem_Click"/>
+                                    <Separator/>
                                     <MenuItem Header="📋 Copy Details" Click="ContextMenu_Copy_Click"/>
                                     <MenuItem Header="📄 Duplicate Command" Click="ContextMenu_Duplicate_Click"/>
                                     <Separator/>

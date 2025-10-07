@@ -2167,10 +2167,27 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+
         /// <summary>
-        /// Edituje vybranú položku v unified tabuľke
+        /// Tlačidlo Edit v action buttons - Hlavná editácia - otvorí plné okno
         /// </summary>
         private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                OpenSmartEditor(selectedItem);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening editor", ex);
+            }
+        }
+
+        /// <summary>
+        /// Edituje vybranú položku v unified tabuľke - Rýchla editácia 
+        /// </summary>
+        private void QuickEditItem_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -2410,22 +2427,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void MainCommandTable_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            try
-            {
-                // Skontrolovať, či je vybraný nejaký item
-                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
-                {
-                    OpenEditCommandWindow(selectedItem);
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error opening command details", ex);
-            }
-        }
-
         private void OpenEditCommandWindow(UnifiedItem item)
         {
             try
@@ -2481,24 +2482,20 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        /// <summary>
+        /// Menu Commands → Edit Selected Command
+        /// </summary>
         private void EditCommand_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
-                {
-                    OpenEditCommandWindow(selectedItem);
-                }
-                else
-                {
-                    MessageBox.Show("Please select a command to edit.", "No Selection",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
             {
-                ShowErrorMessage("Error editing command", ex);
-            }                       
+                ShowErrorMessage("Error opening editor", ex);
+            }
         }
 
         private void DeleteCommand_Click(object sender, RoutedEventArgs e)
@@ -3847,11 +3844,72 @@ namespace AppCommander.W7_11.WPF
         #endregion
 
         #region Context Menu Handlers
+
+        private void ContextMenu_OpenSequenceEditor_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_unifiedItems == null || _unifiedItems.Count == 0)
+                {
+                    MessageBox.Show(
+                        "No commands to edit. Please record or load some commands first.",
+                        "No Commands",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                string sequenceName = !string.IsNullOrEmpty(_currentSequenceName)
+                    ? _currentSequenceName
+                    : "Current Sequence";
+
+                var editorWindow = new SequenceEditorWindow(
+                    _unifiedItems.ToList(),
+                    sequenceName)
+                {
+                    Owner = this
+                };
+
+                bool? result = editorWindow.ShowDialog();
+
+                if (result == true && editorWindow.WasSaved)
+                {
+                    _unifiedItems.Clear();
+
+                    foreach (var item in editorWindow.EditedItems)
+                    {
+                        _unifiedItems.Add(item);
+                    }
+
+                    _hasUnsavedUnifiedChanges = true;
+                    UpdateUI();
+                    UpdateStatus($"Sequence updated - {_unifiedItems.Count} commands");
+
+                    if (MainCommandTable != null)
+                    {
+                        MainCommandTable.Items.Refresh();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening sequence editor", ex);
+            }
+        }
+
+        /// <summary>
+        /// Context menu - Edit Command
+        /// </summary>
         private void ContextMenu_Edit_Click(object sender, RoutedEventArgs e)
         {
-            if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
+            try
             {
-                OpenEditCommandWindow(selectedItem);
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                OpenSmartEditor(selectedItem);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening editor", ex);
             }
         }
 
@@ -4649,5 +4707,236 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
+        #region Sequence Editor Integration
+
+        /// <summary>
+        /// Otvorí Sequence Editor pre všetky príkazy alebo konkrétnu sekvenciu
+        /// </summary>
+        private void OpenSequenceEditor_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Skontroluj či je vybraná konkrétna sekvencia na editáciu
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+
+                if (selectedItem != null && selectedItem.Type == UnifiedItem.ItemType.SequenceReference)
+                {
+                    // ═══════════════════════════════════════════════════════════
+                    //  USE CASE: Edituj príkazy KONKRÉTNEJ sekvencie zo súboru
+
+                    var editor = new SequenceEditorWindow(
+                        new[] { selectedItem },
+                        selectedItem.Name
+                    )
+                    {
+                        Owner = this
+                    };
+
+                    if (editor.ShowDialog() == true)
+                    {
+                        // Zmeny boli uložené priamo do súboru sekvencie
+                        UpdateStatus($"✅ Sequence '{selectedItem.Name}' updated successfully");
+
+                        // Voliteľne: Refresh sequence info ak chceš aktualizovať MainCommandTable
+                        // (napríklad ak sa zmenil počet príkazov v sekvencii)
+                    }
+                }
+                else
+                {
+                    // ═══════════════════════════════════════════════════════════
+                    //  USE CASE: Edituj VŠETKY príkazy v MainCommandTable   
+
+                    if (_unifiedItems == null || _unifiedItems.Count == 0) 
+                    {
+                        MessageBox.Show(
+                            "No commands to edit. Please record or load some commands first.",
+                            "No Commands",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                        return;
+                    }
+
+                    // Otvor Sequence Editor Window pre všetky príkazy
+                    var editorWindow = new SequenceEditorWindow(_unifiedItems, _currentSequenceName)
+                    {
+                        Owner = this
+                    };
+
+                    bool? result = editorWindow.ShowDialog();
+
+                    // Ak boli uložené zmeny, aktualizuj _unifiedItems
+                    if (result == true && editorWindow.WasSaved)
+                    {
+                        _unifiedItems.Clear();
+                        foreach (var item in editorWindow.EditedItems)
+                        {
+                            _unifiedItems.Add(item);
+                        }
+
+                        _hasUnsavedUnifiedChanges = true;
+                        UpdateUI();
+                        UpdateStatus($"Sequence updated - {_unifiedItems.Count} commands");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening sequence editor", ex);
+            }
+        }
+
+        /// <summary>
+        /// Alternatívna metóda - otvorí editor pre vybranú časť sekvencie
+        /// </summary>
+        private void OpenSequenceEditorForSelection_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (MainCommandTable.SelectedItems.Count == 0)
+                {
+                    MessageBox.Show(
+                        "Please select commands to edit.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                // Vytvor zoznam vybraných items
+                var selectedItems = new List<UnifiedItem>();
+                foreach (UnifiedItem item in MainCommandTable.SelectedItems)
+                {
+                    selectedItems.Add(item);
+                }
+
+                var editorWindow = new SequenceEditorWindow(selectedItems, "Selected Commands")
+                {
+                    Owner = this
+                };
+
+                bool? result = editorWindow.ShowDialog();
+
+                if (result == true && editorWindow.WasSaved)
+                {
+                    // Aktualizuj vybrané items v hlavnom zozname
+                    var editedItems = editorWindow.EditedItems;
+                    int editedIndex = 0;
+
+                    foreach (UnifiedItem selectedItem in MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList())
+                    {
+                        if (editedIndex < editedItems.Count)
+                        {
+                            var editedItem = editedItems[editedIndex];
+                            var index = _unifiedItems.IndexOf(selectedItem);
+
+                            if (index >= 0)
+                            {
+                                _unifiedItems[index] = editedItem;
+                            }
+                            editedIndex++;
+                        }
+                    }
+
+                    _hasUnsavedUnifiedChanges = true;
+                    RecalculateStepNumbers();
+                    UpdateUI();
+                    UpdateStatus("Selected commands updated");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error editing selection", ex);
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // INTELIGENTNÝ HANDLER - Rozhodne ktoré okno otvoriť
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Inteligentne otvorí správne okno na editáciu podľa typu vybraného item-u
+        /// </summary>
+        private void OpenSmartEditor(UnifiedItem selectedItem)
+        {
+            if (selectedItem == null)
+            {
+                MessageBox.Show(
+                    "Please select an item to edit.",
+                    "No Selection",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                if (selectedItem.Type == UnifiedItem.ItemType.SequenceReference)
+                {
+                    // ═══════════════════════════════════════════════════════════
+                    // SEKVENCIA → Otvor SequenceEditorWindow
+                    // ═══════════════════════════════════════════════════════════
+
+                    var sequenceEditor = new SequenceEditorWindow(
+                        new[] { selectedItem },
+                        selectedItem.Name
+                    )
+                    {
+                        Owner = this
+                    };
+
+                    if (sequenceEditor.ShowDialog() == true)
+                    {
+                        UpdateStatus($"✅ Sequence '{selectedItem.Name}' updated successfully");
+                    }
+                }
+                else
+                {
+                    // ═══════════════════════════════════════════════════════════
+                    // PRÍKAZ → Otvor EditCommandWindow
+                    // ═══════════════════════════════════════════════════════════
+
+                    var commandEditor = new EditCommandWindow(selectedItem)
+                    {
+                        Owner = this
+                    };
+
+                    if (commandEditor.ShowDialog() == true && commandEditor.WasSaved)
+                    {
+                        // Aktualizuj item v tabuľke s editovanými údajmi
+                        commandEditor.UpdateUnifiedItem(selectedItem);
+
+                        _hasUnsavedUnifiedChanges = true;
+                        UpdateUI();
+                        UpdateStatus($"✅ Command '{selectedItem.Name}' updated");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening editor", ex);
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // UPRAVENÉ EVENT HANDLERY - Všetky používajú OpenSmartEditor
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Double-click na riadok v tabuľke
+        /// </summary>
+        private void MainCommandTable_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                OpenSmartEditor(selectedItem);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening editor", ex);
+            }
+        }
+
+        #endregion
     }
 }

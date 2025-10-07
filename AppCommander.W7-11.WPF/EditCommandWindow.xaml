@@ -42,6 +42,9 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="130"/>
@@ -79,6 +82,32 @@
                                 AcceptsReturn="True"
                                 VerticalScrollBarVisibility="Auto"
                                    Margin="0, 9"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Repeat Count:" 
+                                   Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,15"/>
+                        
+                        <TextBox x:Name="txtRepeatCount" 
+                                 Grid.Row="5" Grid.Column="1"
+                                 Style="{DynamicResource TextBoxStyle}"
+                                 Margin="0,9"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Status:" 
+                                   Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,9"/>
+                        <TextBlock x:Name="txtStatus" 
+                                   Grid.Row="6" Grid.Column="1" 
+                                   Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,9"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Timestamp:" 
+                                   Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,9"/>
+                        <TextBlock x:Name="txtTimestamp" 
+           Grid.Row="7" Grid.Column="1" 
+           Style="{DynamicResource TextBlockStyle}"
+           Margin="0,9"/>
+
                     </Grid>
                 </GroupBox>
                 
@@ -108,6 +137,12 @@
                                    Margin="0,12,10,10"/>
                         <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
+
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Class Name:" 
+           Style="{DynamicResource TextBlockStyle}"
+           Margin="0,12,10,10"/>
+
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
@@ -142,10 +177,7 @@
                                    Padding="0,15,10,5" />
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
                                     Margin="0">
-                            <TextBox x:Name="txtRepeatCount" 
-                                    Width="100" 
-                                    Style="{DynamicResource TextBoxStyle}"
-                                    Margin="0,0,10,10"/>
+     
                             <TextBlock Text="× (1 = to do once)" 
                                        Style="{DynamicResource TextBlockStyle}"
                                        VerticalAlignment="Center"
@@ -155,11 +187,7 @@
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,15"/>
-                        <TextBlock x:Name="txtStatus" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
-                                   Margin="0,12,10,10"/>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Created:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtTimestamp" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"/>
+                  
                     </Grid>
                 </GroupBox>
                 

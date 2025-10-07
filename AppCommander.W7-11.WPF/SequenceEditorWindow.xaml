@@ -1,0 +1,206 @@
+﻿<Window x:Class="AppCommander.W7_11.WPF.SequenceEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
+        mc:Ignorable="d"
+        Title="Editing command sequence" 
+        MinHeight="700" MinWidth="1100" Width="1200" Height="800"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        ResizeMode="CanResize">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock x:Name="txtTitle" 
+                          Text="📋 Sequence Editor"
+                          FontSize="24" 
+                          FontWeight="Bold"
+                          Foreground="{DynamicResource PrimaryTextBrush}"/>
+                <TextBlock x:Name="txtSequenceName"
+                          Text="Sequence Name"
+                          FontSize="14"
+                          Foreground="{DynamicResource SecondaryTextBrush}"
+                          Margin="0,5,0,0"/>
+                <TextBlock x:Name="txtCommandCount"
+                          Text="0 commands"
+                          FontSize="12"
+                          Foreground="{DynamicResource SecondaryTextBrush}"
+                          Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource PanelBackgroundBrush}" 
+                BorderBrush="{DynamicResource BorderBrush}" 
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12"
+                Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left side buttons -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button x:Name="btnEdit" 
+                            Content="✏️ Edit" 
+                            Click="EditCommand_Click"
+                            ToolTip="Edit selected command (Ctrl+E)"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Button x:Name="btnDuplicate" 
+                            Content="📋 Duplicate" 
+                            Click="DuplicateCommand_Click"
+                            ToolTip="Duplicate selected command (Ctrl+D)"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Separator Margin="8,0" Style="{DynamicResource {x:Static ToolBar.SeparatorStyleKey}}"/>
+
+                    <Button x:Name="btnMoveUp" 
+                            Content="🔼 Move Up" 
+                            Click="MoveUp_Click"
+                            ToolTip="Move selected command up (Ctrl+Up)"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Button x:Name="btnMoveDown" 
+                            Content="🔽 Move Down" 
+                            Click="MoveDown_Click"
+                            ToolTip="Move selected command down (Ctrl+Down)"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Separator Margin="8,0" Style="{DynamicResource {x:Static ToolBar.SeparatorStyleKey}}"/>
+
+                    <Button x:Name="btnDelete" 
+                            Content="🗑️ Delete" 
+                            Click="DeleteCommand_Click"
+                            ToolTip="Delete selected command (Delete)"
+                            Style="{DynamicResource DangerButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+                </StackPanel>
+
+                <!-- Right side buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="btnAddWait" 
+                            Content="⏱ Add Wait" 
+                            Click="AddWait_Click"
+                            ToolTip="Add wait/delay command"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Button x:Name="btnAddLoopStart" 
+                            Content="🔄 Loop Start" 
+                            Click="AddLoopStart_Click"
+                            ToolTip="Add loop start marker"
+                            Style="{DynamicResource PrimaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="12,6"/>
+
+                    <Button x:Name="btnAddLoopEnd" 
+                            Content="🔚 Loop End" 
+                            Click="AddLoopEnd_Click"
+                            ToolTip="Add loop end marker"
+                            Style="{DynamicResource PrimaryButton}"
+                            Padding="12,6"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Command Table -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource CardBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6">
+            <DataGrid x:Name="CommandTable"
+                      AutoGenerateColumns="False"
+                      SelectionMode="Single"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeRows="False"
+                      AlternationCount="2"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                      Background="{DynamicResource CardBackgroundBrush}"
+                      RowBackground="{DynamicResource CardBackgroundBrush}"
+                      AlternatingRowBackground="{DynamicResource PanelBackgroundBrush}"
+                      MouseDoubleClick="CommandTable_MouseDoubleClick">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding StepNumber}" Width="50"/>
+                    <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" Width="140"/>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" MinWidth="180"/>
+                    <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="120"/>
+                    <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="150"/>
+                    <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="70"/>
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                    <DataGridTextColumn Header="Position" Binding="{Binding CoordinatesDisplay}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Footer buttons -->
+        <Border Grid.Row="3" 
+                Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="txtStatusInfo" 
+                          Grid.Column="1"
+                          Text="Ready"
+                          VerticalAlignment="Center"
+                          Foreground="{DynamicResource SecondaryTextBrush}"
+                          FontStyle="Italic"/>
+
+                <Button x:Name="btnSave" 
+                        Grid.Column="2"
+                        Content="💾 Save Changes" 
+                        Click="SaveChanges_Click"
+                        Style="{DynamicResource PrimaryButton}"
+                        Padding="20,10"
+                        Margin="0,0,12,0"
+                        MinHeight="44"
+                        MinWidth="150"/>
+
+                <Button x:Name="btnCancel" 
+                        Grid.Column="3"
+                        Content="❌ Cancel" 
+                        Click="Cancel_Click"
+                        Style="{DynamicResource DangerButton}"
+                        Padding="20,10"
+                        MinHeight="44"
+                        MinWidth="150"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
