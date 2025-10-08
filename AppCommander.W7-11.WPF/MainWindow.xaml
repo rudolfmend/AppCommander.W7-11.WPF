@@ -25,7 +25,7 @@
         <!--<Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">-->
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
 
-            <Menu x:Name="MenuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
+            <Menu x:Name="AppCommander_MenuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
                 <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
@@ -84,12 +84,12 @@
                        AutomationProperties.Name="Tool Bar Area"/>
                        <!--AutomationProperties.ControlType="Header"-->
                     
-                    <Button x:Name="BtnSelectTargetByClick" Content="🎯 Click to Select" 
+                    <Button x:Name="AppCommander_AppCommander_BtnSelectTargetByClick" Content="🎯 Click to Select" 
                             Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
                             Click="SelectTargetByClick_Click" 
                             Margin="0,0,8,0" />
                     
-                    <Button x:Name="BtnSelectTarget" Content="📋 Browse" 
+                    <Button x:Name="AppCommander_BtnSelectTarget" Content="📋 Browse" 
                             Style="{DynamicResource PrimaryButton}"  AutomationProperties.Name="Target by browsing"
                             Click="SelectTarget_Click" />
                     
@@ -99,7 +99,7 @@
 
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                    <Button x:Name="BtnRecording" Content="🔴 Start Recording" 
+                    <Button x:Name="AppCommander_BtnRecording" Content="🔴 Start Recording" 
                             AutomationProperties.Name="Recording"
                             AutomationProperties.HelpText="Start recording"
                             AutomationProperties.AcceleratorKey="F9"
@@ -113,7 +113,7 @@
 
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="BtnPlayCommands" Content="      ▶    Play        " 
+                    <Button x:Name="AppCommander_BtnPlayCommands" Content="      ▶    Play        " 
                             Style="{DynamicResource PrimaryButton}" 
                             AutomationProperties.Name="Play commands" 
                             AutomationProperties.HelpText="Play commands"
@@ -123,31 +123,31 @@
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" AutomationProperties.Name="Repeat" 
                                FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                        <TextBox x:Name="TxtRepeatCount" Text="1" AutomationProperties.Name="Repeat count" AutomationProperties.HelpText="Write the number of repetitions"
+                        <TextBox x:Name="AppCommander_TxtRepeatCount" Text="1" AutomationProperties.Name="Repeat count" AutomationProperties.HelpText="Write the number of repetitions"
                                  Style="{DynamicResource TextBoxStyle}"     
                                  Width="50"  TextAlignment="Center" Margin="10,0,8,18"/>
                     </StackPanel>
 
-                    <CheckBox x:Name="ChkInfiniteLoop" Content="∞" VerticalAlignment="Center" 
+                    <CheckBox x:Name="AppCommander_ChkInfiniteLoop" Content="∞" VerticalAlignment="Center" 
                               FontStretch="UltraExpanded"  FontWeight="ExtraBold"
                               AutomationProperties.Name="Infinite Loop" AutomationProperties.HelpText="Infinite Loop"
                               Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,-3"/>
 
-                    <Button x:Name="BtnPause" Content="⏸ Pause" 
+                    <Button x:Name="AppCommander_BtnPause" Content="⏸ Pause" 
                             Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Pause" AutomationProperties.HelpText="Pause the current execution"
                             Click="PausePlayback_Click"  Margin="0,0,4,0" IsEnabled="False"/>
                     
-                    <Button x:Name="BtnStop" Content="⏹ Stop" 
+                    <Button x:Name="AppCommander_BtnStop" Content="⏹ Stop" 
                             Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Stop" AutomationProperties.HelpText="Terminate the current execution"
                             Click="StopPlayback_Click"  IsEnabled="False"/>
 
                     <!-- Info TextBoxes -->
                     <StackPanel Orientation="Vertical" Margin="20,6,6,6">
-                        <TextBlock x:Name="TxtSetCount" Text="0 sets" 
+                        <TextBlock x:Name="AppCommander_TxtSetCount" Text="0 sets" 
                             Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" />
-                        <TextBlock x:Name="TxtSequenceCount" Text="0 sequences" 
+                        <TextBlock x:Name="AppCommander_TxtSequenceCount" Text="0 sequences" 
                             Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
-                        <TextBlock x:Name="TxtCommandsCount" Text="0 commands" 
+                        <TextBlock x:Name="AppCommander_TxtCommandsCount" Text="0 commands" 
                             Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                     </StackPanel>
                 </StackPanel>
@@ -178,9 +178,9 @@
                             <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" AutomationProperties.Name="Recorded Commands"
                                 Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock x:Name="TxtCommandCount" Text="0 commands" 
+                                <TextBlock x:Name="AppCommander_TxtCommandCount" Text="0 commands" 
                                     Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" FontSize="12" Margin="0,0,16,0"/>
-                                <TextBox x:Name="txtSequenceName" Text="Commands_Sequence" 
+                                <TextBox x:Name="AppCommander_TxtSequenceName" Text="Commands_Sequence" 
                                      Style="{DynamicResource TextBoxStyle}"  ToolTip="Name this sequence of commands."
                                          Margin="3,0"/>
                             </StackPanel>
@@ -188,17 +188,17 @@
 
                         <!-- DataGrid -->
 
-                        <DataGrid Grid.Row="1" x:Name="MainCommandTable" Style="{DynamicResource DataGridStyle}"
+                        <DataGrid Grid.Row="1" x:Name="AppCommander_MainCommandTable" Style="{DynamicResource DataGridStyle}"
                               AutomationProperties.Name="Main command table"
                               AutomationProperties.HelpText="Main command table"
                                   AlternationCount="2"
-                            AutomationProperties.LabeledBy="{Binding ElementName=txtCommandCount}"
+                            AutomationProperties.LabeledBy="{Binding ElementName=AppCommander_TxtCommandCount}"
                             AutomationProperties.ItemStatus="Command list loaded"
                             AutomationProperties.LiveSetting="Polite"
-                            AutomationProperties.AutomationId="MainCommandTable"
+                            AutomationProperties.AutomationId="AppCommander_MainCommandTable"
                                   
                               AutoGenerateColumns="False"
-                              MouseDoubleClick="MainCommandTable_MouseDoubleClick"
+                              MouseDoubleClick="AppCommander_MainCommandTable_MouseDoubleClick"
                               SelectionMode="Single"
                               CanUserAddRows="False"
                               CanUserDeleteRows="True" 
@@ -260,12 +260,12 @@
                                 Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <!-- Selection Status -->
-                            <Border x:Name="SelectionModeIndicator" 
+                            <Border x:Name="AppCommander_SelectionModeIndicator" 
                                     BorderThickness="1" 
                                     CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
-                                    <TextBlock x:Name="txtSelectionMode" Text="Click Selection Active" 
+                                    <TextBlock x:Name="AppCommander_TxtSelectionMode" Text="Click Selection Active" 
                                                FontWeight="SemiBold" Foreground="#8A6914"/>
                                 </StackPanel>
                             </Border>
@@ -283,26 +283,26 @@
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Window:" AutomationProperties.Name="Window"
                                            FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                <TextBlock x:Name="LblTargetWindow" Grid.Row="0" Grid.Column="1" 
+                                <TextBlock x:Name="AppCommander_LblTargetWindow" Grid.Row="0" Grid.Column="1" 
                                            Text="No target selected" Foreground="#605E5C" 
                                            TextWrapping="Wrap" Margin="0,0,0,4"/>
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Process:" AutomationProperties.Name="Process"
                                            FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                <TextBlock x:Name="TxtTargetProcess" Grid.Row="1" Grid.Column="1" 
+                                <TextBlock x:Name="AppCommander_TxtTargetProcess" Grid.Row="1" Grid.Column="1" 
                                            Text="-" Foreground="#605E5C" Margin="0,0,0,4"/>
                             </Grid>
 
                             <!-- Quick Actions -->
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 
-                                <Button x:Name="BtnQuickReselect" Content="🔄 Reselect" 
+                                <Button x:Name="AppCommander_BtnQuickReselect" Content="🔄 Reselect" 
                                         Click="SelectTargetByClick_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
                                         AutomationProperties.Name="Reselect"
                                         Height="34" Padding="8,4" Margin="0,0,8,0" FontSize="12"/>
                                 
-                                <Button x:Name="BtnQuickBrowse" Content="📋 Browse" 
+                                <Button x:Name="AppCommander_BtnQuickBrowse" Content="📋 Browse" 
                                         Click="SelectTarget_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
                                         AutomationProperties.Name="Browse target"
@@ -322,24 +322,24 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblAutoDetectionStatus" Text="Auto-Detection Inactive" 
+                                    <TextBlock x:Name="AppCommander_LblAutoDetectionStatus" Text="Auto-Detection Inactive" 
                                         Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblUIRecordingStatus" Text="UI Scanning Inactive" 
+                                    <TextBlock x:Name="AppCommander_LblUIRecordingStatus" Text="UI Scanning Inactive" 
                                         Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                             </StackPanel>
 
                             <!-- Auto Mode Toggle -->
-                            <Button x:Name="BtnToggleAutoMode" Content="🎯 Auto Mode OFF" 
+                            <Button x:Name="AppCommander_BtnToggleAutoMode" Content="🎯 Auto Mode OFF" 
                                     Click="ToggleAutomaticMode_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
                                     AutomationProperties.Name="Auto Mode"
                                     HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
 
-                            <ProgressBar x:Name="ProgressEnhancedRecording" Height="4" 
+                            <ProgressBar x:Name="AppCommander_ProgressEnhancedRecording" Height="4" 
                                          Background="#F3F2F1" Foreground="#0078D4"
                                          IsIndeterminate="False" Visibility="Collapsed" Margin="0,8,0,0"/>
                         </StackPanel>
@@ -375,7 +375,7 @@
                             <TextBlock Text="Element Statistics" FontSize="16" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
-                            <ListBox x:Name="LstElementStats" Height="120" Background="Transparent" 
+                            <ListBox x:Name="AppCommander_LstElementStats" Height="120" Background="Transparent" 
                                      BorderThickness="0" FontSize="12"
                                      AutomationProperties.Name="Element Statistics list"
                                      AutomationProperties.HelpText="List of UI elements and their usage count">
@@ -390,7 +390,7 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
 
-                            <Button x:Name="BtnRefreshStats" Content="↻ Refresh Stats" Click="AutoRefreshAllUIElements_Click" 
+                            <Button x:Name="AppCommander_BtnRefreshStats" Content="↻ Refresh Stats" Click="AutoRefreshAllUIElements_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
                                     AutomationProperties.Name="Refresh Stats"
                                     HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
@@ -410,12 +410,12 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="TxtStatusBar" Grid.Column="0" 
+                <TextBlock x:Name="AppCommander_AppCommander_TxtStatusBar" Grid.Column="0" 
                     Text="Ready" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}"/>
-                <TextBlock x:Name="TxtTarget" Grid.Column="1" 
+                <TextBlock x:Name="AppCommander_TxtTarget" Grid.Column="1" 
                     Text="No target selected" Foreground="{DynamicResource SecondaryTextBrush}" 
                     Margin="16,0"/>
-                <TextBlock x:Name="LblStatusBarRecording" Grid.Column="2" 
+                <TextBlock x:Name="AppCommander_LblStatusBarRecording" Grid.Column="2" 
                            Text="Not Recording" Foreground="{DynamicResource SecondaryTextBrush}" 
                            AutomationProperties.LiveSetting="Assertive"
                            AutomationProperties.Name="Recording Status" />

@@ -22,17 +22,17 @@
         <!-- Header -->
         <Border Grid.Row="0" Margin="0,0,0,20">
             <StackPanel>
-                <TextBlock x:Name="txtTitle" 
+                <TextBlock x:Name="AppCommander_TxtTitle" 
                           Text="📋 Sequence Editor"
                           FontSize="24" 
                           FontWeight="Bold"
                           Foreground="{DynamicResource PrimaryTextBrush}"/>
-                <TextBlock x:Name="txtSequenceName"
+                <TextBlock x:Name="AppCommander_TxtSequenceName"
                           Text="Sequence Name"
                           FontSize="14"
                           Foreground="{DynamicResource SecondaryTextBrush}"
                           Margin="0,5,0,0"/>
-                <TextBlock x:Name="txtCommandCount"
+                <TextBlock x:Name="AppCommander_TxtCommandCount"
                           Text="0 commands"
                           FontSize="12"
                           Foreground="{DynamicResource SecondaryTextBrush}"
@@ -175,7 +175,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="txtStatusInfo" 
+                <TextBlock x:Name="AppCommander_TxtStatusInfo" 
                           Grid.Column="1"
                           Text="Ready"
                           VerticalAlignment="Center"

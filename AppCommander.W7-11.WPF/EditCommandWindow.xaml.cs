@@ -38,46 +38,46 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // Základné informácie
-                txtStepNumber.Text = item.StepNumber.ToString();
-                txtType.Text = item.TypeDisplay;
-                txtName.Text = item.Name;
-                txtAction.Text = item.Action;
-                txtValue.Text = item.Value ?? "";
+                AppCommander_TxtStepNumber.Text = item.StepNumber.ToString();
+                AppCommander_TxtType.Text = item.TypeDisplay;
+                AppCommander_TxtName.Text = item.Name;
+                AppCommander_TxtAction.Text = item.Action;
+                AppCommander_TxtValue.Text = item.Value ?? "";
 
                 // UI Element detaily
                 if (item.ElementX.HasValue)
-                    txtElementX.Text = item.ElementX.Value.ToString();
+                    AppCommander_TxtElementX.Text = item.ElementX.Value.ToString();
                 else
-                    txtElementX.Text = "-";
+                    AppCommander_TxtElementX.Text = "-";
 
                 if (item.ElementY.HasValue)
-                    txtElementY.Text = item.ElementY.Value.ToString();
+                    AppCommander_TxtElementY.Text = item.ElementY.Value.ToString();
                 else
-                    txtElementY.Text = "-";
+                    AppCommander_TxtElementY.Text = "-";
 
-                txtElementId.Text = item.ElementId ?? "-";
-                txtClassName.Text = item.ClassName ?? "-";
+                AppCommander_TxtElementId.Text = item.ElementId ?? "-";
+                AppCommander_TxtClassName.Text = item.ClassName ?? "-";
 
                 // Execution details (ak existujú tieto polia v XAML)
-                if (txtRepeatCount != null)
-                    txtRepeatCount.Text = item.RepeatCount.ToString();
+                if (AppCommander_TxtRepeatCount != null)
+                    AppCommander_TxtRepeatCount.Text = item.RepeatCount.ToString();
 
-                if (txtStatus != null)
-                    txtStatus.Text = item.Status;
+                if (AppCommander_TxtStatus != null)
+                    AppCommander_TxtStatus.Text = item.Status;
 
-                if (txtTimestamp != null)
-                    txtTimestamp.Text = item.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+                if (AppCommander_TxtTimestamp != null)
+                    AppCommander_TxtTimestamp.Text = item.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
 
                 // Ak je to SequenceReference, zobraz FilePath
-                if (item.Type == UnifiedItem.ItemType.SequenceReference && txtFilePath != null)
+                if (item.Type == UnifiedItem.ItemType.SequenceReference && AppCommander_TxtFilePath != null)
                 {
-                    txtFilePath.Text = item.FilePath ?? "-";
-                    grpElementDetails.Visibility = Visibility.Collapsed; // Skry element details pre sekvencie
+                    AppCommander_TxtFilePath.Text = item.FilePath ?? "-";
+                    AppCommander_GrpElementDetails.Visibility = Visibility.Collapsed; // Skry element details pre sekvencie
                 }
                 else
                 {
-                    if (txtFilePath != null)
-                        txtFilePath.Text = "-";
+                    if (AppCommander_TxtFilePath != null)
+                        AppCommander_TxtFilePath.Text = "-";
                 }
 
                 // Nastav titulok okna
@@ -104,11 +104,11 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // Aktualizuj iba editovateľné polia
-                item.Name = txtName.Text;
-                item.Value = txtValue.Text;
+                item.Name = AppCommander_TxtName.Text;
+                item.Value = AppCommander_TxtValue.Text;
 
                 // Ak existuje pole pre RepeatCount a je editovateľné
-                if (txtRepeatCount != null && int.TryParse(txtRepeatCount.Text, out int repeatCount))
+                if (AppCommander_TxtRepeatCount != null && int.TryParse(AppCommander_TxtRepeatCount.Text, out int repeatCount))
                 {
                     item.RepeatCount = repeatCount;
                 }
@@ -125,12 +125,12 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void ButtonSaveCommands_Click(object sender, RoutedEventArgs e)
+        private void AppCommander_ButtonSaveCommands_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 // Validácia
-                if (string.IsNullOrWhiteSpace(txtName.Text))
+                if (string.IsNullOrWhiteSpace(AppCommander_TxtName.Text))
                 {
                     MessageBox.Show(
                         "Name cannot be empty.",
@@ -155,7 +155,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void ButtonCancelEdit_Click(object sender, RoutedEventArgs e)
+        private void AppCommander_ButtonCancelEdit_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -195,8 +195,8 @@ namespace AppCommander.W7_11.WPF
                 return false;
 
             // Jednoduchá kontrola či sa zmenili hlavné polia
-            return txtName.Text != _editedItem.Name ||
-                   txtValue.Text != (_editedItem.Value ?? "");
+            return AppCommander_TxtName.Text != _editedItem.Name ||
+                   AppCommander_TxtValue.Text != (_editedItem.Value ?? "");
         }
     }
 }

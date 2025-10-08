@@ -183,10 +183,10 @@ namespace AppCommander.W7_11.WPF
             _currentUnifiedSequenceFilePath = string.Empty;
             _hasUnsavedUnifiedChanges = false;
 
-            // Nastavte DataContext pre MainCommandTable
-            if (MainCommandTable != null)
+            // Nastavte DataContext pre AppCommander_MainCommandTable
+            if (AppCommander_MainCommandTable != null)
             {
-                MainCommandTable.ItemsSource = _unifiedItems;
+                AppCommander_MainCommandTable.ItemsSource = _unifiedItems;
             }
 
             Debug.WriteLine("Unified table initialized");
@@ -420,13 +420,13 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                BtnSelectTargetByClick.Content = "🎯 Click to Select";
-                BtnSelectTargetByClick.IsEnabled = true;
-                BtnSelectTarget.IsEnabled = true;
-                BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
+                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "🎯 Click to Select";
+                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
+                AppCommander_BtnSelectTarget.IsEnabled = true;
+                AppCommander_BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
 
                 // Skryje selection indicator
-                SelectionModeIndicator.Visibility = Visibility.Collapsed;
+                AppCommander_SelectionModeIndicator.Visibility = Visibility.Collapsed;
             }
             catch (Exception ex)
             {
@@ -445,33 +445,33 @@ namespace AppCommander.W7_11.WPF
                 {
                     var processName = windowInfo.ProcessName ?? "Unknown Process";
                     var title = windowInfo.Title ?? "Unknown Title";
-                    LblTargetWindow.Text = $"{processName} - {title}";
+                    AppCommander_LblTargetWindow.Text = $"{processName} - {title}";
 
                     // Update UI state
-                    BtnRecording.IsEnabled = true;
+                    AppCommander_BtnRecording.IsEnabled = true;
 
-                    LblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
-                    TxtTargetProcess.Text = windowInfo.ProcessName;
+                    AppCommander_LblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
+                    AppCommander_TxtTargetProcess.Text = windowInfo.ProcessName;
                     _targetWindowHandle = windowInfo.WindowHandle;
                     Debug.WriteLine($"Target window updated: Handle=0x{_targetWindowHandle.ToInt64():X8}, Process={windowInfo.ProcessName}, Title={windowInfo.Title}");
 
                     UpdateStatus($"Target window set to: {windowInfo.ProcessName}");
-                    BtnRecording.IsEnabled = true;
+                    AppCommander_BtnRecording.IsEnabled = true;
                     UpdateUI();
                 }
                 else
                 {
-                    LblTargetWindow.Text = "No target selected";
-                    TxtTargetProcess.Text = "-";
-                    BtnRecording.IsEnabled = false;
+                    AppCommander_LblTargetWindow.Text = "No target selected";
+                    AppCommander_TxtTargetProcess.Text = "-";
+                    AppCommander_BtnRecording.IsEnabled = false;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error updating target window info: {ex.Message}");
-                TxtTargetProcess.Text = "-";
-                LblTargetWindow.Text = "Error loading target info";
-                BtnRecording.IsEnabled = false;
+                AppCommander_TxtTargetProcess.Text = "-";
+                AppCommander_LblTargetWindow.Text = "Error loading target info";
+                AppCommander_BtnRecording.IsEnabled = false;
             }
             finally
             {
@@ -489,13 +489,13 @@ namespace AppCommander.W7_11.WPF
                 if (isRecording)
                 {
                     // OPRAVA: TextBlock používa .Text namiesto .Content
-                    LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
-                    LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
+                    AppCommander_LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
+                    AppCommander_LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
                 }
                 else
                 {
-                    LblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
-                    LblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
+                    AppCommander_LblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
+                    AppCommander_LblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
                 }
             }
             catch (Exception ex)
@@ -512,18 +512,50 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (_targetWindowHandle == IntPtr.Zero)
+                // NOVÁ KONTROLA: Zabráň nahrávaniu počas playbacku
+                if (_player != null && _player.IsPlaying)
                 {
-                    MessageBox.Show("Please select a target window first.", "No Target Selected",
-                                   MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(
+                        "Cannot start recording while playback is running.\n" +
+                        "Please stop playback first.",
+                        "Recording Not Available",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
                     return;
                 }
 
-                var sequenceName = txtSequenceName.Text;
+                // KONTROLA: Musí byť vybraný target window
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    MessageBox.Show("Please select a target window first.",
+                                   "No Target Selected",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Warning);
+                    return;
+                }
+
+                // NOVÁ KONTROLA: Target nesmie byť AppCommander
+                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+                if (targetProcess.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show(
+                        "You cannot record actions on AppCommander itself.\n" +
+                        "Please select a different target application.",
+                        "Invalid Target",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Resetuj target
+                    _targetWindowHandle = IntPtr.Zero;
+                    UpdateUI();
+                    return;
+                }
+
+                var sequenceName = AppCommander_TxtSequenceName.Text;
                 if (string.IsNullOrWhiteSpace(sequenceName))
                 {
                     sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-                    txtSequenceName.Text = sequenceName;
+                    AppCommander_TxtSequenceName.Text = sequenceName;
                 }
 
                 _recorder.StartRecording(sequenceName, _targetWindowHandle);
@@ -531,18 +563,16 @@ namespace AppCommander.W7_11.WPF
                 _recorder.AutoUpdateExistingCommands = true;
                 _recorder.EnablePredictiveDetection = true;
 
-                string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 _windowTracker.StartTracking(targetProcess);
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
-                BtnRecording.Content = "⏹ Stop Recording";
-                BtnRecording.Style = (Style)FindResource("DangerButton");
+                AppCommander_BtnRecording.Content = "⏹ Stop Recording";
+                AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
 
-                // OPRAVA: Používa novú metódu
                 UpdateStatusLabels(true);
 
-                ProgressEnhancedRecording.Visibility = Visibility.Visible;
-                ProgressEnhancedRecording.IsIndeterminate = true;
+                AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Visible;
+                AppCommander_ProgressEnhancedRecording.IsIndeterminate = true;
 
                 UpdateStatus($"Recording started: {sequenceName}");
             }
@@ -560,13 +590,13 @@ namespace AppCommander.W7_11.WPF
                 _windowTracker.StopTracking();
                 _automaticUIManager.StopMonitoring();
 
-                BtnRecording.Content = "🔴 Start Recording";
-                BtnRecording.Style = (Style)FindResource("DangerButton");
+                AppCommander_BtnRecording.Content = "🔴 Start Recording";
+                AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
 
                 UpdateStatusLabels(false);
 
-                ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
-                ProgressEnhancedRecording.IsIndeterminate = false;
+                AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
+                AppCommander_ProgressEnhancedRecording.IsIndeterminate = false;
 
                 UpdateStatus("Recording stopped");
             }
@@ -587,15 +617,15 @@ namespace AppCommander.W7_11.WPF
                 if (_player.IsPaused)
                 {
                     _player.Resume();
-                    // OPRAVA: Podmienečná kontrola či btnPause existuje
-                    if (BtnPause != null)
-                        BtnPause.Content = "⏸ Pause";
+                    // OPRAVA: Podmienečná kontrola či AppCommander_BtnPause existuje
+                    if (AppCommander_BtnPause != null)
+                        AppCommander_BtnPause.Content = "⏸ Pause";
                 }
                 else if (_player.IsPlaying)
                 {
                     _player.Pause();
-                    if (BtnPause != null)
-                        BtnPause.Content = "▶ Resume";
+                    if (AppCommander_BtnPause != null)
+                        AppCommander_BtnPause.Content = "▶ Resume";
                 }
             }
             catch (Exception ex)
@@ -610,8 +640,8 @@ namespace AppCommander.W7_11.WPF
             {
                 _player.Stop();
                 // OPRAVA: Podmienečná kontrola
-                if (BtnPause != null)
-                    BtnPause.Content = "⏸ Pause";
+                if (AppCommander_BtnPause != null)
+                    AppCommander_BtnPause.Content = "⏸ Pause";
                 UpdateStatus("Playback stopped");
             }
             catch (Exception ex)
@@ -633,29 +663,29 @@ namespace AppCommander.W7_11.WPF
                 bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
 
                 // Recording button state
-                BtnRecording.IsEnabled = hasTargetWindow || isRecording;
+                AppCommander_BtnRecording.IsEnabled = hasTargetWindow || isRecording;
 
-                BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                AppCommander_BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
-                if (BtnPlayCommands != null)
-                    BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                if (AppCommander_BtnPlayCommands != null)
+                    AppCommander_BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
-                if (BtnPause != null)
-                    BtnPause.IsEnabled = isPlaying;
+                if (AppCommander_BtnPause != null)
+                    AppCommander_BtnPause.IsEnabled = isPlaying;
 
-                if (BtnStop != null)
-                    BtnStop.IsEnabled = isPlaying;
+                if (AppCommander_BtnStop != null)
+                    AppCommander_BtnStop.IsEnabled = isPlaying;
 
                 // Target selection buttons - disable počas recordingu
-                BtnSelectTargetByClick.IsEnabled = !isRecording;
-                BtnSelectTarget.IsEnabled = !isRecording;
+                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !isRecording;
+                AppCommander_BtnSelectTarget.IsEnabled = !isRecording;
 
                 // Commands count
                 var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
                 string commandText = loopCount > 0 ?
                     string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
                     string.Format("Commands: {0}", _commands.Count);
-                TxtCommandCount.Text = commandText;
+                AppCommander_TxtCommandCount.Text = commandText;
 
                 // Window title
                 string title = "AppCommander";
@@ -674,8 +704,8 @@ namespace AppCommander.W7_11.WPF
                 {
                     var processName = GetProcessNameFromWindow(_targetWindowHandle);
                     var windowTitle = GetWindowTitle(_targetWindowHandle);
-                    LblTargetWindow.Text = $"{processName} - {windowTitle}";
-                    TxtTargetProcess.Text = processName;
+                    AppCommander_LblTargetWindow.Text = $"{processName} - {windowTitle}";
+                    AppCommander_TxtTargetProcess.Text = processName;
                 }
             }
             catch (Exception ex)
@@ -692,10 +722,10 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // OPRAVA: podmienečná kontrola či lstElementStats existuje
-                if (LstElementStats == null) return;
+                // OPRAVA: podmienečná kontrola či AppCommander_LstElementStats existuje
+                if (AppCommander_LstElementStats == null) return;
 
-                LstElementStats.Items.Clear();
+                AppCommander_LstElementStats.Items.Clear();
 
                 var elementGroups = _commands
                     .Where(c => !string.IsNullOrEmpty(c.ElementName))
@@ -711,7 +741,7 @@ namespace AppCommander.W7_11.WPF
 
                 foreach (var element in elementGroups)
                 {
-                    LstElementStats.Items.Add(element);
+                    AppCommander_LstElementStats.Items.Add(element);
                 }
 
                 UpdateStatus(string.Format("Element statistics refreshed: {0} unique elements", elementGroups.Count));
@@ -733,9 +763,9 @@ namespace AppCommander.W7_11.WPF
                 _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
 
                 // OPRAVA: podmienečná kontrola
-                if (BtnToggleAutoMode != null)
+                if (AppCommander_BtnToggleAutoMode != null)
                 {
-                    BtnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
+                    AppCommander_BtnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
                 }
 
                 var message = _isAutoTrackingEnabled ?
@@ -764,16 +794,16 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 // Zobraz selection indicator
-                SelectionModeIndicator.Visibility = Visibility.Visible;
-                txtSelectionMode.Text = "Click Selection Active";
+                AppCommander_SelectionModeIndicator.Visibility = Visibility.Visible;
+                AppCommander_TxtSelectionMode.Text = "Click Selection Active";
 
                 // Zmeni tlačidlo na cancel mode
-                BtnSelectTargetByClick.Content = "❌ Cancel Selection";
-                BtnSelectTargetByClick.IsEnabled = true;
+                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "❌ Cancel Selection";
+                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
 
                 // Disable ostatné controls počas výberu
-                BtnSelectTarget.IsEnabled = false;
-                BtnRecording.IsEnabled = false;
+                AppCommander_BtnSelectTarget.IsEnabled = false;
+                AppCommander_BtnRecording.IsEnabled = false;
 
                 UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
 
@@ -813,7 +843,7 @@ namespace AppCommander.W7_11.WPF
         private UnifiedSequence _currentUnifiedSequence;
         private string _currentUnifiedSequenceFilePath;
         private bool _hasUnsavedUnifiedChanges;
-        private object txtSequenceName_Copy;
+        private object AppCommander_TxtSequenceName_Copy;
 
         /// <summary>
         /// Inicializuje window click selector
@@ -841,7 +871,7 @@ namespace AppCommander.W7_11.WPF
 
                     // Nastav target window
                     _targetWindowHandle = windowInfo.WindowHandle;
-                    LblTargetWindow.Text = string.Format("{0} - {1}",
+                    AppCommander_LblTargetWindow.Text = string.Format("{0} - {1}",
                         windowInfo.ProcessName, windowInfo.Title);
 
                     UpdateUI();
@@ -887,12 +917,8 @@ namespace AppCommander.W7_11.WPF
 
         #region Updated Constructor and Cleanup
 
-        // Pridajte toto do existujúceho konstruktora MainWindow
         private void InitializeComponents()
         {
-            // Existujúci inicializačný kód...
-
-            // Pridajte toto na koniec
             InitializeWindowClickSelector();
         }
 
@@ -901,9 +927,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // Existujúci cleanup kód...
-
-                // Pridajte cleanup pre window click selector
+                // cleanup pre window click selector
                 _windowClickSelector?.Dispose();
             }
             catch (Exception ex)
@@ -938,7 +962,7 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true && dialog.SelectedWindow != null)
                 {
                     _targetWindowHandle = dialog.SelectedWindow.WindowHandle;
-                    LblTargetWindow.Text = string.Format("{0} - {1}",
+                    AppCommander_LblTargetWindow.Text = string.Format("{0} - {1}",
                         dialog.SelectedWindow.ProcessName, dialog.SelectedWindow.Title);
 
                     UpdateUI();
@@ -1416,14 +1440,14 @@ namespace AppCommander.W7_11.WPF
 
         private void UpdateUnifiedUI()
         {
-            TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
-            TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-            TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            AppCommander_TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
+            AppCommander_TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
             //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
             //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
 
-            //txtSequenceName_Copy.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
-            if (txtSequenceName_Copy is TextBox textBox)
+            //AppCommander_TxtSequenceName_Copy.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+            if (AppCommander_TxtSequenceName_Copy is TextBox textBox)
             {
                 textBox.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
             }
@@ -1443,22 +1467,22 @@ namespace AppCommander.W7_11.WPF
             this.Title = title;
 
             // Aktualizuje status bar
-            TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+            AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
 
             // Aktualizuje enabled stav menu položiek
-            MenuBar.IsEnabled = _unifiedItems.Count > 0;
+            AppCommander_MenuBar.IsEnabled = _unifiedItems.Count > 0;
             //menuItem.IsEnabled = _hasUnsavedUnifiedChanges && _unifiedItems.Count > 0;
 
             // Aktualizuje enabled stav playback tlačidiel
-            BtnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            BtnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            BtnPause.IsEnabled = _player?.IsPlaying ?? false;
-            BtnStop.IsEnabled = _player?.IsPlaying ?? false;
+            AppCommander_BtnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            AppCommander_BtnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+            AppCommander_BtnPause.IsEnabled = _player?.IsPlaying ?? false;
+            AppCommander_BtnStop.IsEnabled = _player?.IsPlaying ?? false;
 
             // Aktualizuje enabled stav recording tlačidiel
-            BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
-            BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
-            BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
+            AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
+            AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
+            AppCommander_BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
 
             // Aktualizuje stavový riadok
             if (_recorder?.IsRecording ?? false)
@@ -1531,10 +1555,10 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 int repeatCount = 1;
-                if (!int.TryParse(TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                if (!int.TryParse(AppCommander_TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
                 {
                     repeatCount = 1;
-                    TxtRepeatCount.Text = "1";
+                    AppCommander_TxtRepeatCount.Text = "1";
                 }
 
                 // Convert unified sequence to traditional format for playback
@@ -1583,10 +1607,10 @@ namespace AppCommander.W7_11.WPF
                     }
 
                     int repeatCount = 1;
-                    if (!int.TryParse(TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                    if (!int.TryParse(AppCommander_TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
                     {
                         repeatCount = 1;
-                        TxtRepeatCount.Text = "1";
+                        AppCommander_TxtRepeatCount.Text = "1";
                     }
 
                     var sequence = new CommandSequence
@@ -1710,7 +1734,7 @@ namespace AppCommander.W7_11.WPF
 
                 // Získanie názvu sekvencie z textboxu
                 string defaultName = "UnifiedSequence_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                if (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text))
+                if (AppCommander_TxtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text))
                 {
                     defaultName = textBox.Text;
                 }
@@ -1752,7 +1776,7 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 // Aktualizácia _currentUnifiedSequence
-                _currentUnifiedSequence.Name = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                _currentUnifiedSequence.Name = (AppCommander_TxtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
                                                 textBox.Text :
                                                 Path.GetFileNameWithoutExtension(filePath);
 
@@ -1872,7 +1896,7 @@ namespace AppCommander.W7_11.WPF
                 _hasUnsavedUnifiedChanges = false;
 
                 // Aktualizácia názvu v textboxe
-                if (txtSequenceName_Copy is TextBox textBox)
+                if (AppCommander_TxtSequenceName_Copy is TextBox textBox)
                 {
                     textBox.Text = unifiedSequence.Name ?? Path.GetFileNameWithoutExtension(filePath);
                 }
@@ -1911,7 +1935,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null || selectedItem.StepNumber <= 1)
                 {
                     UpdateStatus("Cannot move item up - select an item that is not first");
@@ -1926,7 +1950,7 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedUnifiedChanges = true;
 
                     // Keep selection on moved item
-                    MainCommandTable.SelectedItem = selectedItem;
+                    AppCommander_MainCommandTable.SelectedItem = selectedItem;
                     UpdateStatus($"Moved '{selectedItem.Name}' up");
                 }
             }
@@ -1943,7 +1967,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null || selectedItem.StepNumber >= _unifiedItems.Count)
                 {
                     UpdateStatus("Cannot move item down - select an item that is not last");
@@ -1958,7 +1982,7 @@ namespace AppCommander.W7_11.WPF
                     _hasUnsavedUnifiedChanges = true;
 
                     // Keep selection on moved item
-                    MainCommandTable.SelectedItem = selectedItem;
+                    AppCommander_MainCommandTable.SelectedItem = selectedItem;
                     UpdateStatus($"Moved '{selectedItem.Name}' down");
                 }
             }
@@ -1977,7 +2001,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Pridá príkazy z tabuľky MainCommandTable do unified tabuľky
+        /// Pridá príkazy z tabuľky AppCommander_MainCommandTable do unified tabuľky
         /// </summary>
         private void AddFromCommands_Click(object sender, RoutedEventArgs e)
         {
@@ -2175,7 +2199,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
@@ -2191,7 +2215,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select an item to edit.",
@@ -2266,7 +2290,7 @@ namespace AppCommander.W7_11.WPF
                 if (wasModified)
                 {
                     _hasUnsavedUnifiedChanges = true;
-                    MainCommandTable.Items.Refresh();
+                    AppCommander_MainCommandTable.Items.Refresh();
                 }
             }
             catch (Exception ex)
@@ -2282,7 +2306,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select an item to delete.",
@@ -2433,19 +2457,19 @@ namespace AppCommander.W7_11.WPF
             {
                 var editWindow = new EditCommandWindow();
 
-                if (editWindow.txtStepNumber != null) editWindow.txtStepNumber.Text = item.StepNumber.ToString();
-                if (editWindow.txtType != null) editWindow.txtType.Text = item.TypeDisplay;
-                if (editWindow.txtName != null) editWindow.txtName.Text = item.Name;
-                if (editWindow.txtAction != null) editWindow.txtAction.Text = item.Action;
-                if (editWindow.txtValue != null) editWindow.txtValue.Text = item.Value;
-                if (editWindow.txtRepeatCount != null) editWindow.txtRepeatCount.Text = item.RepeatCount.ToString();
-                if (editWindow.txtStatus != null) editWindow.txtStatus.Text = item.Status;
-                if (editWindow.txtTimestamp != null) editWindow.txtTimestamp.Text = item.Timestamp.ToString("G");
-                if (editWindow.txtFilePath != null) editWindow.txtFilePath.Text = item.FilePath;
-                if (editWindow.txtElementX != null) editWindow.txtElementX.Text = item.ElementX?.ToString() ?? "";
-                if (editWindow.txtElementY != null) editWindow.txtElementY.Text = item.ElementY?.ToString() ?? "";
-                if (editWindow.txtElementId != null) editWindow.txtElementId.Text = item.ElementId;
-                if (editWindow.txtClassName != null) editWindow.txtClassName.Text = item.ClassName;
+                if (editWindow.AppCommander_TxtStepNumber != null) editWindow.AppCommander_TxtStepNumber.Text = item.StepNumber.ToString();
+                if (editWindow.AppCommander_TxtType != null) editWindow.AppCommander_TxtType.Text = item.TypeDisplay;
+                if (editWindow.AppCommander_TxtName != null) editWindow.AppCommander_TxtName.Text = item.Name;
+                if (editWindow.AppCommander_TxtAction != null) editWindow.AppCommander_TxtAction.Text = item.Action;
+                if (editWindow.AppCommander_TxtValue != null) editWindow.AppCommander_TxtValue.Text = item.Value;
+                if (editWindow.AppCommander_TxtRepeatCount != null) editWindow.AppCommander_TxtRepeatCount.Text = item.RepeatCount.ToString();
+                if (editWindow.AppCommander_TxtStatus != null) editWindow.AppCommander_TxtStatus.Text = item.Status;
+                if (editWindow.AppCommander_TxtTimestamp != null) editWindow.AppCommander_TxtTimestamp.Text = item.Timestamp.ToString("G");
+                if (editWindow.AppCommander_TxtFilePath != null) editWindow.AppCommander_TxtFilePath.Text = item.FilePath;
+                if (editWindow.AppCommander_TxtElementX != null) editWindow.AppCommander_TxtElementX.Text = item.ElementX?.ToString() ?? "";
+                if (editWindow.AppCommander_TxtElementY != null) editWindow.AppCommander_TxtElementY.Text = item.ElementY?.ToString() ?? "";
+                if (editWindow.AppCommander_TxtElementId != null) editWindow.AppCommander_TxtElementId.Text = item.ElementId;
+                if (editWindow.AppCommander_TxtClassName != null) editWindow.AppCommander_TxtClassName.Text = item.ClassName;
 
                 editWindow.Owner = this;
 
@@ -2454,24 +2478,24 @@ namespace AppCommander.W7_11.WPF
                 // If changes were saved, update the UnifiedItem from the dialog fields
                 if (result == true && editWindow.WasSaved)
                 {
-                    item.Name = editWindow.txtName?.Text ?? item.Name;
-                    item.Action = editWindow.txtAction?.Text ?? item.Action;
-                    item.Value = editWindow.txtValue?.Text ?? item.Value;
-                    if (int.TryParse(editWindow.txtRepeatCount?.Text, out int repeatCount))
+                    item.Name = editWindow.AppCommander_TxtName?.Text ?? item.Name;
+                    item.Action = editWindow.AppCommander_TxtAction?.Text ?? item.Action;
+                    item.Value = editWindow.AppCommander_TxtValue?.Text ?? item.Value;
+                    if (int.TryParse(editWindow.AppCommander_TxtRepeatCount?.Text, out int repeatCount))
                         item.RepeatCount = repeatCount;
-                    item.Status = editWindow.txtStatus?.Text ?? item.Status;
-                    if (DateTime.TryParse(editWindow.txtTimestamp?.Text, out DateTime timestamp))
+                    item.Status = editWindow.AppCommander_TxtStatus?.Text ?? item.Status;
+                    if (DateTime.TryParse(editWindow.AppCommander_TxtTimestamp?.Text, out DateTime timestamp))
                         item.Timestamp = timestamp;
-                    item.FilePath = editWindow.txtFilePath?.Text ?? item.FilePath;
-                    if (int.TryParse(editWindow.txtElementX?.Text, out int elementX))
+                    item.FilePath = editWindow.AppCommander_TxtFilePath?.Text ?? item.FilePath;
+                    if (int.TryParse(editWindow.AppCommander_TxtElementX?.Text, out int elementX))
                         item.ElementX = elementX;
-                    if (int.TryParse(editWindow.txtElementY?.Text, out int elementY))
+                    if (int.TryParse(editWindow.AppCommander_TxtElementY?.Text, out int elementY))
                         item.ElementY = elementY;
-                    item.ElementId = editWindow.txtElementId?.Text ?? item.ElementId;
-                    item.ClassName = editWindow.txtClassName?.Text ?? item.ClassName;
+                    item.ElementId = editWindow.AppCommander_TxtElementId?.Text ?? item.ElementId;
+                    item.ClassName = editWindow.AppCommander_TxtClassName?.Text ?? item.ClassName;
 
                     _hasUnsavedUnifiedChanges = true;
-                    MainCommandTable.Items.Refresh();
+                    AppCommander_MainCommandTable.Items.Refresh();
                     
                     string.Format("Command '{0}' updated", item.Name);
                 }
@@ -2489,7 +2513,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
@@ -2502,7 +2526,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedCommand = MainCommandTable.SelectedItem as Command;
+                var selectedCommand = AppCommander_MainCommandTable.SelectedItem as Command;
                 if (selectedCommand == null)
                 {
                     MessageBox.Show("Please select a command to delete.", "No Selection",
@@ -2817,8 +2841,8 @@ namespace AppCommander.W7_11.WPF
 
                 _isUpdatingRepeatCount = true;
 
-                TxtRepeatCount.IsEnabled = false;
-                TxtRepeatCount.Text = "∞";
+                AppCommander_TxtRepeatCount.IsEnabled = false;
+                AppCommander_TxtRepeatCount.Text = "∞";
                 UpdateStatus("Infinite loop enabled");
             }
             catch (Exception ex)
@@ -2839,8 +2863,8 @@ namespace AppCommander.W7_11.WPF
 
                 _isUpdatingRepeatCount = true;
 
-                TxtRepeatCount.IsEnabled = true;
-                TxtRepeatCount.Text = "1";
+                AppCommander_TxtRepeatCount.IsEnabled = true;
+                AppCommander_TxtRepeatCount.Text = "1";
                 UpdateStatus("Infinite loop disabled");
             }
             catch (Exception ex)
@@ -2853,8 +2877,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        // Pridajte handler pre TextChanged event ak existuje
-        private void TtxtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
+        private void TAppCommander_TxtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
             {
@@ -2865,7 +2888,7 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in txtRepeatCount_TextChanged: {ex.Message}");
+                Debug.WriteLine($"Error in AppCommander_TxtRepeatCount_TextChanged: {ex.Message}");
             }
         }
 
@@ -2961,7 +2984,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                TxtStatusBar.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
+                AppCommander_AppCommander_TxtStatusBar.Text = string.Format("{0:HH:mm:ss} - {1}", DateTime.Now, message);
                 Debug.WriteLine(string.Format("Status: {0}", message));
             }
             catch (Exception ex)
@@ -2976,11 +2999,11 @@ namespace AppCommander.W7_11.WPF
             {
                 if (isRecording)
                 {
-                    LblStatusBarRecording.Text = isPaused ? "Recording Paused" : "Recording";
+                    AppCommander_LblStatusBarRecording.Text = isPaused ? "Recording Paused" : "Recording";
                 }
                 else
                 {
-                    LblStatusBarRecording.Text = "Not Recording";
+                    AppCommander_LblStatusBarRecording.Text = "Not Recording";
                 }
             }
             catch (Exception ex)
@@ -3145,7 +3168,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as SequenceSetItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to edit.",
@@ -3194,7 +3217,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as SequenceSetItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as SequenceSetItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show("Please select a sequence to remove.",
@@ -3273,7 +3296,7 @@ namespace AppCommander.W7_11.WPF
                 // Vytvorenie SequenceSet objektu
                 var sequenceSet = new SequenceSet
                 {
-                    Name = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                    Name = (AppCommander_TxtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
                             textBox.Text :
                             Path.GetFileNameWithoutExtension(filePath),
 
@@ -3325,11 +3348,11 @@ namespace AppCommander.W7_11.WPF
                     Filter = "Sequence Set Files (*.acset)|*.acset|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     DefaultExt = ".acset",
                     Title = "Save Sequence Set As",
-                    //FileName = !string.IsNullOrEmpty(txtSequenceName_Copy?.Text) ?
-                    //            txtSequenceName_Copy.Text :
+                    //FileName = !string.IsNullOrEmpty(AppCommander_TxtSequenceName_Copy?.Text) ?
+                    //            AppCommander_TxtSequenceName_Copy.Text :
                     //            "SequenceSet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
 
-                    FileName = (txtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
+                    FileName = (AppCommander_TxtSequenceName_Copy is TextBox textBox && !string.IsNullOrEmpty(textBox.Text)) ?
                                 textBox.Text :
                                 "SequenceSet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
                 };
@@ -3376,11 +3399,11 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                TxtSequenceCount = this.FindName("txtSequenceCount") as TextBlock;
+                AppCommander_TxtSequenceCount = this.FindName("AppCommander_TxtSequenceCount") as TextBlock;
                 // Aktualizuj počet sekvencií
-                if (TxtSequenceCount != null)
+                if (AppCommander_TxtSequenceCount != null)
                 {
-                    TxtSequenceCount.Text = $"{_sequenceSetItems.Count} sequences";
+                    AppCommander_TxtSequenceCount.Text = $"{_sequenceSetItems.Count} sequences";
                 }
 
                 // Aktualizuj title bar ak je potrebné
@@ -3393,9 +3416,9 @@ namespace AppCommander.W7_11.WPF
                 // this.Title = $"AppCommander - {setName}{hasChanges}";
 
                 // Refresh DataGrid
-                if (MainCommandTable != null)
+                if (AppCommander_MainCommandTable != null)
                 {
-                    MainCommandTable.Items.Refresh();
+                    AppCommander_MainCommandTable.Items.Refresh();
                 }
             }
             catch (Exception ex)
@@ -3778,7 +3801,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        // Pre minimálne theme menu (tretia verzia) pridajte tento handler:
+        // Pre minimálne theme menu (tretia verzia) handler:
 
         private void ThemeMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -3885,9 +3908,9 @@ namespace AppCommander.W7_11.WPF
                     UpdateUI();
                     UpdateStatus($"Sequence updated - {_unifiedItems.Count} commands");
 
-                    if (MainCommandTable != null)
+                    if (AppCommander_MainCommandTable != null)
                     {
-                        MainCommandTable.Items.Refresh();
+                        AppCommander_MainCommandTable.Items.Refresh();
                     }
                 }
             }
@@ -3904,7 +3927,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
@@ -3921,7 +3944,7 @@ namespace AppCommander.W7_11.WPF
 
         private void ContextMenu_Copy_Click(object sender, RoutedEventArgs e)
         {
-            if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
+            if (AppCommander_MainCommandTable.SelectedItem is UnifiedItem selectedItem)
             {
                 // Skopírovať detaily do schránky
                 var details = $"Krok: {selectedItem.StepNumber}\n" +
@@ -3939,7 +3962,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (MainCommandTable.SelectedItem is UnifiedItem selectedItem)
+                if (AppCommander_MainCommandTable.SelectedItem is UnifiedItem selectedItem)
                 {
                     // Vytvoriť kópiu
                     var duplicate = new UnifiedItem
@@ -4004,7 +4027,7 @@ namespace AppCommander.W7_11.WPF
                 // Ctrl + E = Edit selected command
                 if (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
                 {
-                    if (MainCommandTable.SelectedItem != null)
+                    if (AppCommander_MainCommandTable.SelectedItem != null)
                     {
                         EditCommand_Click(sender, e);
                         e.Handled = true;
@@ -4013,7 +4036,7 @@ namespace AppCommander.W7_11.WPF
                 // Ctrl + D = Duplicate command
                 else if (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Control)
                 {
-                    if (MainCommandTable.SelectedItem != null)
+                    if (AppCommander_MainCommandTable.SelectedItem != null)
                     {
                         DuplicateCommand_Click(sender, e);
                         e.Handled = true;
@@ -4028,7 +4051,7 @@ namespace AppCommander.W7_11.WPF
                 // Ctrl + T = Test command
                 else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
                 {
-                    if (MainCommandTable.SelectedItem != null)
+                    if (AppCommander_MainCommandTable.SelectedItem != null)
                     {
                         TestCommand_Click(sender, e);
                         e.Handled = true;
@@ -4037,7 +4060,7 @@ namespace AppCommander.W7_11.WPF
                 // Delete = Delete command
                 else if (e.Key == Key.Delete)
                 {
-                    if (MainCommandTable.SelectedItem != null)
+                    if (AppCommander_MainCommandTable.SelectedItem != null)
                     {
                         DeleteCommand_Click(sender, e);
                         e.Handled = true;
@@ -4203,8 +4226,8 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // Recording buttons 
-                if (BtnRecording != null)
-                    BtnRecording.IsEnabled = enabled || !enabled;
+                if (AppCommander_BtnRecording != null)
+                    AppCommander_BtnRecording.IsEnabled = enabled || !enabled;
 
                 // Ak existuje ButtonStartRecording
                 var btnStartRec = this.FindName("ButtonStartRecording") as Button;
@@ -4212,9 +4235,9 @@ namespace AppCommander.W7_11.WPF
                     btnStartRec.IsEnabled = enabled;
 
                 // Ak existuje ButtonStopRecording  
-                var btnStopRec = this.FindName("ButtonStopRecording") as Button;
-                if (btnStopRec != null)
-                    btnStopRec.IsEnabled = !enabled;
+                var AppCommander_BtnStopRec = this.FindName("ButtonStopRecording") as Button;
+                if (AppCommander_BtnStopRec != null)
+                    AppCommander_BtnStopRec.IsEnabled = !enabled;
 
                 // Save/Load buttons - rôzne možné názvy
                 var btnSaveSeq = this.FindName("BtnSaveSequence") as Button;
@@ -4226,25 +4249,25 @@ namespace AppCommander.W7_11.WPF
                     btnLoadSeq.IsEnabled = enabled;
 
                 // Playback buttons
-                if (BtnPlayCommands != null)
-                    BtnPlayCommands.IsEnabled = enabled;
+                if (AppCommander_BtnPlayCommands != null)
+                    AppCommander_BtnPlayCommands.IsEnabled = enabled;
 
-                if (BtnPause != null)
-                    BtnPause.IsEnabled = !enabled;
+                if (AppCommander_BtnPause != null)
+                    AppCommander_BtnPause.IsEnabled = !enabled;
 
-                if (BtnStop != null)
-                    BtnStop.IsEnabled = !enabled;
+                if (AppCommander_BtnStop != null)
+                    AppCommander_BtnStop.IsEnabled = !enabled;
 
                 // Command table
-                if (MainCommandTable != null)
-                    MainCommandTable.IsEnabled = enabled;
+                if (AppCommander_MainCommandTable != null)
+                    AppCommander_MainCommandTable.IsEnabled = enabled;
 
                 // Selection buttons
-                if (BtnSelectTargetByClick != null)
-                    BtnSelectTargetByClick.IsEnabled = enabled;
+                if (AppCommander_AppCommander_BtnSelectTargetByClick != null)
+                    AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = enabled;
 
-                if (BtnSelectTarget != null)
-                    BtnSelectTarget.IsEnabled = enabled;
+                if (AppCommander_BtnSelectTarget != null)
+                    AppCommander_BtnSelectTarget.IsEnabled = enabled;
             }
             catch (Exception ex)
             {
@@ -4263,7 +4286,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show(
@@ -4274,7 +4297,7 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                var startIndex = MainCommandTable.SelectedIndex;
+                var startIndex = AppCommander_MainCommandTable.SelectedIndex;
 
                 if (startIndex < 0 || startIndex >= _unifiedItems.Count)
                 {
@@ -4361,7 +4384,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show(
@@ -4426,7 +4449,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show(
@@ -4518,7 +4541,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show(
@@ -4546,7 +4569,7 @@ namespace AppCommander.W7_11.WPF
                 };
 
                 // Vložiť hneď za vybraný príkaz
-                var insertIndex = MainCommandTable.SelectedIndex + 1;
+                var insertIndex = AppCommander_MainCommandTable.SelectedIndex + 1;
 
                 // Pridať do unified items
                 if (insertIndex < _unifiedItems.Count)
@@ -4565,7 +4588,7 @@ namespace AppCommander.W7_11.WPF
                 UpdateUI();
 
                 // Vybrať nový príkaz
-                MainCommandTable.SelectedIndex = insertIndex;
+                AppCommander_MainCommandTable.SelectedIndex = insertIndex;
 
                 UpdateStatus(string.Format("Command duplicated: {0}", selectedItem.Name));
 
@@ -4588,7 +4611,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 if (selectedItem == null)
                 {
                     MessageBox.Show(
@@ -4649,7 +4672,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                var selectedItems = MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList();
+                var selectedItems = AppCommander_MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList();
 
                 if (!selectedItems.Any())
                 {
@@ -4689,7 +4712,7 @@ namespace AppCommander.W7_11.WPF
                 }
 
                 _hasUnsavedUnifiedChanges = true;
-                MainCommandTable.Items.Refresh();
+                AppCommander_MainCommandTable.Items.Refresh();
 
                 UpdateStatus(string.Format("Batch updated {0} commands", selectedItems.Count));
 
@@ -4717,7 +4740,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // Skontroluj či je vybraná konkrétna sekvencia na editáciu
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
 
                 if (selectedItem != null && selectedItem.Type == UnifiedItem.ItemType.SequenceReference)
                 {
@@ -4737,14 +4760,14 @@ namespace AppCommander.W7_11.WPF
                         // Zmeny boli uložené priamo do súboru sekvencie
                         UpdateStatus($"✅ Sequence '{selectedItem.Name}' updated successfully");
 
-                        // Voliteľne: Refresh sequence info ak chceš aktualizovať MainCommandTable
+                        // Voliteľne: Refresh sequence info ak chceš aktualizovať AppCommander_MainCommandTable
                         // (napríklad ak sa zmenil počet príkazov v sekvencii)
                     }
                 }
                 else
                 {
                     // ═══════════════════════════════════════════════════════════
-                    //  USE CASE: Edituj VŠETKY príkazy v MainCommandTable   
+                    //  USE CASE: Edituj VŠETKY príkazy v AppCommander_MainCommandTable   
 
                     if (_unifiedItems == null || _unifiedItems.Count == 0) 
                     {
@@ -4792,7 +4815,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (MainCommandTable.SelectedItems.Count == 0)
+                if (AppCommander_MainCommandTable.SelectedItems.Count == 0)
                 {
                     MessageBox.Show(
                         "Please select commands to edit.",
@@ -4804,7 +4827,7 @@ namespace AppCommander.W7_11.WPF
 
                 // Vytvor zoznam vybraných items
                 var selectedItems = new List<UnifiedItem>();
-                foreach (UnifiedItem item in MainCommandTable.SelectedItems)
+                foreach (UnifiedItem item in AppCommander_MainCommandTable.SelectedItems)
                 {
                     selectedItems.Add(item);
                 }
@@ -4822,7 +4845,7 @@ namespace AppCommander.W7_11.WPF
                     var editedItems = editorWindow.EditedItems;
                     int editedIndex = 0;
 
-                    foreach (UnifiedItem selectedItem in MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList())
+                    foreach (UnifiedItem selectedItem in AppCommander_MainCommandTable.SelectedItems.Cast<UnifiedItem>().ToList())
                     {
                         if (editedIndex < editedItems.Count)
                         {
@@ -4924,11 +4947,11 @@ namespace AppCommander.W7_11.WPF
         /// <summary>
         /// Double-click na riadok v tabuľke
         /// </summary>
-        private void MainCommandTable_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void AppCommander_MainCommandTable_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             try
             {
-                var selectedItem = MainCommandTable.SelectedItem as UnifiedItem;
+                var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)

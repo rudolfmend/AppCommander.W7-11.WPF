@@ -21,7 +21,7 @@
         <Border Grid.Row="0"  
                 Margin="10,0,-20,15" >
             <StackPanel>
-                <TextBlock x:Name="txtTitle" 
+                <TextBlock x:Name="AppCommander_TxtTitle" 
                           Text="Viewing and editing a command"
                           Style="{DynamicResource TextBlockStyle}"/>
 
@@ -53,29 +53,29 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Step no.:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 9"/>
-                        <TextBlock x:Name="txtStepNumber" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtStepNumber" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="4, 9"/>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 9"/>
-                        <TextBlock x:Name="txtType" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtType" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 9"/>
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Name:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 15"/>
-                        <TextBox x:Name="txtName" 
+                        <TextBox x:Name="AppCommander_TxtName" 
                                 Grid.Row="2" Grid.Column="1" 
                                 Style="{DynamicResource TextBoxStyle}"
                                    Margin="0, 9"/>
 
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Operation:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 9"/>
-                        <TextBlock x:Name="txtAction" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtAction" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 9"/>
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Value:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0, 15"/>
-                        <TextBox x:Name="txtValue" 
+                        <TextBox x:Name="AppCommander_TxtValue" 
                                 Grid.Row="4" Grid.Column="1" 
                                 Style="{DynamicResource TextBoxStyle}"
                                 TextWrapping="Wrap"
@@ -87,7 +87,7 @@
                                    Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,15"/>
                         
-                        <TextBox x:Name="txtRepeatCount" 
+                        <TextBox x:Name="AppCommander_TxtRepeatCount" 
                                  Grid.Row="5" Grid.Column="1"
                                  Style="{DynamicResource TextBoxStyle}"
                                  Margin="0,9"/>
@@ -95,7 +95,7 @@
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="Status:" 
                                    Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,9"/>
-                        <TextBlock x:Name="txtStatus" 
+                        <TextBlock x:Name="AppCommander_TxtStatus" 
                                    Grid.Row="6" Grid.Column="1" 
                                    Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,9"/>
@@ -103,16 +103,16 @@
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="Timestamp:" 
                                    Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,9"/>
-                        <TextBlock x:Name="txtTimestamp" 
-           Grid.Row="7" Grid.Column="1" 
-           Style="{DynamicResource TextBlockStyle}"
-           Margin="0,9"/>
+                        <TextBlock x:Name="AppCommander_TxtTimestamp" 
+                                   Grid.Row="7" Grid.Column="1" 
+                                   Style="{DynamicResource TextBlockStyle}"
+                                   Margin="0,9"/>
 
                     </Grid>
                 </GroupBox>
                 
                 <!-- Detaily elementu -->
-                <GroupBox x:Name="grpElementDetails"
+                <GroupBox x:Name="AppCommander_GrpElementDetails"
                           Style="{DynamicResource GroupBoxStyle}"
                           Header="🎯 UI Element details" 
                           Padding="10,20,10,25" Margin="5">
@@ -130,12 +130,12 @@
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
-                        <TextBlock x:Name="txtElementX" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtElementX" Grid.Row="0" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
-                        <TextBlock x:Name="txtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtElementY" Grid.Row="1" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
 
 
@@ -146,12 +146,12 @@
 
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Element ID:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
-                        <TextBlock x:Name="txtElementId" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtElementId" Grid.Row="2" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,10"/>
 
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Class:" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,5"/>
-                        <TextBlock x:Name="txtClassName" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
+                        <TextBlock x:Name="AppCommander_TxtClassName" Grid.Row="3" Grid.Column="1" Style="{DynamicResource TextBlockStyle}"
                                    Margin="0,12,10,5"/>
                     </Grid>
                 </GroupBox>
@@ -192,7 +192,7 @@
                 </GroupBox>
                 
                 <!-- Cesta k súboru (pre sekvencie) -->
-                <GroupBox x:Name="grpFilePath"
+                <GroupBox x:Name="AppCommander_GrpFilePath"
                          Header="📁 Sequence reference link" 
                          Visibility="Visible" Style="{DynamicResource GroupBoxStyle}"
                           Padding="10,20,10,25" Margin="5">
@@ -206,7 +206,7 @@
                         </Grid.ColumnDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="File path:" Style="{DynamicResource TextBlockStyle}"/>
-                        <TextBlock x:Name="txtFilePath" 
+                        <TextBlock x:Name="AppCommander_TxtFilePath" 
                                   Grid.Row="0" Grid.Column="1" 
                                   Style="{DynamicResource TextBlockStyle}"
                                   TextWrapping="Wrap"/>
@@ -226,20 +226,20 @@
             <StackPanel Orientation="Horizontal" 
                        HorizontalAlignment="Right"
                        Margin="20,15">
-                <Button x:Name="ButtonSaveCommands" 
+                <Button x:Name="AppCommander_ButtonSaveCommands" 
                         Content="💾 Save changes" 
                         MinWidth="100" MaxWidth="180" 
                         MinHeight="50" MaxHeight="70"
                         Margin="0,0,10,0"
-                        Click="ButtonSaveCommands_Click"
+                        Click="AppCommander_ButtonSaveCommands_Click"
                         IsDefault="True"
                         Style="{DynamicResource PrimaryButton}"/>
 
-                    <Button x:Name="ButtonCancelEdit" 
+                    <Button x:Name="AppCommander_ButtonCancelEdit" 
                             Content="❌ Cancel"  
                             MinWidth="100" MaxWidth="130" 
                             MinHeight="50" MaxHeight="70"
-                            Click="ButtonCancelEdit_Click"
+                            Click="AppCommander_ButtonCancelEdit_Click"
                             IsCancel="True"
                             Style="{DynamicResource DangerButton}"/>
             </StackPanel>

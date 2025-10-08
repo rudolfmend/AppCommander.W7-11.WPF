@@ -1074,8 +1074,6 @@ namespace AppCommander.W7_11.WPF.Core
             return matrix[s1.Length, s2.Length];
         }
 
-        // PRIDAJTE TIETO METÓDY DO AdaptiveElementFinder TRIEDY
-
         /// <summary>
         /// **Rozšírená verzia SmartFindElement s podporou tabuľkových buniek**
         /// </summary>

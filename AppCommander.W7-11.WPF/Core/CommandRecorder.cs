@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AppCommander.W7_11.WPF.Core;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,8 +8,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Forms;
-using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -56,6 +57,85 @@ namespace AppCommander.W7_11.WPF.Core
         private DateTime lastShiftPressTime = DateTime.MinValue;
         private Command pendingShiftCommand = null;
         private const int SHIFT_COMBINATION_TIMEOUT = 100; // ms
+
+        #endregion
+
+        #region AppCommander UI Blacklist
+
+        /// <summary>
+        /// Blacklist všetkých UI elementov AppCommander
+        /// </summary>
+        private static readonly HashSet<string> AppCommanderUIElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // === HLAVNÉ OVLÁDACIE TLAČIDLÁ ===
+            "AppCommander_BtnRecording",              // Start/Stop Recording tlačidlo
+            "AppCommander_BtnSelectTarget",           // Browse target selection
+            "AppCommander_AppCommander_BtnSelectTargetByClick",    // Click to select target
+            "AppCommander_BtnPlayCommands",           // Play button
+            "AppCommander_BtnPause",                  // Pause playback
+            "AppCommander_BtnStop",                   // Stop playback
+    
+            // === AKČNÉ TLAČIDLÁ ===
+            "AppCommander_BtnRefreshStats",           // Refresh statistics
+            "ButtonStartRecording",      // Alternative start recording
+            "ButtonStopRecording",       // Alternative stop recording
+            "BtnSaveSequence",           // Save sequence button
+            "BtnLoadSequence",           // Load sequence button
+    
+            // === TEXTBOXY A INPUTY ===
+            "AppCommander_TxtRepeatCount",            // Repeat count input
+            "AppCommander_TxtSequenceName",           // Sequence name input
+            "AppCommander_TxtSequenceName_Copy",      // Copy of sequence name
+    
+            // === CHECKBOXY ===
+            "AppCommander_ChkInfiniteLoop",           // Infinite loop checkbox
+    
+            // === LABELS A TEXTBLOCKY ===
+            "AppCommander_TxtCommandCount",           // Command count display
+            "AppCommander_AppCommander_TxtStatusBar",              // Status bar text
+            "AppCommander_TxtTarget",                 // Target window info
+            "AppCommander_LblStatusBarRecording",     // Recording status label
+            "AppCommander_TxtSetCount",               // Sets count display
+            "AppCommander_TxtSequenceCount",          // Sequences count display
+            "AppCommander_TxtCommandsCount",          // Commands count display
+            "AppCommander_LblTargetWindow",           // Target window label
+    
+            // === TABUĽKY A ZOZNAMY ===
+            "AppCommander_MainCommandTable",          // Main command DataGrid
+            "AppCommander_LstElementStats",           // Element statistics list
+            "dgWindows",                 // Windows list (WindowSelectorDialog)
+    
+            // === PROGRESS INDIKÁTORY ===
+            "AppCommander_ProgressEnhancedRecording", // Recording progress bar
+    
+            // === INÉ UI ELEMENTY ===
+            "AppCommander_SelectionModeIndicator",    // Selection mode indicator
+            "AppCommander_TxtSelectionMode",          // Selection mode text
+            "AppCommander_MenuBar",                   // Main menu bar
+    
+            // === AUTOMATION PROPERTIES (môžu byť použité ako identifikátory) ===
+            "RecordButton",              // AutomationId for recording button
+            "PlayButton",                // AutomationId for play button
+    
+            // === OKNÁ A DIALÓGY ===
+            "WindowSelectorDialog",      // Window selector dialog
+            "EditCommandWindow",         // Edit command window
+            "AppCommander",              // Main window title/class
+    
+            // === DODATOČNÉ BEZPEČNOSTNÉ POLOŽKY ===
+            // Ak má element text content ktorý obsahuje tieto frázy
+            "Start Recording",
+            "Stop Recording",
+            "Click to Select",
+            "Cancel Selection",
+            "Play",
+            "Pause",
+            "Resume",
+            "Refresh Stats",
+            "Element Inspector",
+            "Settings",
+            "Debug Info"
+        };
 
         #endregion
 
@@ -433,12 +513,16 @@ namespace AppCommander.W7_11.WPF.Core
         #region Recording Methods
 
         /// <summary>
-        /// Spustí nahrávanie s automatickou detekciou
+        /// Spustí nahrávanie s ochranou proti nekonečnej slučke
         /// </summary>
         public virtual void StartRecording(string sequenceName, IntPtr targetWindowHandle = default(IntPtr))
         {
+            // NOVÁ KONTROLA: Zabráň spusteniu nahrávania, ak už beží
             if (isRecording)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ Cannot start recording - already recording!");
                 return;
+            }
 
             try
             {
@@ -460,35 +544,46 @@ namespace AppCommander.W7_11.WPF.Core
                     currentSequence.TargetProcessName = targetProcessName;
                     currentSequence.TargetWindowTitle = GetWindowTitleFromHandle(targetWindow);
                     currentSequence.TargetWindowClass = GetWindowClassFromHandle(targetWindow);
-                    currentSequence.AutoFindTarget = true;
-                    currentSequence.MaxWaitTimeSeconds = 30;
 
-                    // Pridá primary target do sledovaných okien
-                    trackedWindows[targetWindow] = string.Format("{0} - {1}", targetProcessName, currentSequence.TargetWindowTitle);
+                    // **NOVÁ KONTROLA: Zabráň nahrávaniu na samého seba**
+                    if (targetProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                    {
+                        System.Diagnostics.Debug.WriteLine("🚫 Cannot record on AppCommander itself!");
 
-                    System.Diagnostics.Debug.WriteLine(string.Format("Recording target: {0} - {1}", targetProcessName, currentSequence.TargetWindowTitle));
+                        // Upozornenie používateľa (použite vhodný spôsob v kontexte)
+                        System.Diagnostics.Debug.WriteLine("⚠️ User tried to record on AppCommander - operation cancelled");
+                        return;
+                    }
+
+                    // Track this window
+                    if (!trackedWindows.ContainsKey(targetWindow))
+                    {
+                        trackedWindows[targetWindow] = GetWindowTitle(targetWindow);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine(string.Format(
+                        "Recording target: {0} - {1}",
+                        targetProcessName,
+                        currentSequence.TargetWindowTitle ?? ""));
                 }
 
-                LiveRecordingStarted?.Invoke(this, new LiveRecordingStartedEventArgs(currentSequence, sequenceName));
-
-                // Spustí automatické služby
-                StartAutomaticServices(targetWindowHandle);
-
-                // Vytvorí počiatočný kontext okna
-                CreateInitialWindowContext(targetWindowHandle);
-
-                // Start global hooks
+                // Start hook and tracking
                 globalHook.StartHooking();
                 isRecording = true;
 
-                if (RecordingStateChanged != null)
-                    RecordingStateChanged(this, new RecordingStateChangedEventArgs(true, false, sequenceName));
+                // Raise event - OPRAVENÉ: používa správny konštruktor
+                RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs(
+                    isRecording: true,
+                    isPaused: false,
+                    sequenceName: sequenceName
+                ));
 
-                System.Diagnostics.Debug.WriteLine("Recording started successfully");
+                System.Diagnostics.Debug.WriteLine("✅ Recording started successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(string.Format("Error starting recording: {0}", ex.Message));
+                isRecording = false;
+                System.Diagnostics.Debug.WriteLine($"❌ Error starting recording: {ex.Message}");
                 throw;
             }
         }
@@ -1054,7 +1149,7 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Handler pre klik myšou
+        /// Handler pre klik myšou + ignoruje kliky na AppCommander UI
         /// </summary>
         private void OnMouseClicked(object sender, MouseClickedEventArgs e)
         {
@@ -1062,8 +1157,30 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
+                // FILTER 1: Kontrola ProcessName
+                if (e.ProcessName != null &&
+                    e.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click on AppCommander UI: {e.ProcessName}");
+                    return;
+                }
+
+                // FILTER 2: Kontrola Window Handle
+                if (IsAppCommanderWindow(e.WindowHandle))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click on AppCommander window");
+                    return;
+                }
+
                 // Zisti UI element na pozícii kliknutia
                 var elementInfo = UIElementDetector.GetElementAtPoint(e.X, e.Y);
+
+                // FILTER 3: Kontrola UI Blacklistu (nová vrstva)
+                if (elementInfo != null && IsAppCommanderUIElement(elementInfo))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click - element is on AppCommander blacklist");
+                    return;
+                }
 
                 var command = new Command(commandCounter++,
                     elementInfo?.Name ?? $"Click_at_{e.X}_{e.Y}",
@@ -1087,6 +1204,28 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"❌ Error recording mouse click: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Pomocná metóda - skontroluje, či window handle patrí AppCommander
+        /// </summary>
+        private bool IsAppCommanderWindow(IntPtr windowHandle)
+        {
+            try
+            {
+                uint processId;
+                GetWindowThreadProcessId(windowHandle, out processId);
+
+                using (var process = Process.GetProcessById((int)processId))
+                {
+                    return process.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
         #endregion
 
@@ -2072,6 +2211,60 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        //private List<UIElementInfo> ScanWindowElements(IntPtr windowHandle)
+        //{
+        //    var elements = new List<UIElementInfo>();
+
+        //    try
+        //    {
+        //        AutomationElement window = AutomationElement.FromHandle(windowHandle);
+        //        if (window == null) return elements;
+
+        //        // Použite cache request pre lepší performance
+        //        CacheRequest cacheRequest = new CacheRequest();
+        //        cacheRequest.Add(AutomationElement.NameProperty);
+        //        cacheRequest.Add(AutomationElement.AutomationIdProperty);
+        //        cacheRequest.Add(AutomationElement.ClassNameProperty);
+        //        cacheRequest.Add(AutomationElement.ControlTypeProperty);
+        //        cacheRequest.Add(AutomationElement.BoundingRectangleProperty);
+        //        cacheRequest.TreeScope = TreeScope.Element | TreeScope.Descendants;
+
+        //        using (cacheRequest.Activate())
+        //        {
+        //            window = AutomationElement.FromHandle(windowHandle);
+        //            var allElements = window.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+
+        //            foreach (AutomationElement element in allElements)
+        //            {
+        //                try
+        //                {
+        //                    var elementInfo = UIElementDetector.ConvertToUIElementInfo(element);
+        //                    if (elementInfo != null)
+        //                    {
+        //                        elements.Add(elementInfo);
+        //                    }
+        //                }
+        //                catch (ElementNotAvailableException)
+        //                {
+        //                    // Element sa zmenil počas skenovania - skip
+        //                    continue;
+        //                }
+        //                catch (System.Runtime.InteropServices.COMException)
+        //                {
+        //                    // COM error - skip
+        //                    continue;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"Error scanning window elements: {ex.Message}");
+        //    }
+
+        //    return elements;
+        //}
+
         /// <summary>
         /// Získa title okna
         /// </summary>
@@ -2246,6 +2439,90 @@ namespace AppCommander.W7_11.WPF.Core
             };
 
             AddCommand(waitCommand);
+        }
+
+        #endregion
+
+        #region Logic for check - whether the application is recording itself
+        /// <summary>
+        /// Skontroluje, či UI element patrí AppCommander blacklistu
+        /// </summary>
+        private bool IsAppCommanderUIElement(UIElementInfo elementInfo)
+        {
+            if (elementInfo == null)
+                return false;
+
+            try
+            {
+                // Kontrola 1: AutomationId
+                if (!string.IsNullOrEmpty(elementInfo.AutomationId) &&
+                    AppCommanderUIElements.Contains(elementInfo.AutomationId))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Blacklist match: AutomationId = {elementInfo.AutomationId}");
+                    return true;
+                }
+
+                // Kontrola 2: Name
+                if (!string.IsNullOrEmpty(elementInfo.Name) &&
+                    AppCommanderUIElements.Contains(elementInfo.Name))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Blacklist match: Name = {elementInfo.Name}");
+                    return true;
+                }
+
+                // 'elementInfo.ElementText' in IsAppCommanderUIElem
+                // Kontrola 3: Text content
+                if (!string.IsNullOrEmpty(elementInfo.ElementText))
+                {
+                    foreach (var blacklistedText in AppCommanderUIElements)
+                    {
+                        if (elementInfo.ElementText.Contains(blacklistedText))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"🚫 Blacklist match: Text contains '{blacklistedText}'");
+                            return true;
+                        }
+                    }
+                }
+
+                // Kontrola 4: ClassName obsahuje "AppCommander"
+                if (!string.IsNullOrEmpty(elementInfo.ClassName) &&
+                    elementInfo.ClassName.Contains("AppCommander"))
+                {
+                    System.Diagnostics.Debug.WriteLine($"🚫 Blacklist match: ClassName = {elementInfo.ClassName}");
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error checking blacklist: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Pomocná metóda - skontroluje element aj podľa jeho textu
+        /// VOLITEĽNÉ: Môžete použiť pre extra kontrolu
+        /// </summary>
+        private bool ElementContainsBlacklistedText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            var blacklistedPhrases = new[]
+            {
+                "Start Recording",
+                "Stop Recording",
+                "▶    Play",
+                "Pause",
+                "Resume",
+                "Click to Select",
+                "Cancel Selection"
+            };
+
+            return blacklistedPhrases.Any(phrase =>
+                text.IndexOf(phrase, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         #endregion

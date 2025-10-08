@@ -157,9 +157,9 @@ namespace AppCommander.W7_11.WPF
         private void InitializeUI()
         {
             // Nastav názov okna a popisky
-            txtTitle.Text = "📋 Sequence Editor";
-            txtSequenceName.Text = _sequenceName;
-            txtCommandCount.Text = $"{_items.Count} commands";
+            AppCommander_TxtTitle.Text = "📋 Sequence Editor";
+            AppCommander_TxtSequenceName.Text = _sequenceName;
+            AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
 
             // Napoj DataGrid na kolekciu
             CommandTable.ItemsSource = _items;
@@ -167,11 +167,11 @@ namespace AppCommander.W7_11.WPF
             // Nastav status
             if (_isEditingSequenceFile)
             {
-                txtStatusInfo.Text = $"Editing: {System.IO.Path.GetFileName(_originalFilePath)}";
+                AppCommander_TxtStatusInfo.Text = $"Editing: {System.IO.Path.GetFileName(_originalFilePath)}";
             }
             else
             {
-                txtStatusInfo.Text = "Ready to edit";
+                AppCommander_TxtStatusInfo.Text = "Ready to edit";
             }
         }
 
@@ -234,7 +234,7 @@ namespace AppCommander.W7_11.WPF
 
                 // Nastav DialogResult a zavri okno
                 this.DialogResult = true;
-                txtStatusInfo.Text = "Changes saved successfully!";
+                AppCommander_TxtStatusInfo.Text = "Changes saved successfully!";
                 this.Close();
             }
             catch (Exception ex)
@@ -438,7 +438,7 @@ namespace AppCommander.W7_11.WPF
                 UpdateStatus($"Command duplicated: {duplicate.Name}");
 
                 // Aktualizuj počet príkazov
-                txtCommandCount.Text = $"{_items.Count} commands";
+                AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
             }
             catch (Exception ex)
             {
@@ -477,7 +477,7 @@ namespace AppCommander.W7_11.WPF
                     UpdateStatus($"Deleted: {selectedItem.Name}");
 
                     // Aktualizuj počet príkazov
-                    txtCommandCount.Text = $"{_items.Count} commands";
+                    AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
                 }
             }
             catch (Exception ex)
@@ -513,7 +513,7 @@ namespace AppCommander.W7_11.WPF
                 RecalculateStepNumbers();
                 UpdateStatus("Added Wait command (1 second)");
 
-                txtCommandCount.Text = $"{_items.Count} commands";
+                AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
             }
             catch (Exception ex)
             {
@@ -537,7 +537,7 @@ namespace AppCommander.W7_11.WPF
                 RecalculateStepNumbers();
                 UpdateStatus("Added Loop Start (2 iterations)");
 
-                txtCommandCount.Text = $"{_items.Count} commands";
+                AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
             }
             catch (Exception ex)
             {
@@ -561,7 +561,7 @@ namespace AppCommander.W7_11.WPF
                 RecalculateStepNumbers();
                 UpdateStatus("Added Loop End");
 
-                txtCommandCount.Text = $"{_items.Count} commands";
+                AppCommander_TxtCommandCount.Text = $"{_items.Count} commands";
             }
             catch (Exception ex)
             {
@@ -593,9 +593,9 @@ namespace AppCommander.W7_11.WPF
         /// </summary>
         private void UpdateStatus(string message)
         {
-            if (txtStatusInfo != null)
+            if (AppCommander_TxtStatusInfo != null)
             {
-                txtStatusInfo.Text = message;
+                AppCommander_TxtStatusInfo.Text = message;
             }
             System.Diagnostics.Debug.WriteLine($"Status: {message}");
         }

@@ -164,8 +164,6 @@ namespace AppCommander.W7_11.WPF.Core
         public string ErrorMessage { get; set; } = "";
     }
 
-    // Pridajte tieto definície do SharedClasses.cs alebo do samostatného súboru:
-
     namespace AppCommander.W7_11.WPF.Core
     {
         /// <summary>

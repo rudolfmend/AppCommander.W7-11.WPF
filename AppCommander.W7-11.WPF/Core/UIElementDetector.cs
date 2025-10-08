@@ -745,6 +745,20 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        private static AutomationElement GetElementWithCache(IntPtr windowHandle)
+        {
+            CacheRequest cacheRequest = new CacheRequest();
+            cacheRequest.Add(AutomationElement.NameProperty);
+            cacheRequest.Add(AutomationElement.AutomationIdProperty);
+            cacheRequest.Add(AutomationElement.ClassNameProperty);
+            cacheRequest.TreeScope = TreeScope.Element;
+
+            using (cacheRequest.Activate())
+            {
+                return AutomationElement.FromHandle(windowHandle);
+            }
+        }
+
         private static AutomationElement FindByExactName(AutomationElement parent, string name)
         {
             try
@@ -786,11 +800,42 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                object value = element.GetCurrentPropertyValue(property); // tu je chyba pri písaní do sledovaného UI elementu 
+                // Kontrola platnosti elementu pred získaním vlastnosti
+                if (element == null || property == null)
+                    return "";
+
+                // Pokus o získanie vlastnosti s AutomationElementNotAvailableException handling
+                object value = element.GetCurrentPropertyValue(property, true); // true = use cached value if available
                 return value?.ToString() ?? "";
             }
-            catch
+            catch (ElementNotAvailableException)
             {
+                // Element už nie je dostupný - typické pri písaní do sledovaného UI elementu
+                System.Diagnostics.Debug.WriteLine($"Element not available for property {property.ProgrammaticName}");
+                return "";
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                // COM chyba - často pri NonComVisibleBaseClass
+                System.Diagnostics.Debug.WriteLine($"COM exception for property {property.ProgrammaticName}");
+                return "";
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Prístup zamietnutý
+                System.Diagnostics.Debug.WriteLine($"Access denied for property {property.ProgrammaticName}");
+                return "";
+            }
+            catch (InvalidOperationException)
+            {
+                // Neplatná operácia
+                System.Diagnostics.Debug.WriteLine($"Invalid operation for property {property.ProgrammaticName}");
+                return "";
+            }
+            catch (Exception ex)
+            {
+                // Ostatné nečakané výnimky
+                System.Diagnostics.Debug.WriteLine($"Unexpected error getting property {property.ProgrammaticName}: {ex.Message}");
                 return "";
             }
         }
