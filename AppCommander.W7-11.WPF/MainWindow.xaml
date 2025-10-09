@@ -223,6 +223,8 @@
                                     <Separator/>
                                     <MenuItem Header="⬆️ Move Up" Click="MoveUp_Click"/>
                                     <MenuItem Header="⬇️ Move Down" Click="MoveDown_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="↻ Refresh table" Click="RefreshWarnings_Click" />
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
 

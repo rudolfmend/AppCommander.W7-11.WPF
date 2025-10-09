@@ -512,7 +512,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // NOVÁ KONTROLA: Zabráň nahrávaniu počas playbacku
+                // Zabráň nahrávaniu počas playbacku
                 if (_player != null && _player.IsPlaying)
                 {
                     MessageBox.Show(
@@ -534,7 +534,7 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                // NOVÁ KONTROLA: Target nesmie byť AppCommander
+                // KONTROLA: Target nesmie byť AppCommander
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 if (targetProcess.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1428,7 +1428,7 @@ namespace AppCommander.W7_11.WPF
                 _currentUnifiedSequenceFilePath = string.Empty;
                 _hasUnsavedUnifiedChanges = false;
 
-                UpdateUnifiedUI();
+                UpdateMainWindowUI();
                 UpdateStatus("New unified sequence created");
                 UpdateUI();
             }
@@ -1438,64 +1438,72 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void UpdateUnifiedUI()
+        private void UpdateMainWindowUI()
         {
-            AppCommander_TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
-            AppCommander_TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-            AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-            //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
-            //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
-
-            //AppCommander_TxtSequenceName_Copy.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
-            if (AppCommander_TxtSequenceName_Copy is TextBox textBox)
+            try
             {
-                textBox.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+                AppCommander_TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
+                AppCommander_TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+                AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+                //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+                //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
+
+                //AppCommander_TxtSequenceName_Copy.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+                if (AppCommander_TxtSequenceName_Copy is TextBox textBox)
+                {
+                    textBox.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
+                }
+                //lstUnifiedItems.ItemsSource = _unifiedItems;
+                UpdateUI();
+
+                // Aktualizuje title okna
+                string title = "AppCommander";
+                if (!string.IsNullOrEmpty(_currentUnifiedSequenceFilePath))
+                {
+                    title += string.Format(" - {0}", Path.GetFileName(_currentUnifiedSequenceFilePath));
+                }
+                if (_hasUnsavedUnifiedChanges)
+                {
+                    title += " *";
+                }
+                this.Title = title;
+
+                // Aktualizuje status bar
+                AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+
+                // Aktualizuje enabled stav menu položiek
+                AppCommander_MenuBar.IsEnabled = _unifiedItems.Count > 0;
+                //menuItem.IsEnabled = _hasUnsavedUnifiedChanges && _unifiedItems.Count > 0;
+
+                // Aktualizuje enabled stav playback tlačidiel
+                AppCommander_BtnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+                AppCommander_BtnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
+                AppCommander_BtnPause.IsEnabled = _player?.IsPlaying ?? false;
+                AppCommander_BtnStop.IsEnabled = _player?.IsPlaying ?? false;
+
+                // Aktualizuje enabled stav recording tlačidiel
+                AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
+                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
+                AppCommander_BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
+
+                // Aktualizuje stavový riadok
+                if (_recorder?.IsRecording ?? false)
+                {
+                    UpdateStatus("Recording in progress...");
+                }
+                else if (_player?.IsPlaying ?? false)
+                {
+                    UpdateStatus("Playback in progress...");
+                    UpdateUnsavedCommandsWarning();
+                }
+                else
+                {
+                    UpdateStatus("Ready");
+                }
             }
-            //lstUnifiedItems.ItemsSource = _unifiedItems;
-            UpdateUI();
-
-            // Aktualizuje title okna
-            string title = "AppCommander";
-            if (!string.IsNullOrEmpty(_currentUnifiedSequenceFilePath))
+            catch (Exception ex)
             {
-                title += string.Format(" - {0}", Path.GetFileName(_currentUnifiedSequenceFilePath));
-            }
-            if (_hasUnsavedUnifiedChanges)
-            {
-                title += " *";
-            }
-            this.Title = title;
-
-            // Aktualizuje status bar
-            AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-
-            // Aktualizuje enabled stav menu položiek
-            AppCommander_MenuBar.IsEnabled = _unifiedItems.Count > 0;
-            //menuItem.IsEnabled = _hasUnsavedUnifiedChanges && _unifiedItems.Count > 0;
-
-            // Aktualizuje enabled stav playback tlačidiel
-            AppCommander_BtnPlayCommands.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            AppCommander_BtnQuickReselect.IsEnabled = _unifiedItems.Count > 0 && !(_recorder?.IsRecording ?? false) && !(_player?.IsPlaying ?? false);
-            AppCommander_BtnPause.IsEnabled = _player?.IsPlaying ?? false;
-            AppCommander_BtnStop.IsEnabled = _player?.IsPlaying ?? false;
-
-            // Aktualizuje enabled stav recording tlačidiel
-            AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
-            AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
-            AppCommander_BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
-
-            // Aktualizuje stavový riadok
-            if (_recorder?.IsRecording ?? false)
-            {
-                UpdateStatus("Recording in progress...");
-            }
-            else if (_player?.IsPlaying ?? false)
-            {
-                UpdateStatus("Playback in progress...");
-            }
-            else
-            {
-                UpdateStatus("Ready");
+                Debug.WriteLine($"Error in UpdateMainWindowUI: {ex.Message}");
             }
         }
 
@@ -1522,6 +1530,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         #endregion
+
         #region Unified Table Playback Support
 
         /// <summary>
@@ -1799,7 +1808,7 @@ namespace AppCommander.W7_11.WPF
                 _currentUnifiedSequenceFilePath = filePath;
                 _hasUnsavedUnifiedChanges = false;
 
-                UpdateUnifiedUI();
+                UpdateMainWindowUI();
                 UpdateStatus($"Unified sequence saved: {Path.GetFileName(filePath)} ({_unifiedItems.Count} items)");
 
                 Debug.WriteLine($"Unified sequence saved to: {filePath}");
@@ -1901,7 +1910,7 @@ namespace AppCommander.W7_11.WPF
                     textBox.Text = unifiedSequence.Name ?? Path.GetFileNameWithoutExtension(filePath);
                 }
 
-                UpdateUnifiedUI();
+                UpdateMainWindowUI();
                 UpdateStatus($"Unified sequence loaded: {Path.GetFileName(filePath)} ({_unifiedItems.Count} items)");
 
                 Debug.WriteLine($"Unified sequence loaded from: {filePath}");
@@ -2054,7 +2063,7 @@ namespace AppCommander.W7_11.WPF
                 RecalculateStepNumbers();
                 UpdateStatus($"Added {addedCount} commands to unified sequence");
 
-                // NOVÁ LOGIKA: Ponúkni zmazanie len ak užívateľ zaznamenal DRUHÚ sadu príkazov
+                // LOGIKA: Ponúkni zmazanie len ak užívateľ zaznamenal DRUHÚ sadu príkazov
                 // Kontrolujeme či unified items už obsahovali nejaké príkazy pred týmto pridaním
                 bool hadPreviousCommands = startIndex > 0;
 
@@ -2877,7 +2886,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void TAppCommander_TxtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
+        private void AppCommander_TxtRepeatCount_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
             {
@@ -3365,6 +3374,174 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error saving sequence set as", ex);
+            }
+        }
+
+        #endregion
+
+        #region Unsaved Commands Warning Management
+
+        /// <summary>
+        /// Aktualizuje warning položku v unified tabuľke
+        /// </summary>
+        private void UpdateUnsavedCommandsWarning()
+        {
+            try
+            {
+                // Skontrolovať či sú nahrané príkazy, ktoré nie sú v unified tabuľke
+                bool hasUnsavedCommands = _commands != null && _commands.Count > 0;
+
+                // Nájsť existujúcu warning položku
+                var existingWarning = _unifiedItems?.FirstOrDefault(
+                    item => item.Type == UnifiedItem.ItemType.LiveRecording &&
+                            item.Name == "⚠️ Unsaved Command Set");
+
+                if (hasUnsavedCommands)
+                {
+                    // Ak nie je warning položka, vytvor ju
+                    if (existingWarning == null && _unifiedItems != null)
+                    {
+                        var warningItem = new UnifiedItem(UnifiedItem.ItemType.LiveRecording)
+                        {
+                            StepNumber = 1,
+                            Name = "⚠️ Unsaved Command Set",
+                            Action = "Click to edit or add to sequence",
+                            Value = $"{_commands.Count} command(s) recorded",
+                            RepeatCount = 1,
+                            Status = "⚠️ Warning",
+                            Timestamp = DateTime.Now,
+                            IsLiveRecording = true,
+                            LiveSequenceReference = _recorder?.GetCurrentSequence()
+                        };
+
+                        // Pridať na začiatok tabuľky
+                        _unifiedItems.Insert(0, warningItem);
+                        RecalculateStepNumbers();
+
+                        Debug.WriteLine($"Warning item added: {_commands.Count} unsaved commands");
+                    }
+                    else if (existingWarning != null)
+                    {
+                        // Aktualizovať existujúcu warning položku
+                        existingWarning.Value = $"{_commands.Count} command(s) recorded";
+                        existingWarning.Timestamp = DateTime.Now;
+                        AppCommander_MainCommandTable?.Items.Refresh();
+                    }
+                }
+                else
+                {
+                    // Ak nie sú unsaved príkazy, odstrániť warning položku
+                    if (existingWarning != null && _unifiedItems != null)
+                    {
+                        _unifiedItems.Remove(existingWarning);
+                        RecalculateStepNumbers();
+                        AppCommander_MainCommandTable?.Items.Refresh();
+
+                        Debug.WriteLine("Warning item removed - no unsaved commands");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating unsaved commands warning: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handler pre kliknutie na warning položku
+        /// </summary>
+        private void HandleWarningItemClick(UnifiedItem warningItem)
+        {
+            try
+            {
+                if (warningItem == null || warningItem.Type != UnifiedItem.ItemType.LiveRecording)
+                    return;
+
+                // Zobraz dialog s možnosťami
+                var result = MessageBox.Show(
+                    $"You have {_commands.Count} recorded commands that are not yet added to the main sequence.\n\n" +
+                    "What would you like to do?\n\n" +
+                    "• YES - Open editor to review and edit commands\n" +
+                    "• NO - Add commands to main sequence immediately\n" +
+                    "• CANCEL - Do nothing",
+                    "Unsaved Commands",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Otvorí Sequence Editor pre nahrané príkazy
+                    OpenEditorForRecordedCommands();
+                }
+                else if (result == MessageBoxResult.No)
+                {
+                    // Pridá príkazy do AppCommander_MainCommandTable tabuľky
+                    AddRecordedCommands_Click(null, null);
+                }
+                // Cancel - nič sa nestane
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error handling warning item click", ex);
+            }
+        }
+
+        /// <summary>
+        /// Otvorí editor pre nahrané príkazy
+        /// </summary>
+        private void OpenEditorForRecordedCommands()
+        {
+            try
+            {
+                if (_commands == null || _commands.Count == 0)
+                {
+                    MessageBox.Show(
+                        "No recorded commands to edit.",
+                        "No Commands",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                // Konvertuj príkazy na UnifiedItems
+                var itemsToEdit = new List<UnifiedItem>();
+                for (int i = 0; i < _commands.Count; i++)
+                {
+                    var unifiedItem = UnifiedItem.FromCommand(_commands[i], i + 1);
+                    itemsToEdit.Add(unifiedItem);
+                }
+
+                // Otvor Sequence Editor
+                var editorWindow = new SequenceEditorWindow(itemsToEdit, "Recorded Commands")
+                {
+                    Owner = this
+                };
+
+                bool? dialogResult = editorWindow.ShowDialog();
+
+                if (dialogResult == true && editorWindow.WasSaved)
+                {
+                    // Užívateľ uložil zmeny - aktualizuj _commands
+                    _commands.Clear();
+
+                    foreach (var item in editorWindow.EditedItems)
+                    {
+                        if (item.Type != UnifiedItem.ItemType.SequenceReference)
+                        {
+                            var command = item.ToCommand();
+                            command.StepNumber = _commands.Count + 1;
+                            _commands.Add(command);
+                        }
+                    }
+
+                    UpdateUI();
+                    UpdateUnsavedCommandsWarning();
+                    UpdateStatus($"Recorded commands updated - {_commands.Count} commands");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening editor for recorded commands", ex);
             }
         }
 
@@ -3928,11 +4105,33 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
+
+                // **Špecializovaná obsluha pre warning položku**
+                if (selectedItem?.Type == UnifiedItem.ItemType.LiveRecording &&
+                    selectedItem.Name == "⚠️ Unsaved Command Set")
+                {
+                    HandleWarningItemClick(selectedItem);
+                    return;
+                }
+
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error opening editor", ex);
+            }
+        }
+
+        private void RefreshWarnings_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                UpdateUnsavedCommandsWarning();
+                UpdateStatus("Warnings refreshed");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error refreshing warnings", ex);
             }
         }
 
@@ -3994,7 +4193,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
         #endregion
-
 
         #region Advanced Execution Features
 
@@ -4075,7 +4273,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Execute Modified Sequence - OPRAVENÉ METÓDY
+        #region Execute Modified Sequence 
 
         /// <summary>
         /// Spustí aktuálnu (upravenú) sekvenciu príkazov
@@ -4277,7 +4475,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Advanced Execution Features - OPRAVENÉ
+        #region Advanced Execution Features 
 
         /// <summary>
         /// Spustí sekvenciu od vybraného príkazu
@@ -4532,7 +4730,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Command Duplication - OPRAVENÉ
+        #region Command Duplication 
 
         /// <summary>
         /// Duplikuje vybraný príkaz
@@ -4663,7 +4861,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Batch Edit - OPRAVENÉ
+        #region Batch Edit 
 
         /// <summary>
         /// Hromadná editácia označených príkazov
@@ -4941,22 +5139,34 @@ namespace AppCommander.W7_11.WPF
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // UPRAVENÉ EVENT HANDLERY - Všetky používajú OpenSmartEditor
+        // EVENT HANDLERY - Všetky používajú OpenSmartEditor
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>
         /// Double-click na riadok v tabuľke
         /// </summary>
-        private void AppCommander_MainCommandTable_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void AppCommander_MainCommandTable_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             try
             {
                 var selectedItem = AppCommander_MainCommandTable.SelectedItem as UnifiedItem;
+                if (selectedItem == null)
+                    return;
+
+                // **Špecializovaná obsluha pre warning položku**
+                if (selectedItem.Type == UnifiedItem.ItemType.LiveRecording &&
+                    selectedItem.Name == "⚠️ Unsaved Command Set")
+                {
+                    HandleWarningItemClick(selectedItem);
+                    return;
+                }
+
+                // logika pre ostatné položky
                 OpenSmartEditor(selectedItem);
             }
             catch (Exception ex)
             {
-                ShowErrorMessage("Error opening editor", ex);
+                ShowErrorMessage("Error handling double click", ex);
             }
         }
 
