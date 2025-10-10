@@ -210,6 +210,7 @@ namespace AppCommander.W7_11.WPF
 
                 SubscribeToEvents();
                 UpdateUI();
+                UpdateUnsavedCommandsWarning();
                 UpdateStatus("Application initialized - Ready to start");
 
                 Debug.WriteLine("MainWindow initialized successfully");
@@ -314,18 +315,23 @@ namespace AppCommander.W7_11.WPF
 
                     if (e.IsRecording)
                     {
-                        var message = e.IsPaused ? "Recording paused" : string.Format("Recording: {0}", e.SequenceName);
+                        var message = e.IsPaused ?
+                            string.Format("Recording paused: {0}", e.SequenceName) :
+                            string.Format("Recording started: {0}", e.SequenceName);
                         UpdateStatus(message);
                     }
                     else
                     {
-                        UpdateStatus("Recording stopped");
+                        UpdateStatus(string.Format("Recording stopped: {0}", e.SequenceName));
+
+                        // **PRIDAJTE TENTO RIADOK:**
+                        UpdateUnsavedCommandsWarning();
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format("Error handling recording state change: {0}", ex.Message));
+                Debug.WriteLine(string.Format("Error handling recording state changed: {0}", ex.Message));
             }
         }
 
@@ -1489,7 +1495,9 @@ namespace AppCommander.W7_11.WPF
                 // Aktualizuje stavový riadok
                 if (_recorder?.IsRecording ?? false)
                 {
-                    UpdateStatus("Recording in progress...");
+                    UpdateStatus("Recording in progress..."); 
+                    UpdateUnsavedCommandsWarning();
+
                 }
                 else if (_player?.IsPlaying ?? false)
                 {
@@ -1499,11 +1507,16 @@ namespace AppCommander.W7_11.WPF
                 else
                 {
                     UpdateStatus("Ready");
+                    UpdateUnsavedCommandsWarning();
                 }
+
+                UpdateUnsavedCommandsWarning();
+
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in UpdateMainWindowUI: {ex.Message}");
+                UpdateUnsavedCommandsWarning();
             }
         }
 
@@ -2062,6 +2075,7 @@ namespace AppCommander.W7_11.WPF
                 _hasUnsavedUnifiedChanges = true;
                 RecalculateStepNumbers();
                 UpdateStatus($"Added {addedCount} commands to unified sequence");
+                UpdateUnsavedCommandsWarning();
 
                 // LOGIKA: Ponúkni zmazanie len ak užívateľ zaznamenal DRUHÚ sadu príkazov
                 // Kontrolujeme či unified items už obsahovali nejaké príkazy pred týmto pridaním
@@ -2124,6 +2138,10 @@ namespace AppCommander.W7_11.WPF
                     // Ak toto bola prvá sada príkazov, len informuj užívateľa
                     UpdateStatus($"First set of {addedCount} commands added. Record more commands to enable clear option.");
                 }
+
+                UpdateUnsavedCommandsWarning();
+                Debug.WriteLine("called method UpdateUnsavedCommandsWarning() in method AddFromCommands_Click()");
+
             }
             catch (Exception ex)
             {
@@ -2343,6 +2361,8 @@ namespace AppCommander.W7_11.WPF
 
                     UpdateStatus($"Deleted item: {itemName}");
                 }
+
+                UpdateUnsavedCommandsWarning();
             }
             catch (Exception ex)
             {
@@ -3411,7 +3431,7 @@ namespace AppCommander.W7_11.WPF
                             Status = "⚠️ Warning",
                             Timestamp = DateTime.Now,
                             IsLiveRecording = true,
-                            LiveSequenceReference = _recorder?.GetCurrentSequence()
+                            LiveSequenceReference = _recorder?.GetCurrentSequence
                         };
 
                         // Pridať na začiatok tabuľky
@@ -3476,7 +3496,7 @@ namespace AppCommander.W7_11.WPF
                 else if (result == MessageBoxResult.No)
                 {
                     // Pridá príkazy do AppCommander_MainCommandTable tabuľky
-                    AddRecordedCommands_Click(null, null);
+                    AddFromCommands_Click(null, null);
                 }
                 // Cancel - nič sa nestane
             }
