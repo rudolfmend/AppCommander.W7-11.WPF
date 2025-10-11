@@ -62,7 +62,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         public string TableCellContent { get; set; } = "";
 
-        // Key-specific data - OPRAVENÉ: pridaná serializácia
+        // Key-specific data - : pridaná serializácia
         private Keys _key = Keys.None;
         public Keys Key
         {

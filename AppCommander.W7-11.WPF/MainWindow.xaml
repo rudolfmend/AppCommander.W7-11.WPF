@@ -19,10 +19,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
- 
+        
+        <!-- ====================================================================== -->
         <!-- Menu Bar -->
-        <!--<Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">-->
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
 
             <Menu x:Name="AppCommander_MenuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
@@ -165,7 +166,7 @@
             <!-- Commands Panel -->
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" 
               Style="{DynamicResource ScrollViewerStyle}">
-                <Border Style="{DynamicResource CardStyle}">
+                <Border Style="{DynamicResource CardStyle}" >
                     <Grid Margin="16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -251,6 +252,7 @@
                     </Grid>
                 </Border>
             </ScrollViewer>
+
 
             <!-- Side Panel -->
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{DynamicResource ScrollViewerStyle}">
@@ -402,9 +404,16 @@
             </ScrollViewer>
         </Grid>
 
+        <Border Background="Transparent"  Grid.Row="3" >
+            <TextBlock Text="Bottom – The area below the main content"   Visibility="Collapsed"  
+                       AutomationProperties.Name="Bottom - Area below the Main Content" 
+                       MinHeight="5" MaxHeight="15" />
+        </Border>
+        
+        <!-- ================================================================================================================ -->
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
-                Padding="16,8">
+        <Border Grid.Row="4" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
+                Padding="16,8" AutomationProperties.Name="Status bar at the bottom">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

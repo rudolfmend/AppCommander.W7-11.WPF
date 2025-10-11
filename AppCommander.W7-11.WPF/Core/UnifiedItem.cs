@@ -606,20 +606,81 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (item.Type == UnifiedItem.ItemType.SequenceReference)
                 {
-                    // For sequence references, we'd need to load and expand them
-                    // For now, add a comment command
-                    commands.Add(new Command
+                    // Načítaj a rozbal príkazy zo súboru sekvencie
+                    try
                     {
-                        StepNumber = item.StepNumber,
-                        Type = CommandType.Comment,
-                        ElementName = $"Execute: {item.Name}",
-                        Value = item.FilePath,
-                        Timestamp = item.Timestamp
-                    });
+                        if (!string.IsNullOrEmpty(item.FilePath) && System.IO.File.Exists(item.FilePath))
+                        {
+                            var json = System.IO.File.ReadAllText(item.FilePath);
+                            var loadedSequence = Newtonsoft.Json.JsonConvert.DeserializeObject<CommandSequence>(json);
+
+                            if (loadedSequence != null && loadedSequence.Commands != null)
+                            {
+                                // Pridaj všetky príkazy zo súboru
+                                // Opakuj ich podľa RepeatCount
+                                for (int i = 0; i < item.RepeatCount; i++)
+                                {
+                                    foreach (var cmd in loadedSequence.Commands)
+                                    {
+                                        // Vytvor kópiu príkazu s novým step numberom
+                                        var commandCopy = new Command
+                                        {
+                                            StepNumber = commands.Count + 1,
+                                            Type = cmd.Type,
+                                            ElementName = cmd.ElementName,
+                                            Value = cmd.Value,
+                                            ElementX = cmd.ElementX,
+                                            ElementY = cmd.ElementY,
+                                            ElementId = cmd.ElementId,
+                                            ElementClass = cmd.ElementClass,
+                                            TargetWindow = cmd.TargetWindow,
+                                            TargetProcess = cmd.TargetProcess,
+                                            RepeatCount = cmd.RepeatCount,
+                                            IsLoopStart = cmd.IsLoopStart,
+                                            IsLoopEnd = cmd.IsLoopEnd,
+                                            Timestamp = DateTime.Now
+                                        };
+                                        commands.Add(commandCopy);
+                                    }
+                                }
+
+                                System.Diagnostics.Debug.WriteLine($"✅ Loaded {loadedSequence.Commands.Count} commands from: {item.FilePath}");
+                            }
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ Sequence file not found: {item.FilePath}");
+                            // Pridaj chybový komentár
+                            commands.Add(new Command
+                            {
+                                StepNumber = commands.Count + 1,
+                                Type = CommandType.Comment,
+                                ElementName = $"ERROR: File not found - {item.Name}",
+                                Value = item.FilePath,
+                                Timestamp = DateTime.Now
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Error loading sequence {item.FilePath}: {ex.Message}");
+                        // Pridaj chybový komentár
+                        commands.Add(new Command
+                        {
+                            StepNumber = commands.Count + 1,
+                            Type = CommandType.Comment,
+                            ElementName = $"ERROR: Failed to load - {item.Name}",
+                            Value = ex.Message,
+                            Timestamp = DateTime.Now
+                        });
+                    }
                 }
                 else
                 {
-                    commands.Add(item.ToCommand());
+                    // Pre normálne príkazy (Command, LoopStart, LoopEnd, Wait)
+                    var command = item.ToCommand();
+                    command.StepNumber = commands.Count + 1;
+                    commands.Add(command);
                 }
             }
 

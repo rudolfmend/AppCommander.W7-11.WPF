@@ -189,7 +189,7 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_MainCommandTable.ItemsSource = _unifiedItems;
             }
 
-            Debug.WriteLine("Unified table initialized");
+            Debug.WriteLine("AppCommander_MainCommandTable table initialized");
         }
 
         private void InitializeApplication()
@@ -420,7 +420,7 @@ namespace AppCommander.W7_11.WPF
         #region UI Update Fixes
 
         /// <summary>
-        /// Resetuje UI po click selection - OPRAVENÉ
+        /// Resetuje UI po click selection 
         /// </summary>
         private void ResetClickSelectionUI()
         {
@@ -441,7 +441,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Aktualizuje target window information - OPRAVENÉ
+        /// Aktualizuje target window information 
         /// </summary>
         private void UpdateTargetWindowInfo(WindowTrackingInfo windowInfo)
         {
@@ -486,7 +486,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Aktualizuje status labels - OPRAVENÉ
+        /// Aktualizuje status labels 
         /// </summary>
         private void UpdateStatusLabels(bool isRecording)
         {
@@ -512,7 +512,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Recording Methods - OPRAVENÉ
+        #region Recording Methods - 
 
         private void StartNewRecording()
         {
@@ -605,12 +605,123 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_ProgressEnhancedRecording.IsIndeterminate = false;
 
                 UpdateStatus("Recording stopped");
+
+                // ✅ NOVÁ LOGIKA: Automaticky ulož príkazy po ukončení nahrávania
+                if (_commands != null && _commands.Count > 0)
+                {
+                    // Opýtaj sa používateľa, či chce uložiť príkazy
+                    var result = MessageBox.Show(
+                        $"You have recorded {_commands.Count} commands.\n\n" +
+                        "Do you want to save them as a sequence file?\n\n" +
+                        "• YES - Save to file and add to sequence list\n" +
+                        "• NO - Keep commands in memory (unsaved)\n" +
+                        "• CANCEL - Discard recorded commands",
+                        "Save Recorded Commands",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        // Automatické uloženie s default názvom
+                        var defaultFileName = $"Sequence_{DateTime.Now:yyyyMMdd_HHmmss}.acc";
+                        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                        var appCommanderPath = Path.Combine(documentsPath, "AppCommander", "Sequences");
+
+                        // Vytvor adresár ak neexistuje
+                        Directory.CreateDirectory(appCommanderPath);
+
+                        var filePath = Path.Combine(appCommanderPath, defaultFileName);
+
+                        // Ulož príkazy do súboru
+                        SaveSequenceToFile(filePath);
+
+                        // Pridaj SequenceReference do AppCommander_MainCommandTable tabuľky
+                        OnSequenceSavedSuccessfully(filePath);
+
+                        MessageBox.Show(
+                            $"Sequence saved successfully!\n\n" +
+                            $"File: {defaultFileName}\n" +
+                            $"Location: {appCommanderPath}\n" +
+                            $"Commands: {_commands.Count}",
+                            "Save Successful",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                    }
+                    else if (result == MessageBoxResult.Cancel)
+                    {
+                        // Vymaž príkazy
+                        _commands.Clear();
+                        UpdateStatus("Recorded commands discarded");
+                    }
+                    // Ak NO - ponechaj príkazy v _commands (neuložené)
+                }
+
+                UpdateUnsavedCommandsWarning();
             }
             catch (Exception ex)
             {
                 ShowErrorMessage("Error stopping recording", ex);
             }
         }
+
+        // ALTERNATÍVNE RIEŠENIE: Automatické uloženie BEZ dialógu ↓
+
+        //private void StopCurrentRecording()
+        //{
+        //    try
+        //    {
+        //        _recorder.StopRecording();
+        //        _windowTracker.StopTracking();
+        //        _automaticUIManager.StopMonitoring();
+
+        //        AppCommander_BtnRecording.Content = "🔴 Start Recording";
+        //        AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
+
+        //        UpdateStatusLabels(false);
+
+        //        AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
+        //        AppCommander_ProgressEnhancedRecording.IsIndeterminate = false;
+
+        //        UpdateStatus("Recording stopped");
+
+        //        // ✅ AUTOMATICKÉ ULOŽENIE: Ulož príkazy ihneď po ukončení nahrávania
+        //        if (_commands != null && _commands.Count > 0)
+        //        {
+        //            try
+        //            {
+        //                // Vytvor default názov súboru
+        //                var defaultFileName = $"Sequence_{DateTime.Now:yyyyMMdd_HHmmss}.acc";
+        //                var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        //                var appCommanderPath = Path.Combine(documentsPath, "AppCommander", "Sequences");
+
+        //                // Vytvor adresár ak neexistuje
+        //                Directory.CreateDirectory(appCommanderPath);
+
+        //                var filePath = Path.Combine(appCommanderPath, defaultFileName);
+
+        //                // Ulož príkazy do súboru
+        //                SaveSequenceToFile(filePath);
+
+        //                // Pridaj SequenceReference do AppCommander_MainCommandTable tabuľky
+        //                OnSequenceSavedSuccessfully(filePath);
+
+        //                UpdateStatus($"Sequence auto-saved: {defaultFileName} ({_commands.Count} commands)");
+        //                Debug.WriteLine($"✅ Auto-saved sequence to: {filePath}");
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Debug.WriteLine($"❌ Auto-save failed: {ex.Message}");
+        //                UpdateStatus($"Auto-save failed - {ex.Message}");
+        //            }
+        //        }
+
+        //        UpdateUnsavedCommandsWarning();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ShowErrorMessage("Error stopping recording", ex);
+        //    }
+        //}
 
         #endregion
 
@@ -658,7 +769,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region UI Update Method - OPRAVENÉ
+        #region UI Update Method - 
 
         private void UpdateUI()
         {
@@ -787,7 +898,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Selection UI Updates - OPRAVENÉ
+        #region Selection UI Updates - 
 
         private async void SelectTargetByClick_Click(object sender, RoutedEventArgs e)
         {
@@ -1295,7 +1406,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // Ak používame unified table, vytvor unified sequence
+                // Ak používame AppCommander_MainCommandTable, vytvor unified sequence
                 if (_unifiedItems.Count > 0 || _commands.Count == 0)
                 {
                     NewUnifiedSequence();
@@ -1406,7 +1517,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Vyčistí unified table a vytvorí novú
+        /// Vyčistí AppCommander_MainCommandTable a vytvorí novú
         /// </summary>
         private void NewUnifiedSequence()
         {
@@ -1534,6 +1645,9 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true)
                 {
                     SaveSequenceToFile(dialog.FileName);
+
+                    // ✅ PO ULOŽENÍ: Aktualizuj UI
+                    OnSequenceSavedSuccessfully(dialog.FileName);
                 }
             }
             catch (Exception ex)
@@ -1542,12 +1656,68 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
+        /// <summary>
+        /// Volaná po úspešnom uložení sekvencie - aktualizuje UI
+        /// </summary>
+        private void OnSequenceSavedSuccessfully(string filePath)
+        {
+            try
+            {
+                // 1. Odstráň warning položku z MainCommandTable tabuľky
+                var warningItem = _unifiedItems?.FirstOrDefault(
+                    item => item.Type == UnifiedItem.ItemType.LiveRecording &&
+                            item.Name == "⚠️ Unsaved Command Set");
+
+                if (warningItem != null && _unifiedItems != null)
+                {
+                    _unifiedItems.Remove(warningItem);
+                    Debug.WriteLine("Warning item removed after saving sequence");
+                }
+
+                // 2. Pridaj novú položku SequenceReference do MainCommandTable tabuľky
+                var fileName = Path.GetFileNameWithoutExtension(filePath);
+                var commandCount = _commands?.Count ?? 0;
+
+                var sequenceItem = new UnifiedItem(UnifiedItem.ItemType.SequenceReference)
+                {
+                    StepNumber = _unifiedItems?.Count + 1 ?? 1,
+                    Name = fileName,
+                    Action = "Sequence File",
+                    Value = $"{commandCount} command(s)",
+                    RepeatCount = 1,
+                    Status = "Ready",
+                    Timestamp = DateTime.Now,
+                    FilePath = filePath
+                };
+
+                _unifiedItems?.Add(sequenceItem);
+
+                // 3. Prepočítaj step numbers
+                RecalculateStepNumbers();
+
+                // 4. Vyčisti _commands list (príkazy sú teraz uložené v súbore)
+                _commands?.Clear();
+
+                // 5. Aktualizuj UI
+                AppCommander_MainCommandTable?.Items.Refresh();
+                UpdateUnsavedCommandsWarning();
+
+                UpdateStatus($"✅ Sequence '{fileName}' saved and added to sequence list");
+                Debug.WriteLine($"Sequence saved and UI updated: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating UI after save: {ex.Message}");
+                ShowErrorMessage("Error updating sequence list", ex);
+            }
+        }
+
         #endregion
 
-        #region Unified Table Playback Support
+        #region MainCommandTable Playback Support
 
         /// <summary>
-        /// Spustí playback z unified table
+        /// Spustí playback z MainCommandTable
         /// </summary>
         private void PlayUnifiedSequence()
         {
@@ -1597,7 +1767,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Aktualizuje StartPlayback_Click aby podporovala unified table
+        /// Aktualizuje StartPlayback_Click aby podporovala AppCommander_MainCommandTable
         /// </summary>
         private void StartPlayback_Click(object sender, RoutedEventArgs e)
         {
@@ -1609,7 +1779,7 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                // Prefer unified table if it has content
+                // Prefer AppCommander_MainCommandTable table if it has content
                 if (_unifiedItems.Count > 0)
                 {
                     PlayUnifiedSequence();
@@ -1948,10 +2118,10 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Updated Unified Table Methods
+        #region Updated AppCommander_MainCommandTable Table Methods
 
         /// <summary>
-        /// Presúva položku vyššie v unified tabuľke
+        /// Presúva položku vyššie v MainCommandTable tabuľke
         /// </summary>
         private void MoveUp_Click(object sender, RoutedEventArgs e)
         {
@@ -1983,7 +2153,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Presúva položku nižšie v unified tabuľke
+        /// Presúva položku nižšie v MainCommandTable tabuľke
         /// </summary>
         private void MoveDown_Click(object sender, RoutedEventArgs e)
         {
@@ -2023,7 +2193,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Pridá príkazy z tabuľky AppCommander_MainCommandTable do unified tabuľky
+        /// 
         /// </summary>
         private void AddFromCommands_Click(object sender, RoutedEventArgs e)
         {
@@ -2150,7 +2320,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Pridá sekvenciu zo súboru do unified tabuľky
+        /// Pridá sekvenciu zo súboru do AppCommander_MainCommandTable tabuľky
         /// </summary>
         private void AddSequence_Click(object sender, RoutedEventArgs e)
         {
@@ -2236,7 +2406,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Edituje vybranú položku v unified tabuľke - Rýchla editácia 
+        /// Edituje vybranú položku v AppCommander_MainCommandTable tabuľke - Rýchla editácia 
         /// </summary>
         private void QuickEditItem_Click(object sender, RoutedEventArgs e)
         {
@@ -2327,7 +2497,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// Odstráni vybranú položku z unified tabuľky
+        /// Odstráni vybranú položku z AppCommander_MainCommandTable tabuľky
         /// </summary>
         private void DeleteItem_Click(object sender, RoutedEventArgs e)
         {
@@ -2925,6 +3095,35 @@ namespace AppCommander.W7_11.WPF
 
         #region File Operations
 
+        private void SaveSequenceToFile(string filePath)
+        {
+            try
+            {
+                var sequence = new CommandSequence
+                {
+                    Name = Path.GetFileNameWithoutExtension(filePath),
+                    Commands = _commands.ToList(),
+                    TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
+                    TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                    TargetWindowTitle = GetWindowTitle(_targetWindowHandle),
+                    Created = DateTime.Now,
+                    LastModified = DateTime.Now
+                };
+
+                var json = JsonConvert.SerializeObject(sequence, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+
+                _currentFilePath = filePath;
+                _hasUnsavedChanges = false;
+                UpdateUI();
+                UpdateStatus(string.Format("Sequence saved: {0}", Path.GetFileName(filePath)));
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error saving sequence", ex);
+            }
+        }
+
         private void LoadSequenceFromFile(string filePath)
         {
             try
@@ -2974,35 +3173,6 @@ namespace AppCommander.W7_11.WPF
                 return string.Format(", {0} loops", loopStarts);
             }
             return "";
-        }
-
-        private void SaveSequenceToFile(string filePath)
-        {
-            try
-            {
-                var sequence = new CommandSequence
-                {
-                    Name = Path.GetFileNameWithoutExtension(filePath),
-                    Commands = _commands.ToList(),
-                    TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
-                    TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
-                    TargetWindowTitle = GetWindowTitle(_targetWindowHandle),
-                    Created = DateTime.Now,
-                    LastModified = DateTime.Now
-                };
-
-                var json = JsonConvert.SerializeObject(sequence, Formatting.Indented);
-                File.WriteAllText(filePath, json);
-
-                _currentFilePath = filePath;
-                _hasUnsavedChanges = false;
-                UpdateUI();
-                UpdateStatus(string.Format("Sequence saved: {0}", Path.GetFileName(filePath)));
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error saving sequence", ex);
-            }
         }
 
         #endregion
@@ -3402,13 +3572,13 @@ namespace AppCommander.W7_11.WPF
         #region Unsaved Commands Warning Management
 
         /// <summary>
-        /// Aktualizuje warning položku v unified tabuľke
+        /// Aktualizuje warning položku v AppCommander_MainCommandTable tabuľke
         /// </summary>
         private void UpdateUnsavedCommandsWarning()
         {
             try
             {
-                // Skontrolovať či sú nahrané príkazy, ktoré nie sú v unified tabuľke
+                // Skontrolovať či sú nahrané príkazy, ktoré nie sú v AppCommander_MainCommandTable tabuľke
                 bool hasUnsavedCommands = _commands != null && _commands.Count > 0;
 
                 // Nájsť existujúcu warning položku
@@ -3431,7 +3601,7 @@ namespace AppCommander.W7_11.WPF
                             Status = "⚠️ Warning",
                             Timestamp = DateTime.Now,
                             IsLiveRecording = true,
-                            LiveSequenceReference = _recorder?.GetCurrentSequence
+                            LiveSequenceReference = _recorder?.CurrentSequence
                         };
 
                         // Pridať na začiatok tabuľky

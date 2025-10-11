@@ -150,7 +150,7 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (trackedWindows.ContainsKey(windowHandle))
                 {
-                    // OPRAVENÉ: Konverzia enum typu
+                    // : Konverzia enum typu
                     trackedWindows[windowHandle].Priority = ConvertPriority(priority);
                     return;
                 }
@@ -160,7 +160,7 @@ namespace AppCommander.W7_11.WPF.Core
                     WindowHandle = windowHandle,
                     Title = GetWindowTitle(windowHandle),
                     ProcessName = GetProcessName(windowHandle),
-                    Priority = ConvertPriority(priority), // OPRAVENÉ: Konverzia enum typu
+                    Priority = ConvertPriority(priority), // : Konverzia enum typu
                     AddedAt = DateTime.Now,
                     LastUISnapshot = CaptureUISnapshot(windowHandle)
                 };
@@ -359,11 +359,11 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// OPRAVENÉ: Konvertuje WindowTrackingInfo na WindowTrackingInfo (odstrániť konverziu)
+        /// : Konvertuje WindowTrackingInfo na WindowTrackingInfo (odstrániť konverziu)
         /// </summary>
         private WindowTrackingInfo ConvertToWindowTrackingInfo(WindowTrackingInfo trackingInfo)
         {
-            // OPRAVENÉ: Už nie je potrebná konverzia, pretože oba typy sú rovnaké
+            // : Už nie je potrebná konverzia, pretože oba typy sú rovnaké
             return trackingInfo;
         }
 
@@ -389,7 +389,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                // OPRAVENÉ: Použitie GroupBy na zvládnutie duplicitných hashov
+                // : Použitie GroupBy na zvládnutie duplicitných hashov
                 var previousElements = previous.Elements
                     .GroupBy(e => e.Hash)
                     .ToDictionary(g => g.Key, g => g.First());
@@ -408,7 +408,7 @@ namespace AppCommander.W7_11.WPF.Core
                     .Where(e => !currentElements.ContainsKey(e.Hash))
                     .ToList();
 
-                // OPRAVENÉ: Nájdi modifikované elementy a konvertuj ich na ModifiedElementPair
+                // : Nájdi modifikované elementy a konvertuj ich na ModifiedElementPair
                 changeSet.ModifiedElements = new List<ModifiedElementPair>();
 
                 foreach (var currentElement in currentElements.Values)
@@ -420,7 +420,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                     if (previousElement != null)
                     {
-                        // OPRAVENÉ: Vytvor ModifiedElementPair namiesto tuple
+                        // : Vytvor ModifiedElementPair namiesto tuple
                         changeSet.ModifiedElements.Add(new ModifiedElementPair(previousElement, currentElement));
                     }
                 }
@@ -463,7 +463,7 @@ namespace AppCommander.W7_11.WPF.Core
                     windowState.ChangeHistory.RemoveAt(0);
                 }
 
-                // OPRAVENÉ: Trigger event s správnymi argumentami
+                // : Trigger event s správnymi argumentami
                 UIChangeDetected?.Invoke(this, new UIChangeDetectedEventArgs(
                     windowState.WindowHandle,
                     windowState,
@@ -509,7 +509,7 @@ namespace AppCommander.W7_11.WPF.Core
                 // Trigger interaction detection ak je element interaktívny
                 if (IsInteractiveElement(e.Element))
                 {
-                    // OPRAVENÉ: Používame správny konštruktor s požadovanými argumentmi
+                    // : Používame správny konštruktor s požadovanými argumentmi
                     ElementInteractionDetected?.Invoke(this, new ElementInteractionEventArgs(
                         e.WindowHandle,
                         e.Element,
@@ -584,7 +584,7 @@ namespace AppCommander.W7_11.WPF.Core
                 WindowHandle = windowState.WindowHandle,
                 Title = windowState.Title,
                 ProcessName = windowState.ProcessName,
-                // OPRAVENÉ: Pridané chýbajúce properties
+                // : Pridané chýbajúce properties
                 IsActive = windowState.IsActive,
                 LastActivated = windowState.LastActivated,
                 DetectedAt = windowState.AddedAt,

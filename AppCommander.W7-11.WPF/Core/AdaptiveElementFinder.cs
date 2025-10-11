@@ -1329,7 +1329,7 @@ namespace AppCommander.W7_11.WPF.Core
                                 var cell = cells[row, col];
                                 if (cell != null)
                                 {
-                                    // OPRAVENÉ: použitie TableCellDetector.GetCellContent
+                                    // : použitie TableCellDetector.GetCellContent
                                     string cellContent = TableCellDetector.GetCellContent(cell);
                                     double similarity = CalculateContentSimilarity(content, cellContent);
 

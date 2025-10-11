@@ -571,7 +571,7 @@ namespace AppCommander.W7_11.WPF.Core
                 globalHook.StartHooking();
                 isRecording = true;
 
-                // Raise event - OPRAVENÉ: používa správny konštruktor
+                // Raise event - : používa správny konštruktor
                 RecordingStateChanged?.Invoke(this, new RecordingStateChangedEventArgs(
                     isRecording: true,
                     isPaused: false,

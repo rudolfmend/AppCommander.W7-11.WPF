@@ -242,10 +242,10 @@
         <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.4"/>
+                <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="3" Opacity="0.4"/>
             </Setter.Value>
         </Setter>
     </Style>

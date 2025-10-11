@@ -23,7 +23,7 @@ namespace AppCommander.W7_11.WPF.Core
             Console.WriteLine($"Start Time: {DateTime.Now}");
             Console.WriteLine();
 
-            // OPRAVENÉ: Používa WindowTracker namiesto WindowTrackingInfo
+            // : Používa WindowTracker namiesto WindowTrackingInfo
             var tracker = new WindowTracker();
             var detectedWindows = new List<WindowTrackingInfo>();
 

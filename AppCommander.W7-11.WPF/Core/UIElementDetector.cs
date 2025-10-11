@@ -199,7 +199,7 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     try
                     {
-                        // OPRAVENÉ: priame volanie public metódy
+                        // priame volanie public metódy
                         var tableInfo = TableCellDetector.AnalyzeTableStructurePublic(tableElement);
                         if (tableInfo != null && tableInfo.IsValid)
                         {
@@ -222,71 +222,285 @@ namespace AppCommander.W7_11.WPF.Core
             return tables;
         }
 
+        /// <summary>
+        /// Extrahuje informácie z elementu
+        /// GARANTUJE: Nikdy nevráti null, vždy vráti aspoň základné informácie
+        /// Používa properties z UIElementInfo
+        /// </summary>
         private static UIElementInfo ExtractElementInfo(AutomationElement element, int x, int y)
         {
+            // Vytvoríme UIElementInfo s predvolenými hodnotami - nikdy nevrátime null!
+            var elementInfo = new UIElementInfo
+            {
+                X = x,
+                Y = y,
+                Name = "",
+                AutomationId = "", 
+                ClassName = "",
+                ControlType = "",
+                ProcessId = 0,
+                WindowHandle = IntPtr.Zero, 
+                IsEnabled = false,
+                IsVisible = false,
+                ElementText = "",  
+                PlaceholderText = "",
+                HelpText = "",
+                AccessKey = "",
+                BoundingRectangle = System.Windows.Rect.Empty
+            };
+
             try
             {
-                var info = new UIElementInfo
+                if (element == null)
                 {
-                    X = x,
-                    Y = y,
-                    BoundingRectangle = element.Current.BoundingRectangle,
-                    IsEnabled = element.Current.IsEnabled,
-                    IsVisible = !element.Current.IsOffscreen,
-                    ProcessId = element.Current.ProcessId,
-                    WindowHandle = new IntPtr(element.Current.NativeWindowHandle),
-                    AutomationElement = element
-                };
-
-                // Získaj všetky možné identifikátory
-                string name = GetElementProperty(element, AutomationElement.NameProperty);
-                string automationId = GetElementProperty(element, AutomationElement.AutomationIdProperty);
-                string className = GetElementProperty(element, AutomationElement.ClassNameProperty);
-                string controlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown";
-                string helpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
-                string accessKey = GetElementProperty(element, AutomationElement.AccessKeyProperty);
-
-                // Skús získať text z elementu
-                string elementText = GetElementText(element);
-
-                // Skús získať placeholder text
-                string placeholderText = GetPlaceholderText(element);
-
-                // **Špeciálne spracovanie pre WinUI3**
-                if (className == "Microsoft.UI.Content.DesktopChildSiteBridge")
-                {
-                    var winui3Info = ProcessWinUI3Element(element, x, y);
-                    if (winui3Info != null)
-                    {
-                        // Použij lepšie informácie z WinUI3 analýzy
-                        name = winui3Info.Name;
-                        automationId = winui3Info.AutomationId;
-                        controlType = winui3Info.ControlType;
-                        elementText = winui3Info.ElementText;
-                        placeholderText = winui3Info.PlaceholderText;
-                        helpText = winui3Info.HelpText;
-                    }
+                    // Ak element je null, vrátime prázdny objekt s pozíciou
+                    elementInfo.Name = "Element not available";
+                    return elementInfo;
                 }
 
-                // Vytvor zmysluplný názov elementu
-                info.Name = CreateMeaningfulName(name, automationId, elementText, placeholderText, controlType, helpText);
-                info.AutomationId = automationId;
-                info.ClassName = className;
-                info.ControlType = controlType;
+                // === ZÍSKAVANIE VLASTNOSTÍ S FALLBACK MECHANIZMOM ===
+                // Každá vlastnosť má svoje vlastné try-catch, takže jedna chyba nezruší celé získavanie
 
-                // Pridaj extra informácie pre lepšiu identifikáciu
-                info.ElementText = elementText;
-                info.PlaceholderText = placeholderText;
-                info.HelpText = helpText;
-                info.AccessKey = accessKey;
+                // Name
+                try
+                {
+                    elementInfo.Name = GetElementProperty(element, AutomationElement.NameProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
 
-                return info;
+                // AutomationId
+                try
+                {
+                    elementInfo.AutomationId = GetElementProperty(element, AutomationElement.AutomationIdProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // ClassName
+                try
+                {
+                    elementInfo.ClassName = GetElementProperty(element, AutomationElement.ClassNameProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // ControlType
+                try
+                {
+                    elementInfo.ControlType = element.Current.ControlType?.LocalizedControlType ??
+                                             GetElementProperty(element, AutomationElement.LocalizedControlTypeProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // ProcessId
+                try
+                {
+                    elementInfo.ProcessId = element.Current.ProcessId;
+                }
+                catch
+                {
+                    try
+                    {
+                        // Fallback parsing zo string
+                        string processIdStr = GetElementProperty(element, AutomationElement.ProcessIdProperty);
+                        if (int.TryParse(processIdStr, out int pid))
+                            elementInfo.ProcessId = pid;
+                    }
+                    catch { /* Pokračujeme ďalej */ }
+                }
+
+                // WindowHandle
+                try
+                {
+                    int handle = element.Current.NativeWindowHandle;
+                    elementInfo.WindowHandle = new IntPtr(handle);
+                }
+                catch
+                {
+                    try
+                    {
+                        // Fallback parsing zo string
+                        string handleStr = GetElementProperty(element, AutomationElement.NativeWindowHandleProperty);
+                        if (int.TryParse(handleStr, out int handle))
+                            elementInfo.WindowHandle = new IntPtr(handle);
+                    }
+                    catch { /* Pokračujeme ďalej */ }
+                }
+
+                // IsEnabled
+                try
+                {
+                    elementInfo.IsEnabled = element.Current.IsEnabled;
+                }
+                catch
+                {
+                    try
+                    {
+                        // Fallback parsing zo string
+                        string enabledStr = GetElementProperty(element, AutomationElement.IsEnabledProperty);
+                        if (bool.TryParse(enabledStr, out bool isEnabled))
+                            elementInfo.IsEnabled = isEnabled;
+                    }
+                    catch { /* Pokračujeme ďalej */ }
+                }
+
+                // BoundingRectangle - OPRAVA: používame BoundingRectangle namiesto Width/Height
+                try
+                {
+                    var rect = element.Current.BoundingRectangle;
+                    if (!rect.IsEmpty)
+                    {
+                        elementInfo.X = (int)rect.X;
+                        elementInfo.Y = (int)rect.Y;
+                        elementInfo.BoundingRectangle = rect;  // Nastavíme celý Rect objekt
+                    }
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // ElementText - OPRAVA: používame ElementText namiesto Text
+                try
+                {
+                    elementInfo.ElementText = GetElementText(element);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // PlaceholderText
+                try
+                {
+                    elementInfo.PlaceholderText = GetPlaceholderText(element);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // HelpText
+                try
+                {
+                    elementInfo.HelpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // AccessKey
+                try
+                {
+                    elementInfo.AccessKey = GetElementProperty(element, AutomationElement.AccessKeyProperty);
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // IsVisible
+                try
+                {
+                    elementInfo.IsVisible = !element.Current.IsOffscreen;
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // AutomationElement - uložíme referenciu na element
+                try
+                {
+                    elementInfo.AutomationElement = element;
+                }
+                catch { /* Pokračujeme ďalej */ }
+
+                // === FALLBACK: Ak nemáme žiadne užitočné info, pokúsime sa získať aspoň niečo ===
+                if (string.IsNullOrEmpty(elementInfo.Name) &&
+                    string.IsNullOrEmpty(elementInfo.AutomationId) &&
+                    string.IsNullOrEmpty(elementInfo.ClassName))
+                {
+                    try
+                    {
+                        // Pokús o získanie Window Title cez Win32 API
+                        if (elementInfo.WindowHandle != IntPtr.Zero)
+                        {
+                            int length = GetWindowTextLength(elementInfo.WindowHandle);
+                            if (length > 0)
+                            {
+                                var text = new System.Text.StringBuilder(length + 1);
+                                if (GetWindowText(elementInfo.WindowHandle, text, text.Capacity) > 0)
+                                {
+                                    elementInfo.Name = text.ToString();
+                                }
+                            }
+                        }
+                    }
+                    catch { /* Nevadí, pokračujeme */ }
+                }
+
+                // Logujeme úspešné získanie elementu (len do Debug output)
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Element detected: {elementInfo.ControlType} - {elementInfo.Name}");
+
+                return elementInfo;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error extracting element info: {ex.Message}");
-                return null;
+                // Zachytíme AKÚKOĽVEK výnimku na najvyššej úrovni
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Critical error in ExtractElementInfo: {ex.GetType().Name} - {ex.Message}");
+
+                // Aj pri kritickej chybe vrátime aspoň základný objekt s pozíciou
+                elementInfo.Name = $"Error detecting element at ({x}, {y})";
+                return elementInfo;
             }
+        }
+
+        /// <summary>
+        /// Bezpečne získa text z elementu (pre TextBox, Edit, atď.)
+        /// </summary>
+        private static string GetElementText(AutomationElement element)
+        {
+            try
+            {
+                // ValuePattern - pre TextBox, ComboBox, atď.
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePatternObj))
+                {
+                    var value = valuePatternObj as ValuePattern;
+                    if (value != null && !string.IsNullOrWhiteSpace(value.Current.Value))
+                        return value.Current.Value;
+                }
+
+                // TextPattern - pre RichTextBox a podobné
+                if (element.TryGetCurrentPattern(TextPattern.Pattern, out object textPatternObj))
+                {
+                    var text = textPatternObj as TextPattern;
+                    var documentRange = text?.DocumentRange;
+                    if (documentRange != null)
+                    {
+                        string textValue = documentRange.GetText(100);
+                        if (!string.IsNullOrWhiteSpace(textValue))
+                            return textValue.Trim();
+                    }
+                }
+
+                // Fallback na Name property ak vyzerá ako text
+                string name = element.Current.Name;
+                if (!string.IsNullOrWhiteSpace(name) && name.Length < 100)
+                    return name;
+            }
+            catch
+            {
+                // Nevadí, pokračujeme
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Bezpečne získa placeholder text z elementu
+        /// </summary>
+        private static string GetPlaceholderText(AutomationElement element)
+        {
+            try
+            {
+                // HelpText môže obsahovať placeholder
+                var helpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
+                if (!string.IsNullOrWhiteSpace(helpText) && helpText.Length < 100)
+                    return helpText;
+
+                // ItemStatus môže obsahovať placeholder
+                var itemStatus = GetElementProperty(element, AutomationElement.ItemStatusProperty);
+                if (!string.IsNullOrWhiteSpace(itemStatus) && itemStatus.Length < 100)
+                    return itemStatus;
+            }
+            catch
+            {
+                // Nevadí, pokračujeme
+            }
+
+            return "";
         }
 
         /// <summary>
@@ -592,7 +806,6 @@ namespace AppCommander.W7_11.WPF.Core
                 "UserControl"
             };
 
-            // Opravené pre .NET Framework 4.8
             return genericNames.Any(generic =>
                 name.IndexOf(generic, StringComparison.OrdinalIgnoreCase) >= 0);
         }
@@ -613,66 +826,6 @@ namespace AppCommander.W7_11.WPF.Core
                                  .ToArray())
                                  .Replace(" ", "_")
                                  .Trim('_');
-        }
-
-        private static string GetElementText(AutomationElement element)
-        {
-            try
-            {
-                // Attempt to retrieve text using ValuePattern
-                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
-                {
-                    var value = valuePattern as ValuePattern;
-                    if (value != null && !string.IsNullOrWhiteSpace(value.Current.Value))
-                        return value.Current.Value;
-                }
-
-                // Attempt to retrieve text using TextPattern
-                if (element.TryGetCurrentPattern(TextPattern.Pattern, out object textPattern))
-                {
-                    var text = textPattern as TextPattern;
-                    var documentRange = text?.DocumentRange;
-                    if (documentRange != null)
-                    {
-                        string textValue = documentRange.GetText(-1);
-                        if (!string.IsNullOrWhiteSpace(textValue))
-                            return textValue.Trim();
-                    }
-                }
-
-                // Fallback to Name property if it resembles text
-                string name = element.Current.Name;
-                if (!string.IsNullOrWhiteSpace(name) && name.Length < 50)
-                    return name;
-
-                return "";
-            }
-            catch
-            {
-                return "";
-            }
-        }
-
-        private static string GetPlaceholderText(AutomationElement element)
-        {
-            try
-            {
-                // Skús rôzne property pre placeholder
-                var helpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
-                if (!string.IsNullOrWhiteSpace(helpText) && helpText.Length < 50)
-                    return helpText;
-
-                // Pre .NET Framework 4.8 - použij ItemStatusProperty namiesto LocalizedDescriptionProperty
-                var itemStatus = GetElementProperty(element, AutomationElement.ItemStatusProperty);
-                if (!string.IsNullOrWhiteSpace(itemStatus) && itemStatus.Length < 50)
-                    return itemStatus;
-
-                return "";
-            }
-            catch
-            {
-                return "";
-            }
         }
 
         private static void LogElementDetails(UIElementInfo element)
@@ -796,72 +949,209 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static string GetElementProperty(AutomationElement element, AutomationProperty property)
+        /// <summary>
+        /// FALLBACK Úroveň 2: Získa vlastnosť priamo cez element.Current
+        /// </summary>
+        private static string GetPropertyViaCurrent(AutomationElement element, AutomationProperty property)
         {
+            if (element == null || property == null)
+                return "";
+
             try
             {
-                // Kontrola platnosti elementu pred získaním vlastnosti
-                if (element == null || property == null)
-                    return "";
+                // String properties
+                if (property == AutomationElement.NameProperty)
+                    return element.Current.Name ?? "";
 
-                // Pokus o získanie vlastnosti s AutomationElementNotAvailableException handling
-                object value = element.GetCurrentPropertyValue(property, true); // true = use cached value if available
-                return value?.ToString() ?? "";
+                if (property == AutomationElement.AutomationIdProperty)
+                    return element.Current.AutomationId ?? "";
+
+                if (property == AutomationElement.ClassNameProperty)
+                    return element.Current.ClassName ?? "";
+
+                if (property == AutomationElement.HelpTextProperty)
+                    return element.Current.HelpText ?? "";
+
+                if (property == AutomationElement.LocalizedControlTypeProperty)
+                    return element.Current.LocalizedControlType ?? "";
+
+                if (property == AutomationElement.ControlTypeProperty)
+                    return element.Current.ControlType?.ProgrammaticName ?? "";
+
+                if (property == AutomationElement.AcceleratorKeyProperty)
+                    return element.Current.AcceleratorKey ?? "";
+
+                if (property == AutomationElement.AccessKeyProperty)
+                    return element.Current.AccessKey ?? "";
+
+                if (property == AutomationElement.ItemTypeProperty)
+                    return element.Current.ItemType ?? "";
+
+                if (property == AutomationElement.ItemStatusProperty)
+                    return element.Current.ItemStatus ?? "";
+
+                if (property == AutomationElement.FrameworkIdProperty)
+                    return element.Current.FrameworkId ?? "";
+
+                // Boolean properties
+                if (property == AutomationElement.IsEnabledProperty)
+                    return element.Current.IsEnabled.ToString();
+
+                if (property == AutomationElement.IsOffscreenProperty)
+                    return element.Current.IsOffscreen.ToString();
+
+                if (property == AutomationElement.IsKeyboardFocusableProperty)
+                    return element.Current.IsKeyboardFocusable.ToString();
+
+                if (property == AutomationElement.HasKeyboardFocusProperty)
+                    return element.Current.HasKeyboardFocus.ToString();
+
+                if (property == AutomationElement.IsPasswordProperty)
+                    return element.Current.IsPassword.ToString();
+
+                if (property == AutomationElement.IsContentElementProperty)
+                    return element.Current.IsContentElement.ToString();
+
+                if (property == AutomationElement.IsControlElementProperty)
+                    return element.Current.IsControlElement.ToString();
+
+                // Numeric properties
+                if (property == AutomationElement.ProcessIdProperty)
+                    return element.Current.ProcessId.ToString();
+
+                if (property == AutomationElement.NativeWindowHandleProperty)
+                    return element.Current.NativeWindowHandle.ToString();
+
+                // BoundingRectangle
+                if (property == AutomationElement.BoundingRectangleProperty)
+                {
+                    var rect = element.Current.BoundingRectangle;
+                    return $"{rect.X},{rect.Y},{rect.Width},{rect.Height}";
+                }
             }
-            catch (ElementNotAvailableException)
+            catch
             {
-                // Element už nie je dostupný - typické pri písaní do sledovaného UI elementu
-                System.Diagnostics.Debug.WriteLine($"Element not available for property {property.ProgrammaticName}");
-                return "";
+                // Aj tento fallback môže zlyhať - nevadí
             }
-            catch (System.Runtime.InteropServices.COMException)
+
+            return "";
+        }
+
+        // <summary>
+        /// FALLBACK Úroveň 3: Získa vlastnosť cez UI Automation Patterns
+        /// Používa sa najmä pre získanie textu z TextBox, ComboBox, atď.
+        /// </summary>
+        private static string GetPropertyViaPatterns(AutomationElement element, AutomationProperty property)
+        {
+            if (element == null || property == null)
+                return "";
+
+            try
             {
-                // COM chyba - často pri NonComVisibleBaseClass
-                System.Diagnostics.Debug.WriteLine($"COM exception for property {property.ProgrammaticName}");
-                return "";
+                // Pre Name property skúsime získať text cez ValuePattern alebo TextPattern
+                if (property == AutomationElement.NameProperty)
+                {
+                    // ValuePattern - pre TextBox, ComboBox, atď.
+                    if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePatternObj))
+                    {
+                        var valuePattern = valuePatternObj as ValuePattern;
+                        if (valuePattern != null && !string.IsNullOrEmpty(valuePattern.Current.Value))
+                        {
+                            return valuePattern.Current.Value;
+                        }
+                    }
+
+                    // TextPattern - pre RichTextBox a podobné
+                    if (element.TryGetCurrentPattern(TextPattern.Pattern, out object textPatternObj))
+                    {
+                        var textPattern = textPatternObj as TextPattern;
+                        if (textPattern != null)
+                        {
+                            string text = textPattern.DocumentRange.GetText(100);
+                            if (!string.IsNullOrEmpty(text))
+                                return text.Trim();
+                        }
+                    }
+                }
             }
-            catch (UnauthorizedAccessException)
+            catch
             {
-                // Prístup zamietnutý
-                System.Diagnostics.Debug.WriteLine($"Access denied for property {property.ProgrammaticName}");
-                return "";
+                // Pattern môže zlyhať - nevadí
             }
-            catch (InvalidOperationException)
-            {
-                // Neplatná operácia
-                System.Diagnostics.Debug.WriteLine($"Invalid operation for property {property.ProgrammaticName}");
-                return "";
-            }
-            catch (Exception ex)
-            {
-                // Ostatné nečakané výnimky
-                System.Diagnostics.Debug.WriteLine($"Unexpected error getting property {property.ProgrammaticName}: {ex.Message}");
-                return "";
-            }
+
+            return "";
         }
 
         /// <summary>
-        /// Získa vlastnosť automation elementu
+        /// FALLBACK Úroveň 4: Získa vlastnosť cez Win32 API
+        /// Používa sa ako posledná možnosť pre kritické vlastnosti
         /// </summary>
-        /// <param name="element">Automation element</param>
-        /// <param name="property">Vlastnosť na získanie</param>
-        /// <returns>Hodnota vlastnosti alebo prázdny string</returns>
-        private static string GetProperty(AutomationElement element, AutomationProperty property)
+        private static string GetPropertyViaWin32(AutomationElement element, AutomationProperty property)
         {
+            if (element == null || property == null)
+                return "";
+
             try
             {
-                if (element == null || property == null)
+                // Získame native window handle
+                int handle = element.Current.NativeWindowHandle;
+                if (handle == 0)
                     return "";
 
-                object value = element.GetCurrentPropertyValue(property);
-                return value?.ToString() ?? "";
+                IntPtr hwnd = new IntPtr(handle);
+
+                // Pre ClassName property použijeme GetClassName Win32 API
+                if (property == AutomationElement.ClassNameProperty)
+                {
+                    var className = new System.Text.StringBuilder(256);
+                    if (GetClassName(hwnd, className, className.Capacity) > 0)
+                    {
+                        return className.ToString();
+                    }
+                }
+
+                // Pre Name property použijeme GetWindowText Win32 API
+                if (property == AutomationElement.NameProperty)
+                {
+                    int length = GetWindowTextLength(hwnd);
+                    if (length > 0)
+                    {
+                        var text = new System.Text.StringBuilder(length + 1);
+                        if (GetWindowText(hwnd, text, text.Capacity) > 0)
+                        {
+                            return text.ToString();
+                        }
+                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting property {property.ProgrammaticName}: {ex.Message}");
-                return "";
+                // Win32 API môže zlyhať - nevadí
             }
+
+            return "";
         }
+
+        /// <summary>
+        /// Pomocná metóda - získa vlastnosť automation elementu
+        /// pre použitie v celom UIElementDetector
+        /// </summary>
+        private static string GetProperty(AutomationElement element, AutomationProperty property)
+        {
+            // Používa hlavnú metódu GetElementProperty s plným fallback mechanizmom
+            return GetElementProperty(element, property);
+        }
+
+        // === Win32 API Declarations ===
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+
+
+
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
 
         /// <summary>
         /// Bezpečne získa string vlastnosť
@@ -945,13 +1235,209 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        #region Solving Problems with COM Exceptions, NonComVisibleBaseClass, ElementNotAvailableException
+
+        /// <summary>
+        /// Zistí, či je element známy problematický typ, ktorý spôsobuje NonComVisibleBaseClass MDA warning
+        /// </summary>
+        private static bool IsProblematicComElement(AutomationElement element)
+        {
+            try
+            {
+                if (element == null)
+                    return false;
+
+                // Pokúsime sa bezpečne získať ClassName
+                string className = "";
+                try
+                {
+                    className = element.Current.ClassName ?? "";
+                }
+                catch
+                {
+                    // Ak nemôžeme získať ClassName bezpečne, považujeme za potenciálne problematický
+                    return true;
+                }
+
+                // Zoznam známych problematických tried, ktoré spôsobujú COM warnings
+                var problematicClasses = new[]
+                {
+            // WinForms elementy
+            "WindowsForms10.EDIT",              // WinForms TextBox
+            "WindowsForms10.RichEdit",          // WinForms RichTextBox
+            "WindowsForms10.COMBOBOX",          // WinForms ComboBox (niekedy)
+            
+            // Win32 native elementy
+            "Edit",                              // Štandardný Win32 Edit
+            "RichEdit",                          // RichTextBox
+            "RichEdit20W",                       // RichTextBox Win32
+            "RichEdit20A",                       // RichTextBox Win32 ANSI
+            "RichEdit50W",                       // RichEdit 5.0
+            
+            // Problematické proxy triedy
+            "NonClientArea",                     // Neklientská oblasť okna (title bar, borders)
+            "TitleBar",                          // Title bar
+            "ScrollBar",                         // Scroll bars (často problematické)
+            "SysHeader32",                       // Header controls
+            
+            // Ďalšie známe problematické
+            "Internet Explorer_Server",          // IE embedded controls
+            "Shell DocObject View",              // Shell embedded views
+            "MSCTFIME UI",                       // IME UI elements
+        };
+
+                // Kontrola, či ClassName obsahuje nejaký problematický pattern
+                foreach (var problematic in problematicClasses)
+                {
+                    if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[UIDetector] Detected problematic COM element: {className}");
+                        return true;
+                    }
+                }
+
+                // Dodatočná kontrola: ak ClassName obsahuje "MS.Internal", je to takmer určite problematické
+                if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Detected MS.Internal element: {className}");
+                    return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                // Pri akejkoľvek chybe považujeme za potenciálne problematický
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Získa vlastnosť elementu s viacúrovňovým fallback mechanizmom
+        /// Získa vlastnosť elementu BEZ MDA warnings
+        /// Problematické elementy identifikuje PRED volaním GetCurrentPropertyValue
+        /// GARANTUJE: Žiadny element nebude vynechaný, aplikácia nikdy nespadne
+        /// </summary>
+        private static string GetElementProperty(AutomationElement element, AutomationProperty property)
+        {
+            try
+            {
+                if (element == null || property == null)
+                    return "";
+
+                // === PREDIKČNÁ KONTROLA: Zistíme či je element problematický ===
+                bool isProblematic = IsProblematicComElement(element);
+
+                if (isProblematic)
+                {
+                    // Pre problematické elementy PRESKOČÍME GetCurrentPropertyValue
+                    // a ideme PRIAMO na fallback metódy
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Skipping GetCurrentPropertyValue for problematic element, using fallback directly");
+
+                    // Úroveň 2: element.Current fallback
+                    try
+                    {
+                        string currentValue = GetPropertyViaCurrent(element, property);
+                        if (!string.IsNullOrEmpty(currentValue))
+                            return currentValue;
+                    }
+                    catch { }
+
+                    // Úroveň 3: Patterns fallback
+                    try
+                    {
+                        string patternValue = GetPropertyViaPatterns(element, property);
+                        if (!string.IsNullOrEmpty(patternValue))
+                            return patternValue;
+                    }
+                    catch { }
+
+                    // Úroveň 4: Win32 API fallback
+                    try
+                    {
+                        string win32Value = GetPropertyViaWin32(element, property);
+                        if (!string.IsNullOrEmpty(win32Value))
+                            return win32Value;
+                    }
+                    catch { }
+
+                    return "";
+                }
+
+                // === Pre NEPROBLEMATICKÉ elementy použijeme štandardnú metódu ===
+
+                // Úroveň 1: Primárny pokus - GetCurrentPropertyValue
+                try
+                {
+                    object value = element.GetCurrentPropertyValue(property, false);
+                    if (value != null)
+                    {
+                        string result = value.ToString();
+                        if (!string.IsNullOrEmpty(result))
+                            return result;
+                    }
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    // Aj napriek kontrole môže nastať COM exception
+                    // (pre nové neznáme problematické typy)
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Unexpected COM exception, trying fallback");
+                }
+                catch (ElementNotAvailableException)
+                {
+                    return "";
+                }
+
+                // === Fallback metódy (pre prípad, že primárna metóda vrátila null/empty) ===
+
+                // Úroveň 2: element.Current fallback
+                try
+                {
+                    string currentValue = GetPropertyViaCurrent(element, property);
+                    if (!string.IsNullOrEmpty(currentValue))
+                        return currentValue;
+                }
+                catch { }
+
+                // Úroveň 3: Patterns fallback
+                try
+                {
+                    string patternValue = GetPropertyViaPatterns(element, property);
+                    if (!string.IsNullOrEmpty(patternValue))
+                        return patternValue;
+                }
+                catch { }
+
+                // Úroveň 4: Win32 API fallback
+                try
+                {
+                    string win32Value = GetPropertyViaWin32(element, property);
+                    if (!string.IsNullOrEmpty(win32Value))
+                        return win32Value;
+                }
+                catch { }
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                // Zachytíme AKÚKOĽVEK výnimku
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Unexpected error for {property.ProgrammaticName}: {ex.GetType().Name}");
+                return "";
+            }
+        }
+
+        #endregion
+
+        #region Win32 API Declarations
+
         [DllImport("user32.dll")]
         private static extern IntPtr WindowFromPoint(POINT Point);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+        //private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        //[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll")]
@@ -995,5 +1481,7 @@ namespace AppCommander.W7_11.WPF.Core
             public int Right;
             public int Bottom;
         }
+
+        #endregion
     }
 }

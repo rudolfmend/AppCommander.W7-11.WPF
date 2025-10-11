@@ -214,7 +214,7 @@ namespace AppCommander.W7_11.WPF.Core
                 var windowInfo = CreateWindowTrackingInfo(hWnd);
                 trackedWindows[hWnd] = windowInfo;
 
-                // OPRAVENÉ: Použitie správneho konštruktora
+                // : Použitie správneho konštruktora
                 var eventArgs = new NewWindowDetectedEventArgs(
                     windowInfo.WindowHandle,
                     windowInfo.Title,
@@ -238,7 +238,7 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     trackedWindows.Remove(hWnd);
 
-                    // OPRAVENÉ: Použitie správneho konštruktora
+                    // : Použitie správneho konštruktora
                     var eventArgs = new WindowClosedEventArgs(windowInfo);
 
                     WindowClosed?.Invoke(this, eventArgs);
@@ -266,7 +266,7 @@ namespace AppCommander.W7_11.WPF.Core
                         other.IsActive = false;
                     }
 
-                    // OPRAVENÉ: Použitie správneho konštruktora
+                    // : Použitie správneho konštruktora
                     var eventArgs = new WindowActivatedEventArgs(windowInfo);
                     WindowActivated?.Invoke(this, eventArgs);
 
@@ -329,7 +329,7 @@ namespace AppCommander.W7_11.WPF.Core
             var className = GetWindowClassName(hWnd);
             var title = GetWindowTitle(hWnd);
 
-            // OPRAVENÉ: Použitie správnych enum hodnôt
+            // : Použitie správnych enum hodnôt
             if (className.Contains("Dialog") || title.Contains("Dialog"))
                 return WindowType.Dialog;
             if (className.Contains("MessageBox") || className.Equals("#32770"))
