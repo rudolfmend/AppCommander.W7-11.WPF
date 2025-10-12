@@ -1,7 +1,10 @@
-﻿using System;
+﻿using AppCommander.W7_11.WPF.Core;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Windows.Input;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -41,6 +44,7 @@ namespace AppCommander.W7_11.WPF.Core
         private string _className;
         private bool _isLiveRecording;
         private CommandSequence _liveSequenceReference;
+        private int? _unifiedItems;
 
         #endregion
 
@@ -602,13 +606,45 @@ namespace AppCommander.W7_11.WPF.Core
         {
             var commands = new List<Command>();
 
+            Debug.WriteLine($"🔄 Converting UnifiedSequence '{Name}' with {Items.Count} items to CommandSequence...");
+
             foreach (var item in Items)
             {
-                if (item.Type == UnifiedItem.ItemType.SequenceReference)
+                try
                 {
-                    // Načítaj a rozbal príkazy zo súboru sekvencie
-                    try
+                    // === Handling pre LiveRecording ===
+                    if (item.Type == UnifiedItem.ItemType.LiveRecording)
                     {
+                        Debug.WriteLine($"  Processing LiveRecording item: {item.Name}");
+
+                        // Ak má LiveRecording item referenciu na CommandSequence, načítaj z nej príkazy
+                        if (item.LiveSequenceReference != null && item.LiveSequenceReference.Commands != null)
+                        {
+                            Debug.WriteLine($"  Adding {item.LiveSequenceReference.Commands.Count} commands from LiveSequenceReference");
+
+                            // Opakuj príkazy podľa RepeatCount
+                            for (int i = 0; i < item.RepeatCount; i++)
+                            {
+                                foreach (var cmd in item.LiveSequenceReference.Commands)
+                                {
+                                    commands.Add(cmd);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"  Warning: LiveRecording item '{item.Name}' has no LiveSequenceReference");
+                        }
+
+                        continue; // Prejdi na ďalší item
+                    }
+
+                    // === Handling pre SequenceReference ===
+                    if (item.Type == UnifiedItem.ItemType.SequenceReference)
+                    {
+                        Debug.WriteLine($"  Processing SequenceReference: {item.Name}");
+
+                        // Načítaj a rozbal príkazy zo súboru sekvencie
                         if (!string.IsNullOrEmpty(item.FilePath) && System.IO.File.Exists(item.FilePath))
                         {
                             var json = System.IO.File.ReadAllText(item.FilePath);
@@ -616,83 +652,81 @@ namespace AppCommander.W7_11.WPF.Core
 
                             if (loadedSequence != null && loadedSequence.Commands != null)
                             {
+                                Debug.WriteLine($"  Loaded {loadedSequence.Commands.Count} commands from file");
+
                                 // Pridaj všetky príkazy zo súboru
                                 // Opakuj ich podľa RepeatCount
                                 for (int i = 0; i < item.RepeatCount; i++)
                                 {
                                     foreach (var cmd in loadedSequence.Commands)
                                     {
-                                        // Vytvor kópiu príkazu s novým step numberom
-                                        var commandCopy = new Command
-                                        {
-                                            StepNumber = commands.Count + 1,
-                                            Type = cmd.Type,
-                                            ElementName = cmd.ElementName,
-                                            Value = cmd.Value,
-                                            ElementX = cmd.ElementX,
-                                            ElementY = cmd.ElementY,
-                                            ElementId = cmd.ElementId,
-                                            ElementClass = cmd.ElementClass,
-                                            TargetWindow = cmd.TargetWindow,
-                                            TargetProcess = cmd.TargetProcess,
-                                            RepeatCount = cmd.RepeatCount,
-                                            IsLoopStart = cmd.IsLoopStart,
-                                            IsLoopEnd = cmd.IsLoopEnd,
-                                            Timestamp = DateTime.Now
-                                        };
-                                        commands.Add(commandCopy);
+                                        commands.Add(cmd);
                                     }
                                 }
-
-                                System.Diagnostics.Debug.WriteLine($"✅ Loaded {loadedSequence.Commands.Count} commands from: {item.FilePath}");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"  Warning: File '{item.FilePath}' loaded but has no commands");
                             }
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"⚠️ Sequence file not found: {item.FilePath}");
-                            // Pridaj chybový komentár
-                            commands.Add(new Command
+                            Debug.WriteLine($"  Error: File not found: {item.FilePath}");
+                            throw new InvalidOperationException(
+                                $"Cannot load sequence reference '{item.Name}': File not found at '{item.FilePath}'");
+                        }
+
+                        continue; // Prejdi na ďalší item
+                    }
+
+                    // === Handling pre Command items ===
+                    if (item.Type == UnifiedItem.ItemType.Command ||
+                        item.Type == UnifiedItem.ItemType.LoopStart ||
+                        item.Type == UnifiedItem.ItemType.LoopEnd ||
+                        item.Type == UnifiedItem.ItemType.Wait)
+                    {
+                        Debug.WriteLine($"  Processing {item.Type}: {item.Name}");
+
+                        var command = item.ToCommand();
+                        if (command != null)
+                        {
+                            // Opakuj príkaz podľa RepeatCount (ak nie je loop marker)
+                            int repeat = (item.Type == UnifiedItem.ItemType.LoopStart ||
+                                          item.Type == UnifiedItem.ItemType.LoopEnd) ? 1 : item.RepeatCount;
+
+                            for (int i = 0; i < repeat; i++)
                             {
-                                StepNumber = commands.Count + 1,
-                                Type = CommandType.Comment,
-                                ElementName = $"ERROR: File not found - {item.Name}",
-                                Value = item.FilePath,
-                                Timestamp = DateTime.Now
-                            });
+                                commands.Add(command);
+                            }
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ Error loading sequence {item.FilePath}: {ex.Message}");
-                        // Pridaj chybový komentár
-                        commands.Add(new Command
-                        {
-                            StepNumber = commands.Count + 1,
-                            Type = CommandType.Comment,
-                            ElementName = $"ERROR: Failed to load - {item.Name}",
-                            Value = ex.Message,
-                            Timestamp = DateTime.Now
-                        });
-                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Pre normálne príkazy (Command, LoopStart, LoopEnd, Wait)
-                    var command = item.ToCommand();
-                    command.StepNumber = commands.Count + 1;
-                    commands.Add(command);
+                    Debug.WriteLine($"  Error processing item '{item.Name}': {ex.Message}");
+                    throw new InvalidOperationException(
+                        $"Cannot convert item '{item.Name}' (type: {item.Type}): {ex.Message}", ex);
                 }
             }
 
-            return new CommandSequence
+            Debug.WriteLine($"✅ Converted to {commands.Count} total commands");
+
+            // Vytvor CommandSequence s výslednými príkazmi
+            var result = new CommandSequence
             {
-                Name = Name,
+                Name = this.Name,
                 Commands = commands,
-                TargetProcessName = TargetProcessName,
-                TargetWindowTitle = TargetWindowTitle,
-                Created = Created,
-                LastModified = LastModified
+                TargetProcessName = this.TargetProcessName,
+                TargetWindowTitle = this.TargetWindowTitle
             };
+
+            // Renumber commands
+            for (int i = 0; i < result.Commands.Count; i++)
+            {
+                result.Commands[i].StepNumber = i + 1;
+            }
+
+            return result;
         }
     }
 

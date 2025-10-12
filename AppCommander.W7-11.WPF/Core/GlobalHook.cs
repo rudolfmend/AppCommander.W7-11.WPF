@@ -100,7 +100,7 @@ namespace AppCommander.W7_11.WPF.Core
                     string windowTitle = GetWindowTitle(foregroundWindow);
                     string processName = GetProcessName(foregroundWindow);
 
-                    // KĽÚČOVÁ OPRAVA: Mapuj klávesy na základe scan kódu a VK kódu
+                    // Mapuj klávesy na základe scan kódu a VK kódu
                     Keys detectedKey = MapKeyCorrectly(hookStruct.vkCode, hookStruct.scanCode);
 
                     var args = new KeyPressedEventArgs

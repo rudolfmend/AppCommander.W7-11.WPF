@@ -15,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.VisualBasic;
+using System.Security.Cryptography.X509Certificates;
 
 public class SequenceSetItem : INotifyPropertyChanged
 {
@@ -308,14 +309,14 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                string Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                Debug.WriteLine($"Recording state changed: IsRecording={e.IsRecording}, IsPaused={e.IsPaused}, SequenceName={e.SequenceName}, Time={Timestamp}");
+
                 Dispatcher.Invoke(() =>
                 {
-                    UpdateRecordingStatus(e.IsRecording, e.IsPaused);
-                    UpdateUI();
-
                     if (e.IsRecording)
                     {
-                        var message = e.IsPaused ?
+                        string message = e.IsPaused ?
                             string.Format("Recording paused: {0}", e.SequenceName) :
                             string.Format("Recording started: {0}", e.SequenceName);
                         UpdateStatus(message);
@@ -324,7 +325,22 @@ namespace AppCommander.W7_11.WPF
                     {
                         UpdateStatus(string.Format("Recording stopped: {0}", e.SequenceName));
 
-                        // **PRIDAJTE TENTO RIADOK:**
+                        // Aktualizuj _currentUnifiedSequence s nahratými príkazmi
+                        if (_unifiedItems.Count > 0)
+                        {
+                            _currentUnifiedSequence = new UnifiedSequence
+                            {
+                                Name = e.SequenceName ?? "Recorded Sequence",
+                                Items = new List<UnifiedItem>(_unifiedItems),
+                                TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                                TargetWindowTitle = GetWindowTitle(_targetWindowHandle),
+                                Created = DateTime.Now,
+                                LastModified = DateTime.Now
+                            };
+
+                            Debug.WriteLine($"Updated _currentUnifiedSequence with {_unifiedItems.Count} items");
+                        }
+
                         UpdateUnsavedCommandsWarning();
                     }
                 });
@@ -494,7 +510,6 @@ namespace AppCommander.W7_11.WPF
             {
                 if (isRecording)
                 {
-                    // OPRAVA: TextBlock používa .Text namiesto .Content
                     AppCommander_LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
                     AppCommander_LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
                 }
@@ -734,7 +749,7 @@ namespace AppCommander.W7_11.WPF
                 if (_player.IsPaused)
                 {
                     _player.Resume();
-                    // OPRAVA: Podmienečná kontrola či AppCommander_BtnPause existuje
+                    // Podmienečná kontrola či AppCommander_BtnPause existuje
                     if (AppCommander_BtnPause != null)
                         AppCommander_BtnPause.Content = "⏸ Pause";
                 }
@@ -756,7 +771,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 _player.Stop();
-                // OPRAVA: Podmienečná kontrola
+                // Podmienečná kontrola
                 if (AppCommander_BtnPause != null)
                     AppCommander_BtnPause.Content = "⏸ Pause";
                 UpdateStatus("Playback stopped");
@@ -816,7 +831,7 @@ namespace AppCommander.W7_11.WPF
                 }
                 this.Title = title;
 
-                // Target process info - OPRAVA: ak existuje handle
+                // Target process info - ak existuje handle
                 if (hasTargetWindow)
                 {
                     var processName = GetProcessNameFromWindow(_targetWindowHandle);
@@ -839,7 +854,7 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // OPRAVA: podmienečná kontrola či AppCommander_LstElementStats existuje
+                // podmienečná kontrola či AppCommander_LstElementStats existuje
                 if (AppCommander_LstElementStats == null) return;
 
                 AppCommander_LstElementStats.Items.Clear();
@@ -871,7 +886,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Auto Mode Toggle - PODMIENEČNÉ
+        #region Auto Mode Toggle - Conditional Check
 
         private void ToggleAutomaticMode_Click(object sender, RoutedEventArgs e)
         {
@@ -879,7 +894,7 @@ namespace AppCommander.W7_11.WPF
             {
                 _isAutoTrackingEnabled = !_isAutoTrackingEnabled;
 
-                // OPRAVA: podmienečná kontrola
+                // podmienečná kontrola
                 if (AppCommander_BtnToggleAutoMode != null)
                 {
                     AppCommander_BtnToggleAutoMode.Content = _isAutoTrackingEnabled ? "🎯 Auto Mode ON" : "🎯 Auto Mode OFF";
@@ -1376,23 +1391,25 @@ namespace AppCommander.W7_11.WPF
                 ShowErrorMessage("Error starting direct playback", ex);
             }
         }
-        
-        private (bool IsValid, string Message) ValidateLoopIntegrity()
+
+        private SequenceValidationResult ValidateLoopIntegrity()
         {
+            var result = new SequenceValidationResult();
+
             var loopStarts = _commands.Count(c => c.Type == CommandType.LoopStart);
             var loopEnds = _commands.Count(c => c.Type == CommandType.LoopEnd);
 
             if (loopStarts != loopEnds)
             {
-                return (false, string.Format("Loop mismatch: {0} loop starts, {1} loop ends", loopStarts, loopEnds));
+                result.AddError(string.Format("Loop mismatch: {0} loop starts, {1} loop ends", loopStarts, loopEnds));
             }
 
-            if (loopStarts > 0)
+            if (loopStarts > 0 && result.IsValid)
             {
-                return (true, string.Format("Loop validation passed: {0} complete loops detected", loopStarts));
+                Debug.WriteLine(string.Format("Loop validation passed: {0} complete loops detected", loopStarts));
             }
 
-            return (true, "No loops detected");
+            return result;
         }
 
         #endregion
@@ -1723,19 +1740,32 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                if (_unifiedItems.Count == 0)
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                Debug.WriteLine("Timestamp: " + timestamp + $" | UnifiedItems count: {_unifiedItems.Count} - private void PlayUnifiedSequence()");
+
+                DiagnosePlaybackState();
+
+                if (!_unifiedItems.Any())
                 {
-                    MessageBox.Show("No items to play. Please add commands or sequences first.",
-                                  "No Items",
-                                  MessageBoxButton.OK,
-                                  MessageBoxImage.Information);
+                    MessageBox.Show("No commands to play.", "No Commands",
+                                   MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                // Validate unified sequence
-                if (!_currentUnifiedSequence.IsValid(out List<string> errors))
+                // Validácia príkazov
+                var errors = new List<string>();
+                foreach (var item in _unifiedItems)
                 {
-                    var errorMessage = "Validation errors found:\n" + string.Join("\n", errors.Take(5)) +
+                    if (!item.IsValid(out string error))
+                    {
+                        errors.Add($"Step {item.StepNumber}: {error}");
+                    }
+                }
+
+                if (errors.Any())
+                {
+                    var errorMessage = "Validation errors found:\n\n" +
+                                      string.Join("\n", errors.Take(5)) +
                                       (errors.Count > 5 ? $"\n... and {errors.Count - 5} more errors." : "") +
                                       "\n\nDo you want to continue anyway?";
 
@@ -1753,12 +1783,36 @@ namespace AppCommander.W7_11.WPF
                     AppCommander_TxtRepeatCount.Text = "1";
                 }
 
+                // Vytvor UnifiedSequence s aktuálnymi _unifiedItems**
+                var currentSequence = new UnifiedSequence
+                {
+                    Name = _currentSequenceName ?? "Current Sequence",
+                    Items = new List<UnifiedItem>(_unifiedItems), // ← TOTO JE KĽÚČOVÉ!
+                    TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                    TargetWindowTitle = GetWindowTitle(_targetWindowHandle),
+                    Created = DateTime.Now,
+                    LastModified = DateTime.Now
+                };
+
                 // Convert unified sequence to traditional format for playback
-                var commandSequence = _currentUnifiedSequence.ToCommandSequence();
-                commandSequence.Name = $"UnifiedPlayback_{DateTime.Now:HHmmss}";
+                var commandSequence = currentSequence.ToCommandSequence();
+                commandSequence.Name = $"Playback_{DateTime.Now:HHmmss}";
+
+                Debug.WriteLine($"=== PLAYBACK DEBUG ===");
+                Debug.WriteLine($"UnifiedItems count: {_unifiedItems.Count}");
+                Debug.WriteLine($"Converted commands count: {commandSequence.Commands.Count}");
+                Debug.WriteLine($"Target process: {commandSequence.TargetProcessName}");
+                Debug.WriteLine($"=====================");
+
+                if (commandSequence.Commands == null || commandSequence.Commands.Count == 0)
+                {
+                    MessageBox.Show("Failed to convert commands for playback. Check debug output for details.",
+                                   "Conversion Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
                 _player.PlaySequence(commandSequence, repeatCount);
-                UpdateStatus($"Starting unified playback ({repeatCount}x) - {_unifiedItems.Count} items");
+                UpdateStatus($"Starting playback ({repeatCount}x) - {commandSequence.Commands.Count} commands");
             }
             catch (Exception ex)
             {
@@ -1773,28 +1827,35 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                string Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                Debug.WriteLine("Timestamp: " + Timestamp + " | private void StartPlayback_Click(object sender, RoutedEventArgs e)");
+
                 if (_player.IsPlaying)
                 {
                     UpdateStatus("Playback is already running");
                     return;
                 }
 
-                // Prefer AppCommander_MainCommandTable table if it has content
+                // Vždy používa _unifiedItems ak existujú
                 if (_unifiedItems.Count > 0)
                 {
+                    Debug.WriteLine("Using unified sequence for playback");
                     PlayUnifiedSequence();
                 }
                 else if (_commands.Any())
                 {
+                    Debug.WriteLine("Using legacy commands for playback");
+
                     // Fallback to old system
                     var loopValidation = ValidateLoopIntegrity();
                     if (!loopValidation.IsValid)
                     {
+                        var errorMessages = string.Join("\n", loopValidation.Errors);
                         var message = string.Format("Loop validation warning:\n{0}\n\nDo you want to continue anyway?",
-                            loopValidation.Message);
-                        var result = MessageBox.Show(message, "Loop Validation",
-                            MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                        if (result == MessageBoxResult.No)
+                            errorMessages);
+                        var result = MessageBox.Show(message, "Loop Integrity",
+                                                    MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        if (result != MessageBoxResult.Yes)
                             return;
                     }
 
@@ -1807,22 +1868,19 @@ namespace AppCommander.W7_11.WPF
 
                     var sequence = new CommandSequence
                     {
-                        Name = string.Format("Playback_{0:HHmmss}", DateTime.Now),
+                        Name = _currentSequenceName ?? "Legacy Sequence",
                         Commands = _commands.ToList(),
-                        TargetApplication = GetProcessNameFromWindow(_targetWindowHandle),
                         TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
                         TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
                     };
 
                     _player.PlaySequence(sequence, repeatCount);
-                    UpdateStatus(string.Format("Starting playback ({0}x) - {1} commands", repeatCount, _commands.Count));
+                    UpdateStatus($"Starting playback ({repeatCount}x) - {_commands.Count} commands");
                 }
                 else
                 {
-                    MessageBox.Show("No commands or items to play. Please record some commands or add sequences first.",
-                                  "No Content",
-                                  MessageBoxButton.OK,
-                                  MessageBoxImage.Information);
+                    MessageBox.Show("No commands to play. Please record some commands first.",
+                                   "No Commands", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -3215,6 +3273,45 @@ namespace AppCommander.W7_11.WPF
 
         #region Helper Methods 
 
+
+
+        /// <summary>
+        /// Diagnostická metóda pre debugging playback problémov
+        /// </summary>
+        private void DiagnosePlaybackState()
+        {
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            Debug.WriteLine("=== PLAYBACK STATE DIAGNOSIS ===");
+            Debug.WriteLine("Timestamp: " + timestamp);
+
+            Debug.WriteLine("_unifiedItems.Count: " + (_unifiedItems != null ? _unifiedItems.Count.ToString() : "0"));
+            Debug.WriteLine("_commands.Count: " + (_commands != null ? _commands.Count.ToString() : "0"));
+            Debug.WriteLine("_currentUnifiedSequence: " + (_currentUnifiedSequence == null ? "NULL" : "EXISTS"));
+
+            if (_currentUnifiedSequence != null)
+            {
+                Debug.WriteLine("  Name: " + _currentUnifiedSequence.Name);
+                Debug.WriteLine("  Items.Count: " + (_currentUnifiedSequence.Items != null ? _currentUnifiedSequence.Items.Count.ToString() : "0"));
+            }
+
+            Debug.WriteLine("_targetWindowHandle: " + _targetWindowHandle);
+            Debug.WriteLine("Target Process: " + GetProcessNameFromWindow(_targetWindowHandle));
+            Debug.WriteLine("Target Window: " + GetWindowTitle(_targetWindowHandle));
+
+            if (_unifiedItems != null && _unifiedItems.Count > 0)
+            {
+                Debug.WriteLine("");
+                Debug.WriteLine("First 3 unified items:");
+                for (int i = 0; i < Math.Min(3, _unifiedItems.Count); i++)
+                {
+                    var item = _unifiedItems[i];
+                    Debug.WriteLine("  [" + i + "] Type=" + item.Type + ", Name=" + item.Name + ", Action=" + item.Action);
+                }
+            }
+
+            Debug.WriteLine("================================");
+        }
+
         private string GenerateAutoDetectedDataReport()
         {
             var report = new System.Text.StringBuilder();
@@ -3588,9 +3685,9 @@ namespace AppCommander.W7_11.WPF
 
                 if (hasUnsavedCommands)
                 {
-                    // Ak nie je warning položka, vytvor ju
                     if (existingWarning == null && _unifiedItems != null)
                     {
+                        // Vytvor novú warning položku
                         var warningItem = new UnifiedItem(UnifiedItem.ItemType.LiveRecording)
                         {
                             StepNumber = 1,
@@ -3598,13 +3695,19 @@ namespace AppCommander.W7_11.WPF
                             Action = "Click to edit or add to sequence",
                             Value = $"{_commands.Count} command(s) recorded",
                             RepeatCount = 1,
-                            Status = "⚠️ Warning",
+                            Status = "Unsaved",
                             Timestamp = DateTime.Now,
                             IsLiveRecording = true,
-                            LiveSequenceReference = _recorder?.CurrentSequence
+                            // ⚠️ KRITICKÉ: Priradenie LiveSequenceReference
+                            LiveSequenceReference = new CommandSequence
+                            {
+                                Name = "Unsaved Commands",
+                                Commands = new List<Command>(_commands),
+                                TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                                TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                            }
                         };
 
-                        // Pridať na začiatok tabuľky
                         _unifiedItems.Insert(0, warningItem);
                         RecalculateStepNumbers();
 
@@ -3612,30 +3715,42 @@ namespace AppCommander.W7_11.WPF
                     }
                     else if (existingWarning != null)
                     {
-                        // Aktualizovať existujúcu warning položku
+                        // Aktualizuj existujúcu warning položku
                         existingWarning.Value = $"{_commands.Count} command(s) recorded";
                         existingWarning.Timestamp = DateTime.Now;
-                        AppCommander_MainCommandTable?.Items.Refresh();
+
+                        // ⚠️ KRITICKÉ: Aktualizuj LiveSequenceReference s aktuálnymi príkazmi
+                        existingWarning.LiveSequenceReference = new CommandSequence
+                        {
+                            Name = "Unsaved Commands",
+                            Commands = new List<Command>(_commands),
+                            TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
+                            TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
+                        };
+
+                        Debug.WriteLine($"Warning item updated: {_commands.Count} unsaved commands");
                     }
                 }
                 else
                 {
-                    // Ak nie sú unsaved príkazy, odstrániť warning položku
+                    // Ak nie sú unsaved commands, odstráň warning položku
                     if (existingWarning != null && _unifiedItems != null)
                     {
                         _unifiedItems.Remove(existingWarning);
                         RecalculateStepNumbers();
-                        AppCommander_MainCommandTable?.Items.Refresh();
-
-                        Debug.WriteLine("Warning item removed - no unsaved commands");
+                        Debug.WriteLine("Warning item removed: no unsaved commands");
                     }
                 }
+
+                // Refresh UI
+                AppCommander_MainCommandTable?.Items.Refresh();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error updating unsaved commands warning: {ex.Message}");
             }
         }
+
 
         /// <summary>
         /// Handler pre kliknutie na warning položku

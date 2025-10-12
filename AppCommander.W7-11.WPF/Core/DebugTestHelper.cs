@@ -48,9 +48,9 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// **Komplexná validácia sequence s WinUI3 podporou**
         /// </summary>
-        public static ValidationResult ValidateSequenceWithWinUI3(CommandSequence sequence, IntPtr targetWindow = default)
+        public static SequenceValidationResult ValidateSequenceWithWinUI3(CommandSequence sequence, IntPtr targetWindow = default)
         {
-            var result = new ValidationResult();
+            var result = new SequenceValidationResult();
 
             if (sequence == null)
             {
@@ -87,7 +87,7 @@ namespace AppCommander.W7_11.WPF.Core
             return result;
         }
 
-        private static void ValidateCommandEnhanced(Command cmd, ValidationResult result)
+        private static void ValidateCommandEnhanced(Command cmd, SequenceValidationResult result)
         {
             string prefix = $"Command {cmd.StepNumber}";
 
@@ -125,7 +125,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateMouseCommand(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateMouseCommand(Command cmd, string prefix, SequenceValidationResult result)
         {
             // Kontrola súradníc
             bool hasValidCurrentCoords = cmd.ElementX > 0 && cmd.ElementY > 0;
@@ -153,7 +153,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateKeyCommand(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateKeyCommand(Command cmd, string prefix, SequenceValidationResult result)
         {
             if (cmd.Key == System.Windows.Forms.Keys.None && cmd.KeyCode == 0)
             {
@@ -172,7 +172,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateTextCommand(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateTextCommand(Command cmd, string prefix, SequenceValidationResult result)
         {
             if (string.IsNullOrEmpty(cmd.Value))
             {
@@ -188,7 +188,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateWaitCommand(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateWaitCommand(Command cmd, string prefix, SequenceValidationResult result)
         {
             if (!int.TryParse(cmd.Value, out int waitTime) || waitTime <= 0)
             {
@@ -200,7 +200,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateLoopCommand(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateLoopCommand(Command cmd, string prefix, SequenceValidationResult result)
         {
             if (cmd.RepeatCount <= 0)
             {
@@ -212,7 +212,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateWinUI3Command(Command cmd, string prefix, ValidationResult result)
+        private static void ValidateWinUI3Command(Command cmd, string prefix, SequenceValidationResult result)
         {
             if (cmd.ElementClass != "Microsoft.UI.Content.DesktopChildSiteBridge")
             {
@@ -235,7 +235,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateWinUI3Commands(List<Command> winui3Commands, ValidationResult result, IntPtr targetWindow)
+        private static void ValidateWinUI3Commands(List<Command> winui3Commands, SequenceValidationResult result, IntPtr targetWindow)
         {
             result.AddInfo($"Found {winui3Commands.Count} WinUI3 commands");
 
@@ -262,7 +262,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static void ValidateElementAvailability(List<Command> commands, IntPtr targetWindow, ValidationResult result)
+        private static void ValidateElementAvailability(List<Command> commands, IntPtr targetWindow, SequenceValidationResult result)
         {
             try
             {
@@ -329,7 +329,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 analysis.WindowTitle = window.Current.Name ?? "Unknown";
-                analysis.WindowClass = GetProperty(window, AutomationElement.ClassNameProperty);
+                analysis.WindowClass = UIElementDetector.GetProperty(window, AutomationElement.ClassNameProperty);
 
                 // Nájdi všetky WinUI3 bridge elementy
                 var bridgeCondition = new PropertyCondition(AutomationElement.ClassNameProperty,
@@ -360,17 +360,17 @@ namespace AppCommander.W7_11.WPF.Core
             return analysis;
         }
 
-        private static WinUI3BridgeInfo AnalyzeBridge(AutomationElement bridge)
+        public static WinUI3BridgeInfo AnalyzeBridge(AutomationElement bridge)
         {
             var info = new WinUI3BridgeInfo();
 
             try
             {
-                var rect = bridge.Current.BoundingRectangle;
+                var rect = UIElementDetector.GetBoundingRectangleSafe(bridge);
                 info.Position = new System.Drawing.Point((int)rect.X, (int)rect.Y);
                 info.Size = new System.Drawing.Size((int)rect.Width, (int)rect.Height);
-                info.IsVisible = !bridge.Current.IsOffscreen;
-                info.IsEnabled = bridge.Current.IsEnabled;
+                info.IsVisible = UIElementDetector.GetIsVisibleSafe(bridge);
+                info.IsEnabled = UIElementDetector.GetIsEnabledSafe(bridge);
 
                 // Analyzuj patterns
                 var patterns = bridge.GetSupportedPatterns();
@@ -386,16 +386,21 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     if (HasMeaningfulContent(descendant))
                     {
+                        var descendantRect = UIElementDetector.GetBoundingRectangleSafe(descendant);
+
                         var elementInfo = new WinUI3ElementInfo
                         {
-                            Name = descendant.Current.Name ?? "",
-                            AutomationId = GetProperty(descendant, AutomationElement.AutomationIdProperty),
-                            ControlType = descendant.Current.ControlType?.LocalizedControlType ?? "Unknown",
-                            Text = GetElementText(descendant),
+                            Name = UIElementDetector.GetProperty(descendant, AutomationElement.NameProperty),
+                            AutomationId = UIElementDetector.GetProperty(descendant, AutomationElement.AutomationIdProperty),
+                            ControlType = UIElementDetector.GetControlTypeSafe(descendant),
+                            Text = UIElementDetector.GetElementText(descendant),
+                            // používa Position namiesto priameho prístupu k X, Y
                             Position = new System.Windows.Point(
-                                (int)(descendant.Current.BoundingRectangle.X + descendant.Current.BoundingRectangle.Width / 2),
-                                (int)(descendant.Current.BoundingRectangle.Y + descendant.Current.BoundingRectangle.Height / 2)
-                            )
+                                descendantRect.X + descendantRect.Width / 2,
+                                descendantRect.Y + descendantRect.Height / 2
+                            ),
+                            IsEnabled = UIElementDetector.GetIsEnabledSafe(descendant),
+                            IsVisible = UIElementDetector.GetIsVisibleSafe(descendant)
                         };
                         info.MeaningfulElements.Add(elementInfo);
                     }
@@ -408,6 +413,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             return info;
         }
+
 
         private static List<WinUI3ElementInfo> GetInteractiveWinUI3Elements(AutomationElement window)
         {
@@ -466,21 +472,22 @@ namespace AppCommander.W7_11.WPF.Core
 
         private static WinUI3ElementInfo CreateElementInfo(AutomationElement element)
         {
-            var rect = element.Current.BoundingRectangle;
+            // Použijeme bezpečné metódy z UIElementDetector
+            var rect = UIElementDetector.GetBoundingRectangleSafe(element);
+
             return new WinUI3ElementInfo
             {
-                Name = element.Current.Name ?? "",
-                AutomationId = GetProperty(element, AutomationElement.AutomationIdProperty),
-                ControlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown",
-                Text = GetElementText(element),
-
-                //Position = new System.Drawing.Point(
+                Name = UIElementDetector.GetProperty(element, AutomationElement.NameProperty),
+                AutomationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty),
+                ControlType = UIElementDetector.GetControlTypeSafe(element),
+                // WinUI3ElementInfo používa Position (Point?) namiesto X, Y
                 Position = new System.Windows.Point(
-                    (int)(rect.X + rect.Width / 2),
-                    (int)(rect.Y + rect.Height / 2)
+                    rect.X + rect.Width / 2,
+                    rect.Y + rect.Height / 2
                 ),
-                IsEnabled = element.Current.IsEnabled,
-                IsVisible = !element.Current.IsOffscreen
+                IsEnabled = UIElementDetector.GetIsEnabledSafe(element),
+                IsVisible = UIElementDetector.GetIsVisibleSafe(element)
+                // BoundingRectangle neexistuje v WinUI3ElementInfo, takže ho nepoužívame
             };
         }
 
@@ -542,7 +549,7 @@ namespace AppCommander.W7_11.WPF.Core
             try
             {
                 string name = element.Current.Name ?? "";
-                string automationId = GetProperty(element, AutomationElement.AutomationIdProperty);
+                string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
                 string text = GetElementText(element);
 
                 return (!string.IsNullOrEmpty(name) && name.Length > 2 && !IsGenericName(name)) ||
@@ -555,7 +562,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static string GetElementText(AutomationElement element)
+        public static string GetElementText(AutomationElement element)
         {
             try
             {
@@ -576,19 +583,6 @@ namespace AppCommander.W7_11.WPF.Core
             catch
             {
                 return "";
-            }
-        }
-
-        public static string GetProperty(AutomationElement element, AutomationProperty property)
-        {
-            try
-            {
-                object value = element.GetCurrentPropertyValue(property);
-                return value?.ToString() ?? string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
             }
         }
 
@@ -697,11 +691,12 @@ namespace AppCommander.W7_11.WPF.Core
 
     // **Support classes pre WinUI3 analýzu**
 
-    public class ValidationResult
+    public class SequenceValidationResult
     {
         public List<string> Errors { get; set; } = new List<string>();
         public List<string> Warnings { get; set; } = new List<string>();
         public List<string> Info { get; set; } = new List<string>();
+
         public int WinUI3CommandCount { get; set; } = 0;
         public int ElementsFound { get; set; } = 0;
         public int ElementsTotal { get; set; } = 0;

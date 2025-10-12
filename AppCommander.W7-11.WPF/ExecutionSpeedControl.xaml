@@ -45,7 +45,6 @@
                         TickFrequency="1"
                         ValueChanged="SpeedSlider_ValueChanged"/>
 
-                <!-- OPRAVA: Namiesto HorizontalAlignment="SpaceBetween" -->
                 <Grid Grid.Row="2" Margin="0,5,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Automation;
 using AutomationCondition = System.Windows.Automation.Condition;
@@ -270,9 +271,9 @@ namespace AppCommander.W7_11.WPF.Core
                 if (!ValidateElement(element))
                     return 0;
 
-                string name = element.Current.Name ?? "";
-                string automationId = GetProperty(element, AutomationElement.AutomationIdProperty);
-                string controlType = element.Current.ControlType?.LocalizedControlType ?? "";
+                string name = UIElementDetector.GetProperty(element, AutomationElement.NameProperty);
+                string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
+                string controlType = UIElementDetector.GetControlTypeSafe(element);
 
                 // Score za name match
                 if (!string.IsNullOrEmpty(command.ElementName) && !string.IsNullOrEmpty(name))
@@ -342,7 +343,7 @@ namespace AppCommander.W7_11.WPF.Core
         private static string GetScoringMethod(AutomationElement element, Command command)
         {
             string name = element.Current.Name ?? "";
-            string automationId = GetProperty(element, AutomationElement.AutomationIdProperty);
+            string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
 
             if (!string.IsNullOrEmpty(automationId) &&
                 automationId.Equals(command.ElementId, StringComparison.OrdinalIgnoreCase))
@@ -470,7 +471,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error mapping bridge: {ex.Message}");
+                    Debug.WriteLine($"Error mapping bridge: {ex.Message}");
                 }
             }
 
@@ -486,7 +487,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 // Element s neprázdnym name alebo automationId
                 string name = element.Current.Name ?? "";
-                string automationId = GetProperty(element, AutomationElement.AutomationIdProperty);
+                string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
 
                 if (!string.IsNullOrEmpty(name) && name.Length > 2)
                     return true;
@@ -577,8 +578,8 @@ namespace AppCommander.W7_11.WPF.Core
                         elements.Add(new UIElementInfo
                         {
                             Name = element.Current.Name ?? string.Empty,
-                            AutomationId = GetProperty(element, AutomationElement.AutomationIdProperty),
-                            ClassName = GetProperty(element, AutomationElement.ClassNameProperty),
+                            AutomationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty), 
+                            ClassName = UIElementDetector.GetProperty(element, AutomationElement.ClassNameProperty),
                             ControlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown",
                             X = (int)(rect.X + rect.Width / 2),
                             Y = (int)(rect.Y + rect.Height / 2),
@@ -629,7 +630,8 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                var rect = bridge.Current.BoundingRectangle;
+                // používame bezpečnú metódu
+                var rect = UIElementDetector.GetBoundingRectangleSafe(bridge);
 
                 // Ak má bridge užitočné patterns, pridaj ho
                 var bridgePatterns = bridge.GetSupportedPatterns();
@@ -650,18 +652,20 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     if (IsUsefulWinUI3Element(descendant))
                     {
-                        var descendantRect = descendant.Current.BoundingRectangle;
+                        // OPRAVENÉ: používame bezpečné metódy
+                        var descendantRect = UIElementDetector.GetBoundingRectangleSafe(descendant);
+
                         var elementInfo = new UIElementInfo
                         {
                             Name = GetMeaningfulElementName(descendant),
-                            AutomationId = GetProperty(descendant, AutomationElement.AutomationIdProperty),
-                            ClassName = GetProperty(descendant, AutomationElement.ClassNameProperty),
-                            ControlType = descendant.Current.ControlType?.LocalizedControlType ?? "Unknown",
+                            AutomationId = UIElementDetector.GetProperty(descendant, AutomationElement.AutomationIdProperty),
+                            ClassName = UIElementDetector.GetProperty(descendant, AutomationElement.ClassNameProperty),
+                            ControlType = UIElementDetector.GetControlTypeSafe(descendant),
                             X = (int)(descendantRect.X + descendantRect.Width / 2),
                             Y = (int)(descendantRect.Y + descendantRect.Height / 2),
                             BoundingRectangle = descendantRect,
-                            IsEnabled = descendant.Current.IsEnabled,
-                            IsVisible = !descendant.Current.IsOffscreen,
+                            IsEnabled = UIElementDetector.GetIsEnabledSafe(descendant),
+                            IsVisible = UIElementDetector.GetIsVisibleSafe(descendant),
                             AutomationElement = descendant
                         };
 
@@ -674,7 +678,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error analyzing bridge: {ex.Message}");
+                Debug.WriteLine($"Error analyzing bridge: {ex.Message}");
             }
 
             return elements;
@@ -682,15 +686,24 @@ namespace AppCommander.W7_11.WPF.Core
 
         private static string GetMeaningfulElementName(AutomationElement element)
         {
-            string name = element.Current.Name ?? "";
-            string automationId = GetProperty(element, AutomationElement.AutomationIdProperty);
-            string controlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown";
+            // OPRAVENÉ: používame public metódy z UIElementDetector
+            string name = UIElementDetector.GetProperty(element, AutomationElement.NameProperty);
+            string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
+            string controlType = UIElementDetector.GetControlTypeSafe(element);
 
             if (!string.IsNullOrEmpty(name) && name.Length > 2)
                 return name;
 
             if (!string.IsNullOrEmpty(automationId) && automationId.Length > 2)
                 return $"AutoId_{automationId}";
+
+            if (!string.IsNullOrWhiteSpace(name) && name != "DesktopChildSiteBridge")
+                return name;
+
+            if (!string.IsNullOrWhiteSpace(automationId))
+                return automationId;
+
+            return $"{controlType}_Element";
 
             // Skús získať text z pattern
             try
@@ -991,22 +1004,24 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                var rect = element.Current.BoundingRectangle;
+                // OPRAVENÉ: Všetko cez bezpečné metódy z UIElementDetector
+                var rect = UIElementDetector.GetBoundingRectangleSafe(element);
 
                 return new ElementSearchResult
                 {
                     IsSuccess = true,
                     Element = new UIElementInfo
                     {
-                        Name = element.Current.Name ?? string.Empty,
-                        AutomationId = GetProperty(element, AutomationElement.AutomationIdProperty),
-                        ClassName = GetProperty(element, AutomationElement.ClassNameProperty),
-                        ControlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown",
+                        // OPRAVENÉ: používame UIElementDetector.GetProperty (bezpečná verzia)
+                        Name = UIElementDetector.GetProperty(element, AutomationElement.NameProperty),
+                        AutomationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty),
+                        ClassName = UIElementDetector.GetProperty(element, AutomationElement.ClassNameProperty),
+                        ControlType = UIElementDetector.GetControlTypeSafe(element),
                         X = (int)(rect.X + rect.Width / 2),
                         Y = (int)(rect.Y + rect.Height / 2),
                         BoundingRectangle = rect,
-                        IsEnabled = element.Current.IsEnabled,
-                        IsVisible = !element.Current.IsOffscreen,
+                        IsEnabled = UIElementDetector.GetIsEnabledSafe(element),
+                        IsVisible = UIElementDetector.GetIsVisibleSafe(element),
                         AutomationElement = element
                     },
                     SearchMethod = method,
@@ -1021,19 +1036,6 @@ namespace AppCommander.W7_11.WPF.Core
                     IsSuccess = false,
                     ErrorMessage = $"Error creating result: {ex.Message}"
                 };
-            }
-        }
-
-        private static string GetProperty(AutomationElement element, AutomationProperty property)
-        {
-            try
-            {
-                object value = element.GetCurrentPropertyValue(property);
-                return value?.ToString() ?? string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
             }
         }
 
@@ -1512,7 +1514,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static int FindColumnIndexByName(AutomationElement table, string columnName)
+        public static int FindColumnIndexByName(AutomationElement table, string columnName)
         {
             try
             {
@@ -1524,7 +1526,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                     for (int i = 0; i < headers.Length; i++)
                     {
-                        string headerText = GetProperty(headers[i], AutomationElement.NameProperty);
+                        string headerText = UIElementDetector.GetProperty(headers[i], AutomationElement.NameProperty);
                         if (string.Equals(headerText, columnName, StringComparison.OrdinalIgnoreCase))
                         {
                             return i;
@@ -1542,7 +1544,7 @@ namespace AppCommander.W7_11.WPF.Core
                     for (int i = 0; i < cells.Count; i++)
                     {
                         var cell = cells[i] as AutomationElement;
-                        string cellText = GetProperty(cell, AutomationElement.NameProperty);
+                        string cellText = UIElementDetector.GetProperty(cell, AutomationElement.NameProperty);
                         if (string.Equals(cellText, columnName, StringComparison.OrdinalIgnoreCase))
                         {
                             return i;

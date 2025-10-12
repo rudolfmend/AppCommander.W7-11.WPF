@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Automation;
 using System.Collections.Generic;
 using AppCommander.W7_11.WPF.Core;
+using System.Diagnostics;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -31,7 +32,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error detecting UI element: {ex.Message}");
+                Debug.WriteLine($"Error detecting UI element: {ex.Message}");
             }
 
             // Fallback - get basic window info
@@ -49,11 +50,11 @@ namespace AppCommander.W7_11.WPF.Core
                 var tableCellInfo = TableCellDetector.DetectTableCell(x, y);
                 if (tableCellInfo != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"=== TABLE CELL DETECTED ===");
-                    System.Diagnostics.Debug.WriteLine($"Cell: {tableCellInfo.DisplayName}");
-                    System.Diagnostics.Debug.WriteLine($"Position: Row {tableCellInfo.Row}, Column {tableCellInfo.Column}");
-                    System.Diagnostics.Debug.WriteLine($"Table: {tableCellInfo.TableInfo.TableName} ({tableCellInfo.TableInfo.RowCount}x{tableCellInfo.TableInfo.ColumnCount})");
-                    System.Diagnostics.Debug.WriteLine($"Identifier: {tableCellInfo.CellIdentifier}");
+                    Debug.WriteLine($"=== TABLE CELL DETECTED ===");
+                    Debug.WriteLine($"Cell: {tableCellInfo.DisplayName}");
+                    Debug.WriteLine($"Position: Row {tableCellInfo.Row}, Column {tableCellInfo.Column}");
+                    Debug.WriteLine($"Table: {tableCellInfo.TableInfo.TableName} ({tableCellInfo.TableInfo.RowCount}x{tableCellInfo.TableInfo.ColumnCount})");
+                    Debug.WriteLine($"Identifier: {tableCellInfo.CellIdentifier}");
 
                     // Vytvor UIElementInfo pre tabuľkovú bunku
                     return CreateTableCellUIElementInfo(tableCellInfo, x, y);
@@ -64,7 +65,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in enhanced element detection: {ex.Message}");
+                Debug.WriteLine($"Error in enhanced element detection: {ex.Message}");
                 return GetElementAtPoint(x, y);
             }
         }
@@ -110,7 +111,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating table cell UI info: {ex.Message}");
+                Debug.WriteLine($"Error creating table cell UI info: {ex.Message}");
                 return null;
             }
         }
@@ -137,7 +138,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error finding table cell by identifier: {ex.Message}");
+                Debug.WriteLine($"Error finding table cell by identifier: {ex.Message}");
                 return null;
             }
         }
@@ -208,15 +209,15 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error analyzing table: {ex.Message}");
+                        Debug.WriteLine($"Error analyzing table: {ex.Message}");
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Found {tables.Count} tables in window");
+                Debug.WriteLine($"Found {tables.Count} tables in window");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting tables in window: {ex.Message}");
+                Debug.WriteLine($"Error getting tables in window: {ex.Message}");
             }
 
             return tables;
@@ -227,22 +228,22 @@ namespace AppCommander.W7_11.WPF.Core
         /// GARANTUJE: Nikdy nevráti null, vždy vráti aspoň základné informácie
         /// Používa properties z UIElementInfo
         /// </summary>
-        private static UIElementInfo ExtractElementInfo(AutomationElement element, int x, int y)
+        public static UIElementInfo ExtractElementInfo(AutomationElement element, int x, int y)
         {
-            // Vytvoríme UIElementInfo s predvolenými hodnotami - nikdy nevrátime null!
+            // Inicializuj základný objekt s pozíciou
             var elementInfo = new UIElementInfo
             {
                 X = x,
                 Y = y,
                 Name = "",
-                AutomationId = "", 
+                AutomationId = "",
                 ClassName = "",
                 ControlType = "",
                 ProcessId = 0,
-                WindowHandle = IntPtr.Zero, 
+                WindowHandle = IntPtr.Zero,
                 IsEnabled = false,
                 IsVisible = false,
-                ElementText = "",  
+                ElementText = "",
                 PlaceholderText = "",
                 HelpText = "",
                 AccessKey = "",
@@ -253,44 +254,39 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 if (element == null)
                 {
-                    // Ak element je null, vrátime prázdny objekt s pozíciou
                     elementInfo.Name = "Element not available";
                     return elementInfo;
                 }
 
-                // === ZÍSKAVANIE VLASTNOSTÍ S FALLBACK MECHANIZMOM ===
-                // Každá vlastnosť má svoje vlastné try-catch, takže jedna chyba nezruší celé získavanie
+                // === ZÍSKAVANIE VLASTNOSTÍ S VYLEPŠENÝM BEZPEČNÝM PRÍSTUPOM ===
 
-                // Name
+                // String vlastnosti - používame GetElementProperty (už existuje)
                 try
                 {
                     elementInfo.Name = GetElementProperty(element, AutomationElement.NameProperty);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // AutomationId
                 try
                 {
                     elementInfo.AutomationId = GetElementProperty(element, AutomationElement.AutomationIdProperty);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // ClassName
                 try
                 {
                     elementInfo.ClassName = GetElementProperty(element, AutomationElement.ClassNameProperty);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // ControlType
+                // ControlType - používame bezpečnú metódu
                 try
                 {
-                    elementInfo.ControlType = element.Current.ControlType?.LocalizedControlType ??
-                                             GetElementProperty(element, AutomationElement.LocalizedControlTypeProperty);
+                    elementInfo.ControlType = GetControlTypeSafe(element);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // ProcessId
+                // ProcessId - s fallback na string parsing
                 try
                 {
                     elementInfo.ProcessId = element.Current.ProcessId;
@@ -304,10 +300,10 @@ namespace AppCommander.W7_11.WPF.Core
                         if (int.TryParse(processIdStr, out int pid))
                             elementInfo.ProcessId = pid;
                     }
-                    catch { /* Pokračujeme ďalej */ }
+                    catch { }
                 }
 
-                // WindowHandle
+                // WindowHandle - s fallback na string parsing
                 try
                 {
                     int handle = element.Current.NativeWindowHandle;
@@ -322,13 +318,13 @@ namespace AppCommander.W7_11.WPF.Core
                         if (int.TryParse(handleStr, out int handle))
                             elementInfo.WindowHandle = new IntPtr(handle);
                     }
-                    catch { /* Pokračujeme ďalej */ }
+                    catch { }
                 }
 
-                // IsEnabled
+                // IsEnabled - používame bezpečnú metódu s fallback na string parsing
                 try
                 {
-                    elementInfo.IsEnabled = element.Current.IsEnabled;
+                    elementInfo.IsEnabled = GetIsEnabledSafe(element);
                 }
                 catch
                 {
@@ -339,72 +335,71 @@ namespace AppCommander.W7_11.WPF.Core
                         if (bool.TryParse(enabledStr, out bool isEnabled))
                             elementInfo.IsEnabled = isEnabled;
                     }
-                    catch { /* Pokračujeme ďalej */ }
+                    catch { }
                 }
 
-                // BoundingRectangle - OPRAVA: používame BoundingRectangle namiesto Width/Height
+                // BoundingRectangle - používame bezpečnú metódu A aktualizujeme X,Y
                 try
                 {
-                    var rect = element.Current.BoundingRectangle;
+                    var rect = GetBoundingRectangleSafe(element);
                     if (!rect.IsEmpty)
                     {
-                        elementInfo.X = (int)rect.X;
-                        elementInfo.Y = (int)rect.Y;
-                        elementInfo.BoundingRectangle = rect;  // Nastavíme celý Rect objekt
+                        elementInfo.X = (int)(rect.X + rect.Width / 2);  // Stred elementu
+                        elementInfo.Y = (int)(rect.Y + rect.Height / 2); // Stred elementu
+                        elementInfo.BoundingRectangle = rect;
                     }
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // ElementText - OPRAVA: používame ElementText namiesto Text
+                // ElementText
                 try
                 {
                     elementInfo.ElementText = GetElementText(element);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
                 // PlaceholderText
                 try
                 {
                     elementInfo.PlaceholderText = GetPlaceholderText(element);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
                 // HelpText
                 try
                 {
                     elementInfo.HelpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
                 // AccessKey
                 try
                 {
                     elementInfo.AccessKey = GetElementProperty(element, AutomationElement.AccessKeyProperty);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // IsVisible
+                // IsVisible - používame bezpečnú metódu
                 try
                 {
-                    elementInfo.IsVisible = !element.Current.IsOffscreen;
+                    elementInfo.IsVisible = GetIsVisibleSafe(element);
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // AutomationElement - uložíme referenciu na element
+                // AutomationElement
                 try
                 {
                     elementInfo.AutomationElement = element;
                 }
-                catch { /* Pokračujeme ďalej */ }
+                catch { }
 
-                // === FALLBACK: Ak nemáme žiadne užitočné info, pokúsime sa získať aspoň niečo ===
+                // === FALLBACK: Win32 API ak nemáme žiadne info ===
                 if (string.IsNullOrEmpty(elementInfo.Name) &&
                     string.IsNullOrEmpty(elementInfo.AutomationId) &&
                     string.IsNullOrEmpty(elementInfo.ClassName))
                 {
                     try
                     {
-                        // Pokús o získanie Window Title cez Win32 API
                         if (elementInfo.WindowHandle != IntPtr.Zero)
                         {
                             int length = GetWindowTextLength(elementInfo.WindowHandle);
@@ -418,20 +413,15 @@ namespace AppCommander.W7_11.WPF.Core
                             }
                         }
                     }
-                    catch { /* Nevadí, pokračujeme */ }
+                    catch { }
                 }
 
-                // Logujeme úspešné získanie elementu (len do Debug output)
-                System.Diagnostics.Debug.WriteLine($"[UIDetector] Element detected: {elementInfo.ControlType} - {elementInfo.Name}");
-
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Element extracted: {elementInfo.ControlType} - {elementInfo.Name}");
                 return elementInfo;
             }
             catch (Exception ex)
             {
-                // Zachytíme AKÚKOĽVEK výnimku na najvyššej úrovni
                 System.Diagnostics.Debug.WriteLine($"[UIDetector] Critical error in ExtractElementInfo: {ex.GetType().Name} - {ex.Message}");
-
-                // Aj pri kritickej chybe vrátime aspoň základný objekt s pozíciou
                 elementInfo.Name = $"Error detecting element at ({x}, {y})";
                 return elementInfo;
             }
@@ -440,7 +430,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Bezpečne získa text z elementu (pre TextBox, Edit, atď.)
         /// </summary>
-        private static string GetElementText(AutomationElement element)
+        internal static string GetElementText(AutomationElement element)
         {
             try
             {
@@ -465,8 +455,8 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                 }
 
-                // Fallback na Name property ak vyzerá ako text
-                string name = element.Current.Name;
+                // ✅  Fallback cez bezpečnú metódu namiesto element.Current.Name - POZOR TREBA POUŽIŤ LEN GetProperty(element, AutomationElement.NameProperty)
+                string name = GetProperty(element, AutomationElement.NameProperty);
                 if (!string.IsNullOrWhiteSpace(name) && name.Length < 100)
                     return name;
             }
@@ -510,25 +500,25 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("=== WinUI3 BRIDGE ANALYSIS ===");
+                Debug.WriteLine("=== WinUI3 BRIDGE ANALYSIS ===");
 
                 // 1. Skús nájsť child elementy v bridge
                 var children = bridgeElement.FindAll(TreeScope.Children, Condition.TrueCondition);
-                System.Diagnostics.Debug.WriteLine($"Bridge has {children.Count} children");
+                Debug.WriteLine($"Bridge has {children.Count} children");
 
                 foreach (AutomationElement child in children)
                 {
                     var childInfo = AnalyzeWinUI3Child(child, clickX, clickY);
                     if (childInfo != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Found meaningful child: {childInfo.Name}");
+                        Debug.WriteLine($"Found meaningful child: {childInfo.Name}");
                         return childInfo;
                     }
                 }
 
                 // 2. Skús nájsť descendants (hlbšie vnorenné elementy)
                 var descendants = bridgeElement.FindAll(TreeScope.Descendants, Condition.TrueCondition);
-                System.Diagnostics.Debug.WriteLine($"Bridge has {descendants.Count} descendants");
+                Debug.WriteLine($"Bridge has {descendants.Count} descendants");
 
                 AutomationElement bestMatch = null;
                 double bestDistance = double.MaxValue;
@@ -538,7 +528,9 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     try
                     {
-                        var rect = descendant.Current.BoundingRectangle;
+                        // používame bezpečnú metódu
+                        var rect = GetBoundingRectangleSafe(descendant);
+
                         if (rect.Width > 0 && rect.Height > 0)
                         {
                             // Vypočítaj vzdialenosť od klik pozície
@@ -564,8 +556,8 @@ namespace AppCommander.W7_11.WPF.Core
 
                                         if (isInBounds)
                                         {
-                                            System.Diagnostics.Debug.WriteLine($"Found exact match in bounds: {childInfo.Name}");
-                                            break; // Exact match v bounds
+                                            Debug.WriteLine($"Found exact match in bounds: {childInfo.Name}");
+                                            break;
                                         }
                                     }
                                 }
@@ -574,13 +566,15 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error analyzing descendant: {ex.Message}");
+                        Debug.WriteLine($"Error analyzing descendant: {ex.Message}");
                     }
                 }
+            
+                
 
                 if (bestInfo != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Best WinUI3 match: {bestInfo.Name} (distance: {bestDistance:F1})");
+                    Debug.WriteLine($"Best WinUI3 match: {bestInfo.Name} (distance: {bestDistance:F1})");
                     return bestInfo;
                 }
 
@@ -589,7 +583,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error processing WinUI3 element: {ex.Message}");
+                Debug.WriteLine($"Error processing WinUI3 element: {ex.Message}");
                 return null;
             }
         }
@@ -601,14 +595,17 @@ namespace AppCommander.W7_11.WPF.Core
                 string name = GetElementProperty(element, AutomationElement.NameProperty);
                 string automationId = GetElementProperty(element, AutomationElement.AutomationIdProperty);
                 string className = GetElementProperty(element, AutomationElement.ClassNameProperty);
-                string controlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown";
+
+                // používame bezpečnú metódu namiesto element.Current.ControlType
+                string controlType = GetControlTypeSafe(element);
+
                 string helpText = GetElementProperty(element, AutomationElement.HelpTextProperty);
 
                 // Získaj text obsah
                 string elementText = GetElementText(element);
                 string placeholderText = GetPlaceholderText(element);
 
-                System.Diagnostics.Debug.WriteLine($"  Child: Name='{name}', Id='{automationId}', Class='{className}', Type='{controlType}', Text='{elementText}'");
+                Debug.WriteLine($"  Child: Name='{name}', Id='{automationId}', Class='{className}', Type='{controlType}', Text='{elementText}'");
 
                 // Ignoruj generické/prázdne elementy
                 if (IsGenericWinUI3Element(name, automationId, className, controlType))
@@ -632,9 +629,9 @@ namespace AppCommander.W7_11.WPF.Core
                         HelpText = helpText,
                         X = clickX,
                         Y = clickY,
-                        BoundingRectangle = element.Current.BoundingRectangle,
-                        IsEnabled = element.Current.IsEnabled,
-                        IsVisible = !element.Current.IsOffscreen,
+                        BoundingRectangle = GetBoundingRectangleSafe(element),
+                        IsEnabled = GetIsEnabledSafe(element),
+                        IsVisible = GetIsVisibleSafe(element),
                         AutomationElement = element
                     };
                 }
@@ -676,7 +673,7 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("Trying pattern-based detection for WinUI3...");
+                Debug.WriteLine("Trying pattern-based detection for WinUI3...");
 
                 // Skús rôzne patterny na identifikáciu typu elementu
                 var patterns = element.GetSupportedPatterns();
@@ -728,7 +725,7 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error checking pattern {pattern.ProgrammaticName}: {ex.Message}");
+                        Debug.WriteLine($"Error checking pattern {pattern.ProgrammaticName}: {ex.Message}");
                     }
                 }
 
@@ -738,7 +735,7 @@ namespace AppCommander.W7_11.WPF.Core
                         $"{detectedType}_{CleanName(detectedText)}" :
                         $"{detectedType}_at_{clickX}_{clickY}";
 
-                    System.Diagnostics.Debug.WriteLine($"Pattern-based detection found: {name}");
+                    Debug.WriteLine($"Pattern-based detection found: {name}");
 
                     return new UIElementInfo
                     {
@@ -747,9 +744,9 @@ namespace AppCommander.W7_11.WPF.Core
                         ElementText = detectedText,
                         X = clickX,
                         Y = clickY,
-                        BoundingRectangle = element.Current.BoundingRectangle,
-                        IsEnabled = element.Current.IsEnabled,
-                        IsVisible = !element.Current.IsOffscreen,
+                        BoundingRectangle = GetBoundingRectangleSafe(element),
+                        IsEnabled = GetIsEnabledSafe(element),
+                        IsVisible = GetIsVisibleSafe(element),
                         AutomationElement = element,
                         ClassName = "Microsoft.UI.Content.DesktopChildSiteBridge"
                     };
@@ -759,7 +756,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in pattern-based detection: {ex.Message}");
+                Debug.WriteLine($"Error in pattern-based detection: {ex.Message}");
                 return null;
             }
         }
@@ -830,20 +827,20 @@ namespace AppCommander.W7_11.WPF.Core
 
         private static void LogElementDetails(UIElementInfo element)
         {
-            System.Diagnostics.Debug.WriteLine("=== ELEMENT DETECTION DETAILS ===");
-            System.Diagnostics.Debug.WriteLine($"Name: '{element.Name}'");
-            System.Diagnostics.Debug.WriteLine($"AutomationId: '{element.AutomationId}'");
-            System.Diagnostics.Debug.WriteLine($"ClassName: '{element.ClassName}'");
-            System.Diagnostics.Debug.WriteLine($"ControlType: '{element.ControlType}'");
-            System.Diagnostics.Debug.WriteLine($"ElementText: '{element.ElementText}'");
-            System.Diagnostics.Debug.WriteLine($"PlaceholderText: '{element.PlaceholderText}'");
-            System.Diagnostics.Debug.WriteLine($"HelpText: '{element.HelpText}'");
-            System.Diagnostics.Debug.WriteLine($"Position: ({element.X}, {element.Y})");
-            System.Diagnostics.Debug.WriteLine($"Enabled: {element.IsEnabled}, Visible: {element.IsVisible}");
-            System.Diagnostics.Debug.WriteLine("=====================================");
+            Debug.WriteLine("=== ELEMENT DETECTION DETAILS ===");
+            Debug.WriteLine($"Name: '{element.Name}'");
+            Debug.WriteLine($"AutomationId: '{element.AutomationId}'");
+            Debug.WriteLine($"ClassName: '{element.ClassName}'");
+            Debug.WriteLine($"ControlType: '{element.ControlType}'");
+            Debug.WriteLine($"ElementText: '{element.ElementText}'");
+            Debug.WriteLine($"PlaceholderText: '{element.PlaceholderText}'");
+            Debug.WriteLine($"HelpText: '{element.HelpText}'");
+            Debug.WriteLine($"Position: ({element.X}, {element.Y})");
+            Debug.WriteLine($"Enabled: {element.IsEnabled}, Visible: {element.IsVisible}");
+            Debug.WriteLine("=====================================");
         }
 
-        private static UIElementInfo GetBasicWindowInfo(int x, int y)
+        public static UIElementInfo GetBasicWindowInfo(int x, int y)
         {
             IntPtr hwnd = WindowFromPoint(new POINT { x = x, y = y });
 
@@ -893,7 +890,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error finding element by name: {ex.Message}");
+                Debug.WriteLine($"Error finding element by name: {ex.Message}");
                 return null;
             }
         }
@@ -925,7 +922,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private static AutomationElement FindByPartialName(AutomationElement parent, string name)
+        public static AutomationElement FindByPartialName(AutomationElement parent, string name)
         {
             try
             {
@@ -952,10 +949,17 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// FALLBACK Úroveň 2: Získa vlastnosť priamo cez element.Current
         /// </summary>
-        private static string GetPropertyViaCurrent(AutomationElement element, AutomationProperty property)
+        public static string GetPropertyViaCurrent(AutomationElement element, AutomationProperty property)
         {
             if (element == null || property == null)
                 return "";
+
+            // Extra kontrola pre problematické elementy
+            if (IsProblematicComElementSafe(element))
+            {
+                Debug.WriteLine($"[UIDetector] Skipping GetPropertyViaCurrent for problematic element");
+                return ""; // Preskočíme tento fallback
+            }
 
             try
             {
@@ -1041,7 +1045,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// FALLBACK Úroveň 3: Získa vlastnosť cez UI Automation Patterns
         /// Používa sa najmä pre získanie textu z TextBox, ComboBox, atď.
         /// </summary>
-        private static string GetPropertyViaPatterns(AutomationElement element, AutomationProperty property)
+        public static string GetPropertyViaPatterns(AutomationElement element, AutomationProperty property)
         {
             if (element == null || property == null)
                 return "";
@@ -1086,7 +1090,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// FALLBACK Úroveň 4: Získa vlastnosť cez Win32 API
         /// Používa sa ako posledná možnosť pre kritické vlastnosti
         /// </summary>
-        private static string GetPropertyViaWin32(AutomationElement element, AutomationProperty property)
+        public static string GetPropertyViaWin32(AutomationElement element, AutomationProperty property)
         {
             if (element == null || property == null)
                 return "";
@@ -1136,7 +1140,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// Pomocná metóda - získa vlastnosť automation elementu
         /// pre použitie v celom UIElementDetector
         /// </summary>
-        private static string GetProperty(AutomationElement element, AutomationProperty property)
+        public static string GetProperty(AutomationElement element, AutomationProperty property)
         {
             // Používa hlavnú metódu GetElementProperty s plným fallback mechanizmom
             return GetElementProperty(element, property);
@@ -1230,7 +1234,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error converting AutomationElement: {ex.Message}");
+                Debug.WriteLine($"Error converting AutomationElement: {ex.Message}");
                 return null;
             }
         }
@@ -1291,7 +1295,7 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[UIDetector] Detected problematic COM element: {className}");
+                        Debug.WriteLine($"[UIDetector] Detected problematic COM element: {className}");
                         return true;
                     }
                 }
@@ -1299,7 +1303,7 @@ namespace AppCommander.W7_11.WPF.Core
                 // Dodatočná kontrola: ak ClassName obsahuje "MS.Internal", je to takmer určite problematické
                 if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Detected MS.Internal element: {className}");
+                    Debug.WriteLine($"[UIDetector] Detected MS.Internal element: {className}");
                     return true;
                 }
 
@@ -1332,7 +1336,7 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     // Pre problematické elementy PRESKOČÍME GetCurrentPropertyValue
                     // a ideme PRIAMO na fallback metódy
-                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Skipping GetCurrentPropertyValue for problematic element, using fallback directly");
+                    Debug.WriteLine($"[UIDetector] Skipping GetCurrentPropertyValue for problematic element, using fallback directly");
 
                     // Úroveň 2: element.Current fallback
                     try
@@ -1381,7 +1385,7 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     // Aj napriek kontrole môže nastať COM exception
                     // (pre nové neznáme problematické typy)
-                    System.Diagnostics.Debug.WriteLine($"[UIDetector] Unexpected COM exception, trying fallback");
+                    Debug.WriteLine($"[UIDetector] Unexpected COM exception, trying fallback");
                 }
                 catch (ElementNotAvailableException)
                 {
@@ -1422,8 +1426,307 @@ namespace AppCommander.W7_11.WPF.Core
             catch (Exception ex)
             {
                 // Zachytíme AKÚKOĽVEK výnimku
-                System.Diagnostics.Debug.WriteLine($"[UIDetector] Unexpected error for {property.ProgrammaticName}: {ex.GetType().Name}");
+                Debug.WriteLine($"[UIDetector] Unexpected error for {property.ProgrammaticName}: {ex.GetType().Name}");
                 return "";
+            }
+        }
+
+        #endregion
+
+        #region Enhanced Safe Property Access
+
+        /// <summary>
+        /// Zistí, či je element problematický BEZ použitia element.Current
+        /// Používa len Win32 API a try-catch, aby sa predišlo MDA warningom
+        /// </summary>
+        public static bool IsProblematicComElementSafe(AutomationElement element)
+        {
+            if (element == null)
+                return false;
+
+            try
+            {
+                // Pokúsime sa získať Native Window Handle - toto je bezpečné
+                IntPtr hwnd = IntPtr.Zero;
+                try
+                {
+                    hwnd = new IntPtr(element.Current.NativeWindowHandle);
+                }
+                catch
+                {
+                    // Ak aj toto zlyhá, element je určite problematický
+                    return true;
+                }
+
+                if (hwnd == IntPtr.Zero)
+                {
+                    // Element bez window handle je potenciálne problematický
+                    return true;
+                }
+
+                // Získaj ClassName cez Win32 API - NEPOUŽÍVAME element.Current!
+                string className = GetClassNameViaWin32(hwnd);
+
+                if (string.IsNullOrEmpty(className))
+                {
+                    // Ak nemôžeme získať className, považujeme za problematický
+                    return true;
+                }
+
+                // Kontrola na MS.Internal - známe problematické proxy triedy
+                if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] MS.Internal element detected: {className}");
+                    return true;
+                }
+
+                // Zoznam známych problematických tried
+                var problematicClasses = new[]
+                {
+                    "WindowsForms10.EDIT",
+                    "WindowsForms10.RichEdit",
+                    "WindowsForms10.COMBOBOX",
+                    "Edit",
+                    "RichEdit",
+                    "RichEdit20W",
+                    "RichEdit20A",
+                    "RichEdit50W",
+                    "NonClientArea",
+                    "TitleBar",
+                    "ScrollBar",
+                    "SysHeader32",
+                    "Internet Explorer_Server",
+                    "Shell DocObject View",
+                    "MSCTFIME UI"
+                };
+
+                foreach (var problematic in problematicClasses)
+                {
+                    if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        Debug.WriteLine($"[UIDetector] Problematic element type: {className}");
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[UIDetector] Exception in IsProblematicComElementSafe: {ex.Message}");
+                // Pri akejkoľvek výnimke považujeme za problematický
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Bezpečne získa ClassName cez Win32 API
+        /// </summary>
+        public static string GetClassNameViaWin32(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero)
+                return "";
+
+            try
+            {
+                var sb = new System.Text.StringBuilder(256);
+                int result = GetClassName(hwnd, sb, sb.Capacity);
+                return result > 0 ? sb.ToString() : "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Bezpečne získa boolean vlastnosť elementu s fallback mechanizmom
+        /// </summary>
+        public static bool GetBooleanProperty(AutomationElement element, Func<AutomationElement, bool> getter, bool defaultValue = false)
+        {
+            if (element == null)
+                return defaultValue;
+
+            // Kontrola, či je element problematický
+            bool isProblematic = IsProblematicComElementSafe(element);
+
+            if (isProblematic)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Skipping Current access for problematic element (boolean)");
+
+                // Pre problematické elementy použijeme Win32 API fallback
+                try
+                {
+                    IntPtr hwnd = new IntPtr(element.Current.NativeWindowHandle);
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        // Pre IsEnabled
+                        if (getter.Method.Name.Contains("IsEnabled"))
+                        {
+                            return IsWindowEnabled(hwnd);
+                        }
+                        // Pre IsVisible
+                        if (getter.Method.Name.Contains("IsOffscreen"))
+                        {
+                            return IsWindowVisible(hwnd); // Pozor: inverse logic
+                        }
+                    }
+                }
+                catch { }
+
+                return defaultValue;
+            }
+
+            // Pre neproblematické elementy - normálny prístup
+            try
+            {
+                return getter(element);
+            }
+            catch (COMException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] COM exception getting boolean: {ex.Message}");
+                return defaultValue;
+            }
+            catch (ElementNotAvailableException)
+            {
+                return defaultValue;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Unexpected exception getting boolean: {ex.Message}");
+                return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Bezpečne získa IsEnabled s fallback na Win32 API
+        /// </summary>
+        public static bool GetIsEnabledSafe(AutomationElement element)
+        {
+            return GetBooleanProperty(element, e => e.Current.IsEnabled, defaultValue: false);
+        }
+
+        /// <summary>
+        /// Bezpečne získa IsVisible (inverse of IsOffscreen) s fallback na Win32 API
+        /// </summary>
+        /// 
+        public static bool GetIsVisibleSafe(AutomationElement element)
+        {
+            // Pozor: IsOffscreen je inverse IsVisible!
+            return GetBooleanProperty(element, e => !e.Current.IsOffscreen, defaultValue: false);
+        }
+
+        /// <summary>
+        /// Bezpečne získa ControlType string
+        /// </summary>
+        public static string GetControlTypeSafe(AutomationElement element)
+        {
+            if (element == null)
+                return "Unknown";
+
+            bool isProblematic = IsProblematicComElementSafe(element);
+
+            if (isProblematic)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Skipping Current access for problematic element (ControlType)");
+
+                // Fallback: skús určiť typ z ClassName
+                try
+                {
+                    IntPtr hwnd = new IntPtr(element.Current.NativeWindowHandle);
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        string className = GetClassNameViaWin32(hwnd);
+                        return GuessControlTypeFromClassName(className);
+                    }
+                }
+                catch { }
+
+                return "Unknown";
+            }
+
+            try
+            {
+                return element.Current.ControlType?.LocalizedControlType ?? "Unknown";
+            }
+            catch (COMException)
+            {
+                return "Unknown";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// Pokúsi sa odhadnúť ControlType z ClassName
+        /// </summary>
+        public static string GuessControlTypeFromClassName(string className)
+        {
+            if (string.IsNullOrEmpty(className))
+                return "Unknown";
+
+            className = className.ToLowerInvariant();
+
+            if (className.Contains("edit")) return "Edit";
+            if (className.Contains("button")) return "Button";
+            if (className.Contains("combobox")) return "ComboBox";
+            if (className.Contains("listbox")) return "List";
+            if (className.Contains("richedit")) return "Document";
+            if (className.Contains("static")) return "Text";
+            if (className.Contains("scrollbar")) return "ScrollBar";
+
+            return "Unknown";
+        }
+
+        /// <summary>
+        /// Bezpečne získa BoundingRectangle
+        /// </summary>
+        public static System.Windows.Rect GetBoundingRectangleSafe(AutomationElement element)
+        {
+            if (element == null)
+                return System.Windows.Rect.Empty;
+
+            bool isProblematic = IsProblematicComElementSafe(element);
+
+            if (isProblematic)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UIDetector] Skipping Current access for problematic element (BoundingRect)");
+
+                // Fallback na Win32 API
+                try
+                {
+                    IntPtr hwnd = new IntPtr(element.Current.NativeWindowHandle);
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        RECT rect;
+                        if (GetWindowRect(hwnd, out rect))
+                        {
+                            return new System.Windows.Rect(
+                                rect.Left,
+                                rect.Top,
+                                rect.Right - rect.Left,
+                                rect.Bottom - rect.Top);
+                        }
+                    }
+                }
+                catch { }
+
+                return System.Windows.Rect.Empty;
+            }
+
+            try
+            {
+                return element.Current.BoundingRectangle;
+            }
+            catch (COMException)
+            {
+                return System.Windows.Rect.Empty;
+            }
+            catch
+            {
+                return System.Windows.Rect.Empty;
             }
         }
 

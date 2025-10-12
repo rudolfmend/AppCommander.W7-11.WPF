@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -363,11 +364,15 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
+                Debug.WriteLine("private async Task ExecuteCommandAsync(Command command, CancellationToken cancellationToken) - Starting execution of command: " + command.ToString());
+
                 // Focus target window if specified
                 if (!string.IsNullOrEmpty(command.TargetWindow))
                 {
-                    await FocusTargetWindow(command);
+                    await FocusTargetWindow(command, cancellationToken); // PRIDANÝ cancellationToken
                 }
+
+                Debug.WriteLine("private async Task ExecuteCommandAsync(Command command, CancellationToken cancellationToken) - Command details: " + command.ToString());
 
                 switch (command.Type)
                 {
@@ -402,6 +407,8 @@ namespace AppCommander.W7_11.WPF.Core
                         System.Diagnostics.Debug.WriteLine("Unknown command type: " + command.Type);
                         break;
                 }
+
+                Debug.WriteLine("private async Task ExecuteCommandAsync(Command command, CancellationToken cancellationToken) - Command executed successfully.");
             }
             catch (Exception ex)
             {
@@ -416,31 +423,52 @@ namespace AppCommander.W7_11.WPF.Core
             {
                 UIElementInfo targetElement = null;
 
-                // Try to find element by table cell identifier first
-                if (command.IsTableCommand && !string.IsNullOrEmpty(command.TableCellIdentifier))
+                Debug.WriteLine("private async Task ExecuteClickCommand(Command command, CancellationToken cancellationToken) - Command details: " + command.ToString());
+                // + timeout pre hľadanie elementu
+                var findElementTask = Task.Run(() =>
                 {
-                    IntPtr targetHandle = FindTargetWindow(command);
-                    if (targetHandle != IntPtr.Zero)
+                    // Try to find element by table cell identifier first
+                    if (command.IsTableCommand && !string.IsNullOrEmpty(command.TableCellIdentifier))
                     {
-                        targetElement = UIElementDetector.FindTableCellByIdentifier(
-                            targetHandle,
-                            command.TableCellIdentifier);
-
-                        if (targetElement != null)
+                        IntPtr targetHandle = FindTargetWindow(command);
+                        if (targetHandle != IntPtr.Zero)
                         {
-                            System.Diagnostics.Debug.WriteLine("Found table cell: " + command.TableCellIdentifier);
+                            var element = UIElementDetector.FindTableCellByIdentifier(
+                                targetHandle,
+                                command.TableCellIdentifier);
+
+                            if (element != null)
+                            {
+                                System.Diagnostics.Debug.WriteLine("Found table cell: " + command.TableCellIdentifier);
+                                return element;
+                            }
                         }
                     }
-                }
 
-                // Fallback to element name search
-                if (targetElement == null && !string.IsNullOrEmpty(command.ElementName))
-                {
-                    IntPtr targetHandle = FindTargetWindow(command);
-                    if (targetHandle != IntPtr.Zero)
+                    // Fallback to element name search
+                    if (!string.IsNullOrEmpty(command.ElementName))
                     {
-                        targetElement = UIElementDetector.FindElementByName(command.ElementName, targetHandle);
+                        IntPtr targetHandle = FindTargetWindow(command);
+                        if (targetHandle != IntPtr.Zero)
+                        {
+                            return UIElementDetector.FindElementByName(command.ElementName, targetHandle);
+                        }
                     }
+
+                    return null;
+                }, cancellationToken);
+
+                // Čakaj maximálne 5 sekúnd na nájdenie elementu
+                var timeoutTask = Task.Delay(5000, cancellationToken);
+                var completedTask = await Task.WhenAny(findElementTask, timeoutTask);
+
+                if (completedTask == findElementTask)
+                {
+                    targetElement = await findElementTask;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Element search timed out after 5 seconds");
                 }
 
                 // Execute click
@@ -459,6 +487,7 @@ namespace AppCommander.W7_11.WPF.Core
                         HighlightElement(targetElement);
                     }
                 }
+                Debug.WriteLine("private async Task ExecuteClickCommand(Command command, CancellationToken cancellationToken) - Click executed.");
 
                 await Task.Delay(50, cancellationToken);
             }
@@ -488,6 +517,8 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
+                Debug.WriteLine("private async Task ExecuteTypeCommand(Command command, CancellationToken cancellationToken) - Command details: " + command.ToString());
+
                 if (string.IsNullOrEmpty(command.Value))
                 {
                     System.Diagnostics.Debug.WriteLine("No text to type");
@@ -496,12 +527,43 @@ namespace AppCommander.W7_11.WPF.Core
 
                 System.Diagnostics.Debug.WriteLine("Typing text: " + command.Value);
 
+                // Ak je potrebné nájsť element, použite timeout
+                if (!string.IsNullOrEmpty(command.ElementName))
+                {
+                    var findElementTask = Task.Run(() =>
+                    {
+                        IntPtr targetHandle = FindTargetWindow(command);
+                        if (targetHandle != IntPtr.Zero)
+                        {
+                            return UIElementDetector.FindElementByName(command.ElementName, targetHandle);
+                        }
+                        return null;
+                    }, cancellationToken);
+
+                    var timeoutTask = Task.Delay(5000, cancellationToken);
+                    var completedTask = await Task.WhenAny(findElementTask, timeoutTask);
+
+                    UIElementInfo targetElement = null;
+                    if (completedTask == findElementTask)
+                    {
+                        targetElement = await findElementTask;
+                    }
+
+                    if (targetElement != null)
+                    {
+                        // Kliknite na element aby bol fokusovaný
+                        ExecuteClickAtCoordinates(CommandType.Click, targetElement.X, targetElement.Y);
+                        await Task.Delay(100, cancellationToken);
+                    }
+                }
+
                 // Simple text typing using SendKeys
                 foreach (char c in command.Value)
                 {
                     SendKeys.SendWait(c.ToString());
                     await Task.Delay(10, cancellationToken);
                 }
+                Debug.WriteLine("private async Task ExecuteTypeCommand(Command command, CancellationToken cancellationToken) - Text typed.");
 
                 await Task.Delay(100, cancellationToken);
             }
@@ -525,7 +587,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
                 else if (!string.IsNullOrEmpty(command.Value))
                 {
-                    // **OPRAVA: Spracuj SHIFT kombinacie z Value stringu**
+                    // Spracuj SHIFT kombinacie z Value stringu
                     keyToSend = ParseKeyValueWithShift(command.Value);
 
                     // Ak sa nepodarilo spracovať ako SHIFT kombinaciu, skús štandardne
@@ -603,7 +665,7 @@ namespace AppCommander.W7_11.WPF.Core
         /// </summary>
         private string GetSendKeysString(Keys key)
         {
-            // **OPRAVA: Spracuj SHIFT flag v Keys hodnote**
+            // Spracuj SHIFT flag v Keys hodnote
             if ((key & Keys.Shift) == Keys.Shift)
             {
                 var baseKey = key & ~Keys.Shift; // Odstráň SHIFT flag
@@ -778,18 +840,35 @@ namespace AppCommander.W7_11.WPF.Core
 
         #region Helper Methods
 
-        private async Task FocusTargetWindow(Command command)
+        private async Task FocusTargetWindow(Command command, CancellationToken cancellationToken)
         {
             try
             {
-                IntPtr targetHandle = FindTargetWindow(command);
+                Debug.WriteLine("Focusing target window: " + command.TargetWindow);
+
+                // Použite Task.Run s timeout pre FindTargetWindow
+                var findWindowTask = Task.Run(() => FindTargetWindow(command), cancellationToken);
+                var timeoutTask = Task.Delay(2000, cancellationToken);
+
+                var completedTask = await Task.WhenAny(findWindowTask, timeoutTask);
+
+                IntPtr targetHandle = IntPtr.Zero;
+                if (completedTask == findWindowTask)
+                {
+                    targetHandle = await findWindowTask;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("FindTargetWindow timed out after 2 seconds");
+                    return;
+                }
 
                 if (targetHandle != IntPtr.Zero)
                 {
                     if (IsValidWindowForVersion(targetHandle) && IsWindowVisible(targetHandle))
                     {
                         SetForegroundWindow(targetHandle);
-                        await Task.Delay(200);
+                        await Task.Delay(200, cancellationToken);
                         System.Diagnostics.Debug.WriteLine("Window focus completed");
                     }
                     else
@@ -801,6 +880,9 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     System.Diagnostics.Debug.WriteLine("No target window handle available");
                 }
+
+                Debug.WriteLine("private async Task FocusTargetWindow(Command command, CancellationToken cancellationToken) - Focus attempt finished.");
+
             }
             catch (Exception ex)
             {
@@ -833,7 +915,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private ValidationResult ValidateSequence(CommandSequence sequence)
+        private SequenceValidationResult ValidateSequence(CommandSequence sequence)
         {
             try
             {
@@ -844,7 +926,7 @@ namespace AppCommander.W7_11.WPF.Core
             catch (Exception ex)
             {
                 // Vytvor ValidationResult a pridaj chybu pomocou metódy AddError
-                var result = new ValidationResult();
+                var result = new SequenceValidationResult();
                 result.AddError("Validation error: " + ex.Message);
                 return result;
             }
