@@ -1242,81 +1242,6 @@ namespace AppCommander.W7_11.WPF.Core
         #region Solving Problems with COM Exceptions, NonComVisibleBaseClass, ElementNotAvailableException
 
         /// <summary>
-        /// Zistí, či je element známy problematický typ, ktorý spôsobuje NonComVisibleBaseClass MDA warning
-        /// </summary>
-        private static bool IsProblematicComElement(AutomationElement element)
-        {
-            try
-            {
-                if (element == null)
-                    return false;
-
-                // Pokúsime sa bezpečne získať ClassName
-                string className = "";
-                try
-                {
-                    className = element.Current.ClassName ?? "";
-                }
-                catch
-                {
-                    // Ak nemôžeme získať ClassName bezpečne, považujeme za potenciálne problematický
-                    return true;
-                }
-
-                // Zoznam známych problematických tried, ktoré spôsobujú COM warnings
-                var problematicClasses = new[]
-                {
-            // WinForms elementy
-            "WindowsForms10.EDIT",              // WinForms TextBox
-            "WindowsForms10.RichEdit",          // WinForms RichTextBox
-            "WindowsForms10.COMBOBOX",          // WinForms ComboBox (niekedy)
-            
-            // Win32 native elementy
-            "Edit",                              // Štandardný Win32 Edit
-            "RichEdit",                          // RichTextBox
-            "RichEdit20W",                       // RichTextBox Win32
-            "RichEdit20A",                       // RichTextBox Win32 ANSI
-            "RichEdit50W",                       // RichEdit 5.0
-            
-            // Problematické proxy triedy
-            "NonClientArea",                     // Neklientská oblasť okna (title bar, borders)
-            "TitleBar",                          // Title bar
-            "ScrollBar",                         // Scroll bars (často problematické)
-            "SysHeader32",                       // Header controls
-            
-            // Ďalšie známe problematické
-            "Internet Explorer_Server",          // IE embedded controls
-            "Shell DocObject View",              // Shell embedded views
-            "MSCTFIME UI",                       // IME UI elements
-        };
-
-                // Kontrola, či ClassName obsahuje nejaký problematický pattern
-                foreach (var problematic in problematicClasses)
-                {
-                    if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        Debug.WriteLine($"[UIDetector] Detected problematic COM element: {className}");
-                        return true;
-                    }
-                }
-
-                // Dodatočná kontrola: ak ClassName obsahuje "MS.Internal", je to takmer určite problematické
-                if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    Debug.WriteLine($"[UIDetector] Detected MS.Internal element: {className}");
-                    return true;
-                }
-
-                return false;
-            }
-            catch
-            {
-                // Pri akejkoľvek chybe považujeme za potenciálne problematický
-                return true;
-            }
-        }
-
-        /// <summary>
         /// Získa vlastnosť elementu s viacúrovňovým fallback mechanizmom
         /// Získa vlastnosť elementu BEZ MDA warnings
         /// Problematické elementy identifikuje PRED volaním GetCurrentPropertyValue
@@ -1330,8 +1255,20 @@ namespace AppCommander.W7_11.WPF.Core
                     return "";
 
                 // === PREDIKČNÁ KONTROLA: Zistíme či je element problematický ===
-                bool isProblematic = IsProblematicComElement(element);
 
+                // Predbežný test - ak GetCurrentPropertyValue zlyhá, element je problematický
+                try
+                {
+                    var testValue = element.GetCurrentPropertyValue(AutomationElement.ClassNameProperty, true);
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    // Tento element určite spôsobí problémy
+                    Debug.WriteLine($"[UIDetector] Pre-test failed - using Win32 fallback only");
+                    return GetPropertyViaWin32(element, property);
+                }
+
+                bool isProblematic = IsProblematicComElementSafe(element);
                 if (isProblematic)
                 {
                     // Pre problematické elementy PRESKOČÍME GetCurrentPropertyValue
@@ -1437,7 +1374,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         /// <summary>
         /// Zistí, či je element problematický BEZ použitia element.Current
-        /// Používa len Win32 API a try-catch, aby sa predišlo MDA warningom
+        /// SKUTOČNE bezpečná verzia - používa len GetCurrentPropertyValue s ignoreDefaultValue
         /// </summary>
         public static bool IsProblematicComElementSafe(AutomationElement element)
         {
@@ -1446,67 +1383,100 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
-                // Pokúsime sa získať Native Window Handle - toto je bezpečné
-                IntPtr hwnd = IntPtr.Zero;
+                // === ÚROVEŇ 1: Pokús o získanie ClassName BEZ element.Current ===
+                string className = "";
                 try
                 {
-                    hwnd = new IntPtr(element.Current.NativeWindowHandle);
+                    // Použijeme GetCurrentPropertyValue s ignoreDefaultValue=true
+                    // Toto je bezpečnejšie ako element.Current
+                    var classNameObj = element.GetCurrentPropertyValue(
+                        AutomationElement.ClassNameProperty,
+                        true);  // ignoreDefaultValue=true minimalizuje COM volania
+
+                    className = classNameObj?.ToString() ?? "";
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    // Ak zlyhá už tento základný pokus, element je problematický
+                    Debug.WriteLine($"[UIDetector] COM exception getting ClassName - element is problematic");
+                    return true;
+                }
+                catch (ElementNotAvailableException)
+                {
+                    return true;
                 }
                 catch
                 {
-                    // Ak aj toto zlyhá, element je určite problematický
+                    // Akákoľvek iná výnimka = problematický
                     return true;
                 }
 
-                if (hwnd == IntPtr.Zero)
+                // === ÚROVEŇ 2: Kontrola na MS.Internal namespace ===
+                if (!string.IsNullOrEmpty(className))
                 {
-                    // Element bez window handle je potenciálne problematický
-                    return true;
-                }
-
-                // Získaj ClassName cez Win32 API - NEPOUŽÍVAME element.Current!
-                string className = GetClassNameViaWin32(hwnd);
-
-                if (string.IsNullOrEmpty(className))
-                {
-                    // Ak nemôžeme získať className, považujeme za problematický
-                    return true;
-                }
-
-                // Kontrola na MS.Internal - známe problematické proxy triedy
-                if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[UIDetector] MS.Internal element detected: {className}");
-                    return true;
-                }
-
-                // Zoznam známych problematických tried
-                var problematicClasses = new[]
-                {
-                    "WindowsForms10.EDIT",
-                    "WindowsForms10.RichEdit",
-                    "WindowsForms10.COMBOBOX",
-                    "Edit",
-                    "RichEdit",
-                    "RichEdit20W",
-                    "RichEdit20A",
-                    "RichEdit50W",
-                    "NonClientArea",
-                    "TitleBar",
-                    "ScrollBar",
-                    "SysHeader32",
-                    "Internet Explorer_Server",
-                    "Shell DocObject View",
-                    "MSCTFIME UI"
-                };
-
-                foreach (var problematic in problematicClasses)
-                {
-                    if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
+                    // Kontrola na MS.Internal - známe problematické proxy triedy
+                    if (className.IndexOf("MS.Internal", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        Debug.WriteLine($"[UIDetector] Problematic element type: {className}");
+                        Debug.WriteLine($"[UIDetector] MS.Internal element detected: {className}");
                         return true;
                     }
+
+                    // Zoznam známych problematických tried
+                    var problematicClasses = new[]
+                    {
+                "WindowsForms10.EDIT",
+                "WindowsForms10.RichEdit",
+                "WindowsForms10.COMBOBOX",
+                "Edit",
+                "RichEdit",
+                "RichEdit20W",
+                "RichEdit20A",
+                "RichEdit50W",
+                "NonClientArea",
+                "TitleBar",
+                "ScrollBar",
+                "SysHeader32",
+                "Internet Explorer_Server",
+                "Shell DocObject View",
+                "MSCTFIME UI"
+            };
+
+                    foreach (var problematic in problematicClasses)
+                    {
+                        if (className.IndexOf(problematic, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            Debug.WriteLine($"[UIDetector] Problematic element type: {className}");
+                            return true;
+                        }
+                    }
+                }
+
+                // === ÚROVEŇ 3: Kontrola ControlType (tiež s ignoreDefaultValue) ===
+                try
+                {
+                    var controlTypeObj = element.GetCurrentPropertyValue(
+                        AutomationElement.ControlTypeProperty,
+                        true);
+
+                    if (controlTypeObj is ControlType controlType)
+                    {
+                        if (controlType == ControlType.TitleBar ||
+                            controlType == ControlType.MenuBar ||
+                            controlType == ControlType.ScrollBar)
+                        {
+                            Debug.WriteLine($"[UIDetector] Problematic ControlType: {controlType.ProgrammaticName}");
+                            return true;
+                        }
+                    }
+                }
+                catch (System.Runtime.InteropServices.COMException)
+                {
+                    // COM exception pri získavaní ControlType = problematický element
+                    return true;
+                }
+                catch
+                {
+                    // Ignorujeme ostatné výnimky pri ControlType check
                 }
 
                 return false;

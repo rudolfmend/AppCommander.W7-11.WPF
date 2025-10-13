@@ -14,6 +14,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Microsoft.VisualBasic;
 using System.Security.Cryptography.X509Certificates;
 
@@ -127,13 +128,15 @@ namespace AppCommander.W7_11.WPF
 {
     public partial class MainWindow : Window
     {
-        #region Private Fields
+        #region Private Fields - MEMBER DEFINITIONS 
 
         // Core components
         private WindowTracker _windowTracker;
         private CommandRecorder _recorder;
         private CommandPlayer _player;
         private AutomaticUIManager _automaticUIManager;
+
+        private bool _isSidePanelVisible = false;  // Side panel state (visible/hidden) 
 
         // Sequence of commands
         private string _currentSequenceName = string.Empty;
@@ -175,6 +178,8 @@ namespace AppCommander.W7_11.WPF
         {
             InitializeComponent();
             InitializeApplication();
+            InitializeWindowClickSelector();
+            InitializeSidePanel();
         }
 
         private void InitializeUnifiedTable()
@@ -433,101 +438,7 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region UI Update Fixes
-
-        /// <summary>
-        /// Resetuje UI po click selection 
-        /// </summary>
-        private void ResetClickSelectionUI()
-        {
-            try
-            {
-                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "🎯 Click to Select";
-                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
-                AppCommander_BtnSelectTarget.IsEnabled = true;
-                AppCommander_BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
-
-                // Skryje selection indicator
-                AppCommander_SelectionModeIndicator.Visibility = Visibility.Collapsed;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Aktualizuje target window information 
-        /// </summary>
-        private void UpdateTargetWindowInfo(WindowTrackingInfo windowInfo)
-        {
-            try
-            {
-                if (windowInfo != null)
-                {
-                    var processName = windowInfo.ProcessName ?? "Unknown Process";
-                    var title = windowInfo.Title ?? "Unknown Title";
-                    AppCommander_LblTargetWindow.Text = $"{processName} - {title}";
-
-                    // Update UI state
-                    AppCommander_BtnRecording.IsEnabled = true;
-
-                    AppCommander_LblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
-                    AppCommander_TxtTargetProcess.Text = windowInfo.ProcessName;
-                    _targetWindowHandle = windowInfo.WindowHandle;
-                    Debug.WriteLine($"Target window updated: Handle=0x{_targetWindowHandle.ToInt64():X8}, Process={windowInfo.ProcessName}, Title={windowInfo.Title}");
-
-                    UpdateStatus($"Target window set to: {windowInfo.ProcessName}");
-                    AppCommander_BtnRecording.IsEnabled = true;
-                    UpdateUI();
-                }
-                else
-                {
-                    AppCommander_LblTargetWindow.Text = "No target selected";
-                    AppCommander_TxtTargetProcess.Text = "-";
-                    AppCommander_BtnRecording.IsEnabled = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error updating target window info: {ex.Message}");
-                AppCommander_TxtTargetProcess.Text = "-";
-                AppCommander_LblTargetWindow.Text = "Error loading target info";
-                AppCommander_BtnRecording.IsEnabled = false;
-            }
-            finally
-            {
-                UpdateUI();
-            }
-        }
-
-        /// <summary>
-        /// Aktualizuje status labels 
-        /// </summary>
-        private void UpdateStatusLabels(bool isRecording)
-        {
-            try
-            {
-                if (isRecording)
-                {
-                    AppCommander_LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
-                    AppCommander_LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
-                }
-                else
-                {
-                    AppCommander_LblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
-                    AppCommander_LblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error updating status labels: {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region Recording Methods - 
+        #region Recording Methods 
 
         private void StartNewRecording()
         {
@@ -794,11 +705,15 @@ namespace AppCommander.W7_11.WPF
                 bool isPlaying = _player != null && _player.IsPlaying;
                 bool hasTargetWindow = _targetWindowHandle != IntPtr.Zero;
 
+                // Select button state 
+                if (AppCommander_BtnSelectTarget != null)
+                    AppCommander_BtnSelectTarget.IsEnabled = !isRecording;
+
                 // Recording button state
-                AppCommander_BtnRecording.IsEnabled = hasTargetWindow || isRecording;
+                if (AppCommander_BtnRecording != null)
+                    AppCommander_BtnRecording.IsEnabled = hasTargetWindow || isRecording;
 
-                AppCommander_BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
-
+                // Playback buttons
                 if (AppCommander_BtnPlayCommands != null)
                     AppCommander_BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
 
@@ -808,41 +723,65 @@ namespace AppCommander.W7_11.WPF
                 if (AppCommander_BtnStop != null)
                     AppCommander_BtnStop.IsEnabled = isPlaying;
 
-                // Target selection buttons - disable počas recordingu
-                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !isRecording;
-                AppCommander_BtnSelectTarget.IsEnabled = !isRecording;
-
                 // Commands count
                 var loopCount = _commands.Count(c => c.Type == CommandType.LoopStart);
-                string commandText = loopCount > 0 ?
-                    string.Format("Commands: {0} ({1} loops)", _commands.Count, loopCount) :
-                    string.Format("Commands: {0}", _commands.Count);
-                AppCommander_TxtCommandCount.Text = commandText;
+                string commandText = loopCount > 0
+                    ? string.Format("{0} commands ({1} loop{2})", _commands.Count, loopCount, loopCount != 1 ? "s" : "")
+                    : string.Format("{0} command{1}", _commands.Count, _commands.Count != 1 ? "s" : "");
 
-                // Window title
-                string title = "AppCommander";
-                if (!string.IsNullOrEmpty(_currentFilePath))
-                {
-                    title += string.Format(" - {0}", Path.GetFileName(_currentFilePath));
-                }
-                if (_hasUnsavedChanges)
-                {
-                    title += " *";
-                }
-                this.Title = title;
+                if (AppCommander_TxtCommandCount != null)
+                    AppCommander_TxtCommandCount.Text = commandText;
 
-                // Target process info - ak existuje handle
-                if (hasTargetWindow)
+                if (AppCommander_TxtCommandsCount != null)
+                    AppCommander_TxtCommandsCount.Text = commandText;
+
+                // Recording status v side paneli (NOVÝ)
+                if (AppCommander_LblUIRecordingStatus != null)
                 {
-                    var processName = GetProcessNameFromWindow(_targetWindowHandle);
-                    var windowTitle = GetWindowTitle(_targetWindowHandle);
-                    AppCommander_LblTargetWindow.Text = $"{processName} - {windowTitle}";
-                    AppCommander_TxtTargetProcess.Text = processName;
+                    AppCommander_LblUIRecordingStatus.Text = isRecording ? "Active" : "Inactive";
+                    AppCommander_LblUIRecordingStatus.Foreground = isRecording
+                        ? new SolidColorBrush(Color.FromRgb(198, 40, 40))  // Červená
+                        : new SolidColorBrush(Color.FromRgb(96, 94, 92));   // Sivá
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(string.Format("Error updating UI: {0}", ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private void SetUIState(bool enabled)
+        {
+            try
+            {
+                // Recording button
+                if (AppCommander_BtnRecording != null)
+                    AppCommander_BtnRecording.IsEnabled = enabled;
+
+                // Playback buttons
+                if (AppCommander_BtnPlayCommands != null)
+                    AppCommander_BtnPlayCommands.IsEnabled = enabled;
+
+                if (AppCommander_BtnPause != null)
+                    AppCommander_BtnPause.IsEnabled = !enabled;
+
+                if (AppCommander_BtnStop != null)
+                    AppCommander_BtnStop.IsEnabled = !enabled;
+
+                // Command table
+                if (AppCommander_MainCommandTable != null)
+                    AppCommander_MainCommandTable.IsEnabled = enabled;
+
+                // Selection buttons 
+                if (AppCommander_BtnSelectTarget != null)
+                    AppCommander_BtnSelectTarget.IsEnabled = enabled;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(string.Format("Error setting UI state: {0}", ex.Message));
             }
         }
 
@@ -968,6 +907,183 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
+        #region UI Behavior Enhancements 
+
+        /// <summary>
+        /// Resetuje UI po click selection 
+        /// </summary>
+        private void ResetClickSelectionUI()
+        {
+            try
+            {
+                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "🎯 Click to Select";
+                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
+                AppCommander_BtnSelectTarget.IsEnabled = true;
+                AppCommander_BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
+
+                // Skryje selection indicator
+                AppCommander_SelectionModeIndicator.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resetting click selection UI: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje target window information 
+        /// </summary>
+        private void UpdateTargetWindowInfo(WindowTrackingInfo windowInfo)
+        {
+            try
+            {
+                if (windowInfo != null)
+                {
+                    var processName = windowInfo.ProcessName ?? "Unknown Process";
+                    var title = windowInfo.Title ?? "Unknown Title";
+                    AppCommander_LblTargetWindow.Text = $"{processName} - {title}";
+
+                    // Update UI state
+                    AppCommander_BtnRecording.IsEnabled = true;
+
+                    AppCommander_LblTargetWindow.Text = $"{windowInfo.ProcessName} - {windowInfo.Title}";
+                    AppCommander_TxtTargetProcess.Text = windowInfo.ProcessName;
+                    _targetWindowHandle = windowInfo.WindowHandle;
+                    Debug.WriteLine($"Target window updated: Handle=0x{_targetWindowHandle.ToInt64():X8}, Process={windowInfo.ProcessName}, Title={windowInfo.Title}");
+
+                    UpdateStatus($"Target window set to: {windowInfo.ProcessName}");
+                    AppCommander_BtnRecording.IsEnabled = true;
+                    UpdateUI();
+                }
+                else
+                {
+                    AppCommander_LblTargetWindow.Text = "No target selected";
+                    AppCommander_TxtTargetProcess.Text = "-";
+                    AppCommander_BtnRecording.IsEnabled = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating target window info: {ex.Message}");
+                AppCommander_TxtTargetProcess.Text = "-";
+                AppCommander_LblTargetWindow.Text = "Error loading target info";
+                AppCommander_BtnRecording.IsEnabled = false;
+            }
+            finally
+            {
+                UpdateUI();
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje status labels 
+        /// </summary>
+        private void UpdateStatusLabels(bool isRecording)
+        {
+            try
+            {
+                if (isRecording)
+                {
+                    AppCommander_LblAutoDetectionStatus.Text = "🟢 Auto-Detection Active";
+                    AppCommander_LblUIRecordingStatus.Text = "🟢 UI Scanning Active";
+                }
+                else
+                {
+                    AppCommander_LblAutoDetectionStatus.Text = "🔴 Auto-Detection Inactive";
+                    AppCommander_LblUIRecordingStatus.Text = "🔴 UI Scanning Inactive";
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating status labels: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// NOVÁ METÓDA - Toggle zobrazenie/skrytie bočného panelu
+        /// </summary>
+        private void ToggleSidePanel_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleSidePanel(!_isSidePanelVisible);
+        }
+
+        /// <summary>
+        /// Zobrazí alebo skryje bočný panel s animáciou
+        /// </summary>
+        private void ToggleSidePanel(bool show)
+        {
+            _isSidePanelVisible = show;
+
+            if (show)
+            {
+                // Zobraz panel najprv
+                AppCommander_SidePanel.Visibility = Visibility.Visible;
+
+                // Animuj šírku stĺpca z 0 na 320
+                var animation = new GridLengthAnimation
+                {
+                    From = new GridLength(0, GridUnitType.Pixel),
+                    To = new GridLength(320, GridUnitType.Pixel),
+                    Duration = TimeSpan.FromMilliseconds(250),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                SidePanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
+
+                // Zmení tlačidlo
+                if (AppCommander_BtnToggleSidePanel != null)
+                {
+                    AppCommander_BtnToggleSidePanel.Content = "»"; // ▶ 
+                    AppCommander_BtnToggleSidePanel.ToolTip = "Hide side panel";
+                }
+            }
+            else
+            {
+                // Animuj šírku stĺpca z 320 na 0
+                var animation = new GridLengthAnimation
+                {
+                    From = new GridLength(320, GridUnitType.Pixel),
+                    To = new GridLength(0, GridUnitType.Pixel),
+                    Duration = TimeSpan.FromMilliseconds(250),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+                };
+
+                animation.Completed += (s, e) =>
+                {
+                    // Po dokončení animácie skry panel úplne
+                    AppCommander_SidePanel.Visibility = Visibility.Collapsed;
+                };
+
+                SidePanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
+
+                // Zmení tlačidlo
+                if (AppCommander_BtnToggleSidePanel != null)
+                {
+                    AppCommander_BtnToggleSidePanel.Content = "«"; // ◀ « »
+                    AppCommander_BtnToggleSidePanel.ToolTip = "Show side panel";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Inicializácia side panelu - pridajte do InitializeApplication()
+        /// </summary>
+        private void InitializeSidePanel()
+        {
+            // Ak chcete panel skrytý na začiatku:
+            _isSidePanelVisible = false;
+            AppCommander_SidePanel.Visibility = Visibility.Collapsed;
+            SidePanelColumn.Width = new GridLength(0);
+
+            if (AppCommander_BtnToggleSidePanel != null)
+            {
+                AppCommander_BtnToggleSidePanel.Content = "«"; // ◀  « »
+                AppCommander_BtnToggleSidePanel.ToolTip = "Show side panel";
+            }
+        }
+
+        #endregion
+
         #region Window Click Selection
 
         private WindowClickSelector _windowClickSelector;
@@ -1074,9 +1190,8 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
 
-        #region Updated SelectTarget_Click Method
+        #region SelectTarget_Click Method
 
-        // Aktualizovaná verzia existujúcej metódy SelectTarget_Click
         private void SelectTarget_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1776,18 +1891,30 @@ namespace AppCommander.W7_11.WPF
                         return;
                 }
 
+                // Určenie počtu opakovaní - kontroluj infinite loop checkbox NAJPRV!
                 int repeatCount = 1;
-                if (!int.TryParse(AppCommander_TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+
+                // Ak je infinite loop zaškrtnutý, použi int.MaxValue
+                if (AppCommander_ChkInfiniteLoop.IsChecked == true)
                 {
-                    repeatCount = 1;
-                    AppCommander_TxtRepeatCount.Text = "1";
+                    repeatCount = int.MaxValue; // Prakticky nekonečno
+                    Debug.WriteLine("Infinite loop mode activated");
+                }
+                else
+                {
+                    // Normálne parsovanie z textboxu
+                    if (!int.TryParse(AppCommander_TxtRepeatCount.Text, out repeatCount) || repeatCount < 1)
+                    {
+                        repeatCount = 1;
+                        AppCommander_TxtRepeatCount.Text = "1";
+                    }
                 }
 
-                // Vytvor UnifiedSequence s aktuálnymi _unifiedItems**
+                // Vytvor UnifiedSequence s aktuálnymi _unifiedItems
                 var currentSequence = new UnifiedSequence
                 {
                     Name = _currentSequenceName ?? "Current Sequence",
-                    Items = new List<UnifiedItem>(_unifiedItems), // ← TOTO JE KĽÚČOVÉ!
+                    Items = new List<UnifiedItem>(_unifiedItems),
                     TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
                     TargetWindowTitle = GetWindowTitle(_targetWindowHandle),
                     Created = DateTime.Now,
@@ -3675,10 +3802,8 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                // Skontrolovať či sú nahrané príkazy, ktoré nie sú v AppCommander_MainCommandTable tabuľke
                 bool hasUnsavedCommands = _commands != null && _commands.Count > 0;
 
-                // Nájsť existujúcu warning položku
                 var existingWarning = _unifiedItems?.FirstOrDefault(
                     item => item.Type == UnifiedItem.ItemType.LiveRecording &&
                             item.Name == "⚠️ Unsaved Command Set");
@@ -3687,7 +3812,7 @@ namespace AppCommander.W7_11.WPF
                 {
                     if (existingWarning == null && _unifiedItems != null)
                     {
-                        // Vytvor novú warning položku
+                        // ✅ TU JE DEFINÍCIA warningItem - TOTO SOM ZABUDOL UKÁZAŤ
                         var warningItem = new UnifiedItem(UnifiedItem.ItemType.LiveRecording)
                         {
                             StepNumber = 1,
@@ -3698,7 +3823,7 @@ namespace AppCommander.W7_11.WPF
                             Status = "Unsaved",
                             Timestamp = DateTime.Now,
                             IsLiveRecording = true,
-                            // ⚠️ KRITICKÉ: Priradenie LiveSequenceReference
+                            // ✅ KRITICKÉ: Priradenie LiveSequenceReference
                             LiveSequenceReference = new CommandSequence
                             {
                                 Name = "Unsaved Commands",
@@ -3710,16 +3835,15 @@ namespace AppCommander.W7_11.WPF
 
                         _unifiedItems.Insert(0, warningItem);
                         RecalculateStepNumbers();
-
                         Debug.WriteLine($"Warning item added: {_commands.Count} unsaved commands");
                     }
                     else if (existingWarning != null)
                     {
-                        // Aktualizuj existujúcu warning položku
+                        // Aktualizuj existujúci warning item
                         existingWarning.Value = $"{_commands.Count} command(s) recorded";
                         existingWarning.Timestamp = DateTime.Now;
 
-                        // ⚠️ KRITICKÉ: Aktualizuj LiveSequenceReference s aktuálnymi príkazmi
+                        // ✅ KRITICKÉ: Aktualizuj LiveSequenceReference
                         existingWarning.LiveSequenceReference = new CommandSequence
                         {
                             Name = "Unsaved Commands",
@@ -3727,19 +3851,26 @@ namespace AppCommander.W7_11.WPF
                             TargetProcessName = GetProcessNameFromWindow(_targetWindowHandle),
                             TargetWindowTitle = GetWindowTitle(_targetWindowHandle)
                         };
-
-                        Debug.WriteLine($"Warning item updated: {_commands.Count} unsaved commands");
                     }
                 }
                 else
                 {
-                    // Ak nie sú unsaved commands, odstráň warning položku
+                    // Odstráň warning item ak už nie sú unsaved commands
                     if (existingWarning != null && _unifiedItems != null)
                     {
                         _unifiedItems.Remove(existingWarning);
                         RecalculateStepNumbers();
-                        Debug.WriteLine("Warning item removed: no unsaved commands");
+                        Debug.WriteLine("Warning item removed - no unsaved commands");
                     }
+                }
+
+                // ✅ KRITICKÉ: Aktualizuj Play button stav PO pridaní/odstránení warning item!
+                if (AppCommander_BtnPlayCommands != null)
+                {
+                    AppCommander_BtnPlayCommands.IsEnabled =
+                        _unifiedItems.Count > 0 &&
+                        !(_recorder?.IsRecording ?? false) &&
+                        !(_player?.IsPlaying ?? false);
                 }
 
                 // Refresh UI
@@ -3750,7 +3881,6 @@ namespace AppCommander.W7_11.WPF
                 Debug.WriteLine($"Error updating unsaved commands warning: {ex.Message}");
             }
         }
-
 
         /// <summary>
         /// Handler pre kliknutie na warning položku
@@ -5477,4 +5607,69 @@ namespace AppCommander.W7_11.WPF
 
         #endregion
     }
+
+    #region GridLengthAnimation Helper
+
+    /// <summary>
+    /// Custom animácia pre GridLength s podporou EasingFunction
+    /// Potrebná pre animáciu šírky stĺpca side panelu
+    /// </summary>
+    public class GridLengthAnimation : AnimationTimeline
+    {
+        // Dependency Properties
+        public static readonly DependencyProperty FromProperty =
+            DependencyProperty.Register("From", typeof(GridLength), typeof(GridLengthAnimation));
+
+        public static readonly DependencyProperty ToProperty =
+            DependencyProperty.Register("To", typeof(GridLength), typeof(GridLengthAnimation));
+
+        public static readonly DependencyProperty EasingFunctionProperty =
+            DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(GridLengthAnimation));
+
+        // Properties
+        public GridLength From
+        {
+            get => (GridLength)GetValue(FromProperty);
+            set => SetValue(FromProperty, value);
+        }
+
+        public GridLength To
+        {
+            get => (GridLength)GetValue(ToProperty);
+            set => SetValue(ToProperty, value);
+        }
+
+        public IEasingFunction EasingFunction
+        {
+            get => (IEasingFunction)GetValue(EasingFunctionProperty);
+            set => SetValue(EasingFunctionProperty, value);
+        }
+
+        public override Type TargetPropertyType => typeof(GridLength);
+
+        protected override Freezable CreateInstanceCore() => new GridLengthAnimation();
+
+        public override object GetCurrentValue(object defaultOriginValue,
+                                               object defaultDestinationValue,
+                                               AnimationClock animationClock)
+        {
+            if (animationClock.CurrentProgress == null)
+                return From;
+
+            double fromValue = From.Value;
+            double toValue = To.Value;
+            double progress = animationClock.CurrentProgress.Value;
+
+            // Aplikuj easing funkciu ak existuje
+            if (EasingFunction != null)
+            {
+                progress = EasingFunction.Ease(progress);
+            }
+
+            double currentValue = fromValue + (toValue - fromValue) * progress;
+            return new GridLength(currentValue, GridUnitType.Pixel);
+        }
+    }
+
+    #endregion
 }

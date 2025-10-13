@@ -21,7 +21,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
+
         <!-- ====================================================================== -->
         <!-- Menu Bar -->
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
@@ -73,27 +73,24 @@
 
         <!-- Toolbar -->
 
-        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16">
+        <Border x:Name="TopBar" Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0"
                             AutomationProperties.Name="Recording Controls">
-                            <!--AutomationProperties.ControlType="Group"-->
-                    
+                    <!--AutomationProperties.ControlType="Group"-->
+
                     <TextBlock Text="Main Content Area"
                        Visibility="Collapsed"
                        AutomationProperties.Name="Tool Bar Area"/>
-                       <!--AutomationProperties.ControlType="Header"-->
-                    
+                    <!--AutomationProperties.ControlType="Header"-->
+
                     <Button x:Name="AppCommander_AppCommander_BtnSelectTargetByClick" Content="🎯 Click to Select" 
                             Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
                             Click="SelectTargetByClick_Click" 
                             Margin="0,0,8,0" />
-                    
-                    <Button x:Name="AppCommander_BtnSelectTarget" Content="📋 Browse" 
-                            Style="{DynamicResource PrimaryButton}"  AutomationProperties.Name="Target by browsing"
-                            Click="SelectTarget_Click" />
-                    
+
+
                 </StackPanel>
 
                 <Separator Margin="0,0,24,0" Style="{x:Null}" Background="#E1E1E1" Width="1"/>
@@ -137,7 +134,7 @@
                     <Button x:Name="AppCommander_BtnPause" Content="⏸ Pause" 
                             Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Pause" AutomationProperties.HelpText="Pause the current execution"
                             Click="PausePlayback_Click"  Margin="0,0,4,0" IsEnabled="False"/>
-                    
+
                     <Button x:Name="AppCommander_BtnStop" Content="⏹ Stop" 
                             Style="{DynamicResource SecondaryButton}" AutomationProperties.Name="Stop" AutomationProperties.HelpText="Terminate the current execution"
                             Click="StopPlayback_Click"  IsEnabled="False"/>
@@ -152,7 +149,19 @@
                             Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                     </StackPanel>
                 </StackPanel>
+                <Button x:Name="AppCommander_BtnToggleSidePanel" Content="«" FontSize="18"
+                        Click="ToggleSidePanel_Click" 
+                        Style="{DynamicResource SecondaryButton}"  Background="Transparent"
+                        BorderBrush="Bisque" BorderThickness="2"
+                        AutomationProperties.Name="Toggle side panel visibility"
+                        ToolTip="Show/Hide side panel"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" >
+                            <Button.Effect>
+                                <DropShadowEffect Color="Black" Opacity="0.6" BlurRadius="9" ShadowDepth="4"/>
+                            </Button.Effect> 
+                </Button>
             </StackPanel>
+
         </Border>
 
         <!-- Main Content -->
@@ -160,7 +169,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="16"/>
-                <ColumnDefinition Width="320"/>
+                <ColumnDefinition x:Name="SidePanelColumn" Width="320"/>
             </Grid.ColumnDefinitions>
 
             <!-- Commands Panel -->
@@ -207,7 +216,7 @@
                               GridLinesVisibility="Vertical"
                               HeadersVisibility="All"
                               HorizontalAlignment="Left"
-                              Margin="-1,0,1,10">                            
+                              Margin="-1,0,1,10">
 
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
@@ -255,7 +264,18 @@
 
 
             <!-- Side Panel -->
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{DynamicResource ScrollViewerStyle}">
+            <!--<ScrollViewer x:Name="AppCommander_SidePanel"
+            Grid.Column="2" VerticalScrollBarVisibility="Auto" 
+            HorizontalScrollBarVisibility="Disabled" 
+            Style="{DynamicResource ScrollViewerStyle}">-->
+
+            <ScrollViewer x:Name="AppCommander_SidePanel" 
+                  Grid.Column="2" 
+                  VerticalScrollBarVisibility="Auto" 
+                  HorizontalScrollBarVisibility="Disabled" 
+                  Style="{DynamicResource ScrollViewerStyle}"
+                  Visibility="Collapsed">
+
                 <StackPanel>
                     <!-- Target Information Card -->
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
@@ -299,20 +319,20 @@
 
                             <!-- Quick Actions -->
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                
+
                                 <Button x:Name="AppCommander_BtnQuickReselect" Content="🔄 Reselect" 
                                         Click="SelectTargetByClick_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
                                         AutomationProperties.Name="Reselect"
                                         Height="34" Padding="8,4" Margin="0,0,8,0" FontSize="12"/>
-                                
-                                <Button x:Name="AppCommander_BtnQuickBrowse" Content="📋 Browse" 
+
+                                <Button x:Name="AppCommander_BtnSelectTarget" Content="📋 Browse" 
                                         Click="SelectTarget_Click" 
                                         Style="{DynamicResource SecondaryButton}" 
                                         AutomationProperties.Name="Browse target"
                                         AutomationProperties.HelpText="Browse and select a target window manually"
                                         Height="34" Padding="8,4" FontSize="12"/>
-                                
+
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -409,7 +429,7 @@
                        AutomationProperties.Name="Bottom - Area below the Main Content" 
                        MinHeight="5" MaxHeight="15" />
         </Border>
-        
+
         <!-- ================================================================================================================ -->
         <!-- Status Bar -->
         <Border Grid.Row="4" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
