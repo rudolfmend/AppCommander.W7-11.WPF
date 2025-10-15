@@ -13,7 +13,69 @@
         FontFamily="Segoe UI"
         Background="{DynamicResource WindowBackgroundBrush}">
 
-    <Grid>
+        <Window.Resources>
+            <Style x:Key="FloatingToggleButton" TargetType="ToggleButton">
+                <Setter Property="Width" Value="50"/>
+                <Setter Property="Height" Value="50"/>
+                <Setter Property="Background" Value="#FF2196F3"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="VerticalAlignment" Value="Bottom"/>
+                <Setter Property="Margin" Value="20"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="4"/>
+                    </Setter.Value>
+                </Setter>
+
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="border"
+                                CornerRadius="25"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <ControlTemplate.Triggers>
+                                <!-- Hover efekt -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="Black" BlurRadius="18" Opacity="0.6" ShadowDepth="6"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter TargetName="border" Property="Background" Value="#FF42A5F5"/>
+                                </Trigger>
+
+                                <!-- Zapnutý (IsChecked=True) -->
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#FFFF9800"/>
+                                    <Setter Property="Content" Value="»"/>
+                                </Trigger>
+
+                                <!-- Deaktivovaný -->
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Window.Resources>
+
+        
+        <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -160,6 +222,9 @@
                                 <DropShadowEffect Color="Black" Opacity="0.6" BlurRadius="9" ShadowDepth="4"/>
                             </Button.Effect> 
                 </Button>
+             
+
+
             </StackPanel>
 
         </Border>
@@ -452,5 +517,15 @@
                            AutomationProperties.Name="Recording Status" />
             </Grid>
         </Border>
+
+        <ToggleButton x:Name="er_BtnToggleSidePanel"
+              Content="«"
+              FontSize="18"
+              Style="{StaticResource FloatingToggleButton}"
+              Click="ToggleSidePanel_Click"
+              ToolTip="Show/Hide side panel"
+              AutomationProperties.Name="Toggle side panel visibility" Margin="0,0,352,236" Grid.RowSpan="2" Grid.Row="1"/>
+
+            
     </Grid>
 </Window>
