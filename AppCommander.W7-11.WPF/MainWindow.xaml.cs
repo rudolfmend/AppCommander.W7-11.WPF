@@ -483,14 +483,14 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                var sequenceName = AppCommander_TxtSequenceName.Text;
-                if (string.IsNullOrWhiteSpace(sequenceName))
-                {
-                    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-                    AppCommander_TxtSequenceName.Text = sequenceName;
-                }
+                //var sequenceName = AppCommander_TxtSequenceName.Text; 
+                //if (string.IsNullOrWhiteSpace(sequenceName))
+                //{
+                //    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
+                //    AppCommander_TxtSequenceName.Text = sequenceName;
+                //}
 
-                _recorder.StartRecording(sequenceName, _targetWindowHandle);
+                //_recorder.StartRecording(sequenceName, _targetWindowHandle);
                 _recorder.EnableRealTimeElementScanning = true;
                 _recorder.AutoUpdateExistingCommands = true;
                 _recorder.EnablePredictiveDetection = true;
@@ -506,7 +506,7 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Visible;
                 AppCommander_ProgressEnhancedRecording.IsIndeterminate = true;
 
-                UpdateStatus($"Recording started: {sequenceName}");
+                //UpdateStatus($"Recording started: {sequenceName}");
             }
             catch (Exception ex)
             {
@@ -532,7 +532,7 @@ namespace AppCommander.W7_11.WPF
 
                 UpdateStatus("Recording stopped");
 
-                // ✅ NOVÁ LOGIKA: Automaticky ulož príkazy po ukončení nahrávania
+                // ✅  LOGIKA: Automaticky ulož príkazy po ukončení nahrávania
                 if (_commands != null && _commands.Count > 0)
                 {
                     // Opýtaj sa používateľa, či chce uložiť príkazy
@@ -728,9 +728,6 @@ namespace AppCommander.W7_11.WPF
                 string commandText = loopCount > 0
                     ? string.Format("{0} commands ({1} loop{2})", _commands.Count, loopCount, loopCount != 1 ? "s" : "")
                     : string.Format("{0} command{1}", _commands.Count, _commands.Count != 1 ? "s" : "");
-
-                if (AppCommander_TxtCommandCount != null)
-                    AppCommander_TxtCommandCount.Text = commandText;
 
                 if (AppCommander_TxtCommandsCount != null)
                     AppCommander_TxtCommandsCount.Text = commandText;
@@ -1000,7 +997,7 @@ namespace AppCommander.W7_11.WPF
         }
 
         /// <summary>
-        /// NOVÁ METÓDA - Toggle zobrazenie/skrytie bočného panelu
+        /// Toggle zobrazenie/skrytie bočného panelu
         /// </summary>
         private void ToggleSidePanel_Click(object sender, RoutedEventArgs e)
         {
@@ -1030,12 +1027,8 @@ namespace AppCommander.W7_11.WPF
 
                 SidePanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
 
-                // Zmení tlačidlo
-                if (AppCommander_BtnToggleSidePanel != null)
-                {
-                    AppCommander_BtnToggleSidePanel.Content = "»"; // ▶ 
-                    AppCommander_BtnToggleSidePanel.ToolTip = "Hide side panel";
-                }
+                // Zmení ikonu - šípka doprava (na skrytie panelu)
+                UpdateToggleIcon("M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z", "Hide side panel");
             }
             else
             {
@@ -1056,30 +1049,80 @@ namespace AppCommander.W7_11.WPF
 
                 SidePanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
 
-                // Zmení tlačidlo
-                if (AppCommander_BtnToggleSidePanel != null)
+                // Zmení ikonu - šípka doľava (na zobrazenie panelu)
+                UpdateToggleIcon("M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z", "Show side panel");
+            }
+        }
+
+        /// <summary>      
+        /// Aktualizuje ikonu a tooltip toggle tlačidla
+        /// </summary>
+        private void UpdateToggleIcon(string pathData, string tooltip)
+        {
+            if (AppCommander_BtnToggleSidePanel == null) return;
+
+            try
+            {
+                // Získaj Template obsah
+                var template = AppCommander_BtnToggleSidePanel.Template;
+                if (template == null) return;
+
+                // Najdi Path element v template
+                var path = template.FindName("ToggleIconPath", AppCommander_BtnToggleSidePanel) as System.Windows.Shapes.Path;
+
+                if (path != null)
                 {
-                    AppCommander_BtnToggleSidePanel.Content = "«"; // ◀ « »
-                    AppCommander_BtnToggleSidePanel.ToolTip = "Show side panel";
+                    // Animuj fade out
+                    var fadeOut = new DoubleAnimation
+                    {
+                        From = 1.0,
+                        To = 0.0,
+                        Duration = TimeSpan.FromMilliseconds(100)
+                    };
+
+                    fadeOut.Completed += (s, e) =>
+                    {
+                        // Zmeň ikonu
+                        path.Data = Geometry.Parse(pathData);
+
+                        // Animuj fade in
+                        var fadeIn = new DoubleAnimation
+                        {
+                            From = 0.0,
+                            To = 1.0,
+                            Duration = TimeSpan.FromMilliseconds(100)
+                        };
+                        path.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+                    };
+
+                    path.BeginAnimation(UIElement.OpacityProperty, fadeOut);
                 }
+                else
+                {
+                    Debug.WriteLine("ToggleIconPath not found in template");
+                }
+
+                // Aktualizuj tooltip
+                AppCommander_BtnToggleSidePanel.ToolTip = tooltip;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating toggle icon: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Inicializácia side panelu - pridajte do InitializeApplication()
+        /// Inicializácia side panelu
         /// </summary>
         private void InitializeSidePanel()
         {
-            // Ak chcete panel skrytý na začiatku:
+            // Panel skrytý na začiatku
             _isSidePanelVisible = false;
             AppCommander_SidePanel.Visibility = Visibility.Collapsed;
             SidePanelColumn.Width = new GridLength(0);
 
-            if (AppCommander_BtnToggleSidePanel != null)
-            {
-                AppCommander_BtnToggleSidePanel.Content = "«"; // ◀  « »
-                AppCommander_BtnToggleSidePanel.ToolTip = "Show side panel";
-            }
+            // Nastav počiatočnú ikonu - šípka doľava (zobraziť panel)
+            UpdateToggleIcon("M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z", "Show side panel");
         }
 
         #endregion
@@ -1693,7 +1736,7 @@ namespace AppCommander.W7_11.WPF
             {
                 AppCommander_TxtSetCount.Text = string.Format("Unified Sequences: {0}", _unifiedItems.Count);
                 AppCommander_TxtSequenceCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
-                AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+                AppCommander_TxtCommandsCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
                 //unifiedSequenceName.Text = _currentUnifiedSequence?.Name ?? "Unnamed Sequence";
                 //txtSequenceDescription.Text = _currentUnifiedSequence?.Description ?? string.Empty;
 
@@ -1718,7 +1761,7 @@ namespace AppCommander.W7_11.WPF
                 this.Title = title;
 
                 // Aktualizuje status bar
-                AppCommander_TxtCommandCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
+                AppCommander_TxtCommandsCount.Text = string.Format("Unified Items: {0}", _unifiedItems.Count);
 
                 // Aktualizuje enabled stav menu položiek
                 AppCommander_MenuBar.IsEnabled = _unifiedItems.Count > 0;
@@ -2556,7 +2599,7 @@ namespace AppCommander.W7_11.WPF
                         return;
                     }
 
-                    // Vytvorenie nového UnifiedItem
+                    // Vytvorenie ho UnifiedItem
                     var unifiedItem = UnifiedItem.FromSequenceFile(filePath, _unifiedItems.Count + 1);
                     _unifiedItems.Add(unifiedItem);
 
@@ -2964,12 +3007,15 @@ namespace AppCommander.W7_11.WPF
                                "2. Click 'Start Recording' and perform actions\n" +
                                "3. Click 'Stop Recording' when finished\n" +
                                "4. Click 'Play' to replay recorded actions\n\n" +
-                               "Advanced Features:\n" +
-                               "• Use 'Enhanced Recording' for better element detection\n" +
+                               "↗ &#x2B00 Advanced Features:\n" +
                                "• Add loops using Commands menu\n" +
                                "• Set repeat count for multiple playbacks\n" +
                                "• Use Element Inspector to analyze UI elements\n\n" +
-                               "For detailed documentation, visit project repository.",
+                               "For detailed documentation, visit https://appcommander.tech/guide\n\n" +
+                               "📁 AppCommander files:\r\n" +
+                               "• 📄 .acc → single sequence (ACC = AppCommander Command)\r\n" +
+                               "• 📄 .acset → set of sequences (AppCommander Command SET)\r\n" +
+                               "• 📄 .acproj → project (optional for the future)",
                                "User Guide", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
