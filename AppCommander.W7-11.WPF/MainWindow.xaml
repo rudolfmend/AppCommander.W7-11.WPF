@@ -312,54 +312,60 @@
             <Border  Grid.Column="2"  Width="16" />
 
             <Button x:Name="AppCommander_BtnToggleSidePanel" 
-                            Grid.Column="3"
-                            Click="ToggleSidePanel_Click"
-                            Tag="collapsed"
-                            Width="18"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            VerticalAlignment="Stretch"
-                            HorizontalAlignment="Left"
-                            Padding="0"
-                            ToolTip="Show side panel">
+        Grid.Column="3"
+        Click="ToggleSidePanel_Click"
+        Tag="collapsed"
+        Width="18"
+        BorderThickness="0"
+        Cursor="Hand"
+        VerticalAlignment="Stretch"
+        HorizontalAlignment="Left"
+        Padding="0"
+        ToolTip="Show side panel">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Grid x:Name="RootGrid">
                             <Border x:Name="RightBorder"
-                                    Width="18"
-                                    Height="{Binding ActualHeight, ElementName=RootGrid}"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="0,1,1,1"
-                                    CornerRadius="25,0,0,25"
-                                    VerticalAlignment="Stretch"/>
+                        Width="18"
+                        Height="{Binding ActualHeight, ElementName=RootGrid}"
+                        Background="{DynamicResource SecondaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,1,1"
+                        CornerRadius="25,0,0,25"
+                        VerticalAlignment="Stretch"/>
 
                             <!-- Ikona šípky -->
                             <Viewbox Width="20" Height="20" 
-                                     HorizontalAlignment="Center" 
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,4,0">
+                         HorizontalAlignment="Center" 
+                         VerticalAlignment="Center"
+                         Margin="0,0,4,0">
                                 <Canvas Width="24" Height="24">
                                     <Path x:Name="ToggleIconPath" 
-                                          Fill="{DynamicResource PrimaryTextBrush}"
-                                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                              Fill="{DynamicResource PrimaryTextBrush}"
+                              Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
                                 </Canvas>
                             </Viewbox>
                         </Grid>
 
                         <ControlTemplate.Triggers>
+                            <!-- Hover efekt - stredná farba -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="RightBorder" Property="Background" 
-                                        Value="{DynamicResource HoverBackgroundBrush}"/>
+                            Value="{DynamicResource PrimaryBrush}"/>
                                 <Setter TargetName="RightBorder" Property="BorderBrush" 
-                                        Value="{DynamicResource AccentBrush}"/>
+                            Value="{DynamicResource HoverBorderBrush}"/>
                                 <Setter TargetName="ToggleIconPath" Property="Fill" 
-                                        Value="{DynamicResource AccentTextBrush}"/>
+                            Value="{DynamicResource AccentTextBrush}"/>
                             </Trigger>
-                            
+
+                            <!-- Pressed efekt - tmavšia farba (AccentBrush je žltá v HighContrast) -->
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="RightBorder" Property="Background" 
-                                        Value="{DynamicResource SecondaryTextBrush}"/>
+                            Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="RightBorder" Property="BorderBrush" 
+                            Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="ToggleIconPath" Property="Fill" 
+                            Value="{DynamicResource Background}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
