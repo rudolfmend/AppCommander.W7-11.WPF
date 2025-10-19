@@ -381,7 +381,7 @@ namespace AppCommander.W7_11.WPF.Core
 
             if (previous == null || previous.Elements == null)
             {
-                // Prvý snapshot - všetky elementy sú nové
+                // Prvý snapshot - všetky elementy sú 
                 changeSet.AddedElements = current.Elements.ToList();
                 changeSet.HasChanges = changeSet.AddedElements.Any();
                 return changeSet;

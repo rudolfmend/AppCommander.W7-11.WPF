@@ -1,0 +1,243 @@
+﻿<Window x:Class="AppCommander.W7_11.WPF.UserGuideWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AppCommander - User Guide" 
+        Height="600" Width="800"
+        MinHeight="500" MinWidth="600"
+        WindowStartupLocation="CenterScreen"
+        Icon="appcommander_icon.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        KeyDown="Window_KeyDown" >
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="📖 AppCommander User Guide" 
+                       FontSize="24" 
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}"
+                       Margin="0,0,0,10"/>
+            <TextBlock Text="Complete guide for automating your applications" 
+                       FontSize="14"
+                       Foreground="{DynamicResource SecondaryTextBrush}"/>
+        </StackPanel>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+
+                <!-- Quick Start Section -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="🚀 Quick Start Guide" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">1. Select Target Application</Run>
+                                <LineBreak/>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}">Click 'Click to Select' button and choose the window you want to automate</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">2. Start Recording</Run>
+                                <LineBreak/>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}">Click 'Start Recording' and perform the actions you want to automate</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">3. Stop Recording</Run>
+                                <LineBreak/>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}">Press ESC or click 'Stop Recording' when finished</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">4. Review and Edit</Run>
+                                <LineBreak/>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}">Review recorded commands and edit them as needed</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">5. Save and Execute</Run>
+                                <LineBreak/>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}">Save your sequence (Ctrl+S) and click 'Execute Sequence' to run it</Run>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Command Types Section -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="⚡ Command Types" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">• Click</Run>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Simulates mouse clicks on UI elements</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">• SendKeys</Run>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Types text or keyboard shortcuts</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">• Wait</Run>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Pauses execution for specified time</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">• Loop Start/End</Run>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Repeats commands multiple times</Run>
+                            </TextBlock>
+
+                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource PrimaryTextBrush}">
+                                <Run FontWeight="SemiBold">• Comment</Run>
+                                <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Adds notes to your sequence</Run>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Keyboard Shortcuts Section -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="⌨️ Keyboard Shortcuts" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Ctrl+N</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - New Sequence</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Ctrl+O</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Open Sequence</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Ctrl+S</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Save Sequence</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Ctrl+Shift+S</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Save As</Run>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">F5</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Execute Sequence</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">ESC</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Stop Recording</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Delete</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Delete Command</Run>
+                                </TextBlock>
+                                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run FontWeight="SemiBold">Alt+F4</Run>
+                                    <Run Foreground="{DynamicResource SecondaryTextBrush}"> - Exit</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tips Section -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="💡 Tips &amp; Tricks" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Notice that on the right side of the window there is a button that runs from top to bottom. Clicking on it will bring up a panel with advanced options.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Use Window Selector (Tools menu) to view all available windows
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Add Wait commands between actions for better reliability
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Use Element Inspector to examine UI element properties
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Save your sequences frequently to avoid losing work
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}">
+                                • Use loops to repeat actions multiple times efficiently
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Margin="0,20,0,0"
+                Padding="0,15,0,0"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderBrush}">
+            <Button Content="Close" 
+                    Width="100" 
+                    HorizontalAlignment="Right"
+                    Click="CloseButton_Click"
+                    Style="{DynamicResource DangerButton}"/>
+        </Border>
+    </Grid>
+</Window>

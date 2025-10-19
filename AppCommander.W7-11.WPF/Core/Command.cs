@@ -489,7 +489,7 @@ namespace AppCommander.W7_11.WPF.Core
         $"\"{TargetWindow}\"",
         $"\"{TargetProcess}\"",
         
-        // **NOVÉ TABUĽKOVÉ FIELDS**
+        // ** TABUĽKOVÉ FIELDS**
         IsTableCommand.ToString(),
         $"\"{TableCellIdentifier}\"",
         $"\"{TableName}\"",

@@ -742,7 +742,7 @@ namespace AppCommander.W7_11.WPF.Core
                             command.ElementX = result.Element.X;
                             command.ElementY = result.Element.Y;
 
-                            // Aktualizuj len ak sú nové hodnoty lepšie
+                            // Aktualizuj len ak sú  hodnoty lepšie
                             if (string.IsNullOrEmpty(command.ElementId) && !string.IsNullOrEmpty(result.Element.AutomationId))
                                 command.ElementId = result.Element.AutomationId;
 

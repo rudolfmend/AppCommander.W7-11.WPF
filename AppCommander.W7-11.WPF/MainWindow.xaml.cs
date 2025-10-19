@@ -456,9 +456,14 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+                System.Diagnostics.Debug.WriteLine("📍 StartNewRecording() CALLED");
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+
                 // Zabráň nahrávaniu počas playbacku
                 if (_player != null && _player.IsPlaying)
                 {
+                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - playback is running");
                     MessageBox.Show(
                         "Cannot start recording while playback is running.\n" +
                         "Please stop playback first.",
@@ -471,6 +476,7 @@ namespace AppCommander.W7_11.WPF
                 // KONTROLA: Musí byť vybraný target window
                 if (_targetWindowHandle == IntPtr.Zero)
                 {
+                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - no target window");
                     MessageBox.Show("Please select a target window first.",
                                    "No Target Selected",
                                    MessageBoxButton.OK,
@@ -480,8 +486,11 @@ namespace AppCommander.W7_11.WPF
 
                 // KONTROLA: Target nesmie byť AppCommander
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
+                System.Diagnostics.Debug.WriteLine($"📍 Target process: {targetProcess}");
+
                 if (targetProcess.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                 {
+                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - target is AppCommander itself");
                     MessageBox.Show(
                         "You cannot record actions on AppCommander itself.\n" +
                         "Please select a different target application.",
@@ -495,21 +504,30 @@ namespace AppCommander.W7_11.WPF
                     return;
                 }
 
-                //var sequenceName = AppCommander_TxtSequenceName.Text; 
-                //if (string.IsNullOrWhiteSpace(sequenceName))
-                //{
-                //    sequenceName = string.Format("Recording_{0:yyyyMMdd_HHmmss}", DateTime.Now);
-                //    AppCommander_TxtSequenceName.Text = sequenceName;
-                //}
+                System.Diagnostics.Debug.WriteLine("✅ All checks passed, configuring recorder...");
 
-                //_recorder.StartRecording(sequenceName, _targetWindowHandle);
+                // Konfigurácia recordera
                 _recorder.EnableRealTimeElementScanning = true;
                 _recorder.AutoUpdateExistingCommands = true;
                 _recorder.EnablePredictiveDetection = true;
 
+                System.Diagnostics.Debug.WriteLine($"📍 Starting WindowTracker for: {targetProcess}");
                 _windowTracker.StartTracking(targetProcess);
+
+                System.Diagnostics.Debug.WriteLine($"📍 Starting AutomaticUIManager");
                 _automaticUIManager.StartMonitoring(_targetWindowHandle, targetProcess);
 
+                System.Diagnostics.Debug.WriteLine("📍 Calling _recorder.StartRecording()...");
+
+                // ════════════════════════════════════════
+                // ⚠️ KRITICKÉ: TU SA MÁ ZAVOLAŤ StartRecording()!
+                // ════════════════════════════════════════
+
+                _recorder.StartRecording($"Recording_{DateTime.Now:yyyyMMdd_HHmmss}", _targetWindowHandle);
+
+                System.Diagnostics.Debug.WriteLine($"📍 After StartRecording: _recorder.IsRecording = {_recorder.IsRecording}");
+
+                // Aktualizuj UI
                 AppCommander_BtnRecording.Content = "⏹ Stop Recording";
                 AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
 
@@ -518,11 +536,47 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Visible;
                 AppCommander_ProgressEnhancedRecording.IsIndeterminate = true;
 
-                //UpdateStatus($"Recording started: {sequenceName}");
+                System.Diagnostics.Debug.WriteLine("✅ StartNewRecording() COMPLETED");
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ EXCEPTION in StartNewRecording: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"   Stack trace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                 ShowErrorMessage("Error starting recording", ex);
+            }
+        }
+
+        private void StartStopToggleRecording_Click(object sender, RoutedEventArgs e)
+        {
+
+            // ════════════════════════════════════════
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+            System.Diagnostics.Debug.WriteLine("🔴 START/STOP RECORDING BUTTON CLICKED");
+            System.Diagnostics.Debug.WriteLine($"   _recorder is null: {_recorder == null}");
+            System.Diagnostics.Debug.WriteLine($"   _recorder.IsRecording: {_recorder?.IsRecording ?? false}");
+            System.Diagnostics.Debug.WriteLine($"   _targetWindowHandle: 0x{_targetWindowHandle:X}");
+            System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+            // ════════════════════════════════════════
+
+            try
+            {
+                if (_recorder != null && _recorder.IsRecording)
+                {
+                    System.Diagnostics.Debug.WriteLine("✅ Stopping recording...");
+                    StopCurrentRecording();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("✅ Starting recording...");
+                    StartNewRecording();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR: {ex.Message}");
+                ShowErrorMessage("Error toggling recording", ex);
             }
         }
 
@@ -3013,26 +3067,12 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                MessageBox.Show("AppCommander User Guide\n\n" +
-                               "Basic Usage:\n" +
-                               "1. Click 'Select Target' to choose application window\n" +
-                               "2. Click 'Start Recording' and perform actions\n" +
-                               "3. Click 'Stop Recording' when finished\n" +
-                               "4. Click 'Play' to replay recorded actions\n\n" +
-                               "↗ &#x2B00 Advanced Features:\n" +
-                               "• Add loops using Commands menu\n" +
-                               "• Set repeat count for multiple playbacks\n" +
-                               "• Use Element Inspector to analyze UI elements\n\n" +
-                               "For detailed documentation, visit https://appcommander.tech/guide\n\n" +
-                               "📁 AppCommander files:\r\n" +
-                               "• 📄 .acc → single sequence (ACC = AppCommander Command)\r\n" +
-                               "• 📄 .acset → set of sequences (AppCommander Command SET)\r\n" +
-                               "• 📄 .acproj → project (optional for the future)",
-                               "User Guide", MessageBoxButton.OK, MessageBoxImage.Information);
+                var userGuideWindow = new UserGuideWindow();
+                userGuideWindow.ShowDialog();
             }
             catch (Exception ex)
             {
-                ShowErrorMessage("Error showing user guide", ex);
+                ShowErrorMessage("Error opening user guide", ex);
             }
         }
 
@@ -3255,18 +3295,28 @@ namespace AppCommander.W7_11.WPF
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("AppCommander WPF - Version 1.0\n\n" +
-                          "A powerful tool for automating Windows applications.\n" +
-                          "Features:\n" +
-                          "• Record and playback UI interactions\n" +
-                          "• Smart element detection by name\n" +
-                          "• Table cell support\n" +
-                          "• Loop commands with repeat functionality\n" +
-                          "• Automatic window tracking\n" +
-                          "• Enhanced WinUI3 support\n\n" +
-                          "Developed by Rudolf Mendzezof\n" +
-                          "Enhanced with advanced automation features",
-                          "About AppCommander", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var aboutWindow = new AboutWindow();
+                aboutWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening about window", ex);
+            }
+        }
+
+        private void PrivacyPolicy_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var privacyWindow = new PrivacyPolicyWindow();
+                privacyWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error opening privacy policy window", ex);
+            }
         }
 
         #endregion
@@ -4900,6 +4950,41 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                if (e.Key == Key.Escape)
+                {
+                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+                    System.Diagnostics.Debug.WriteLine("⌨️ ESC KEY PRESSED IN MAINWINDOW");
+                    System.Diagnostics.Debug.WriteLine($"   Recorder.IsRecording: {_recorder?.IsRecording ?? false}");
+                    System.Diagnostics.Debug.WriteLine($"   Player.IsPlaying: {_player?.IsPlaying ?? false}");
+                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+
+                    // Ak nahrávame, zastav nahrávanie
+                    if (_recorder != null && _recorder.IsRecording)
+                    {
+                        System.Diagnostics.Debug.WriteLine("✅ ESC: Stopping recording...");
+                        StopCurrentRecording();
+                        e.Handled = true;
+                        return;
+                    }
+
+                    // Ak prehrávame, zastav prehrávanie
+                    if (_player != null && _player.IsPlaying)
+                    {
+                        System.Diagnostics.Debug.WriteLine("✅ ESC: Stopping playback...");
+                        _player.Stop();
+
+                        // Aktualizuj UI
+                        if (AppCommander_BtnPause != null)
+                            AppCommander_BtnPause.Content = "⏸ Pause";
+
+                        UpdateStatus("Playback stopped by ESC key");
+                        e.Handled = true;
+                        return;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine("⚠️ ESC: Nothing to stop (not recording/playing)");
+                }
+
                 // Ctrl + E = Edit selected command
                 if (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
                 {
@@ -4945,7 +5030,8 @@ namespace AppCommander.W7_11.WPF
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error handling keyboard shortcut: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR in Window_KeyDown: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"   Stack trace: {ex.StackTrace}");
             }
         }
 

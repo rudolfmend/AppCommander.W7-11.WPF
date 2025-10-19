@@ -68,7 +68,7 @@ namespace AppCommander.W7_11.WPF.Core
         private static readonly HashSet<string> AppCommanderUIElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             // === HLAVNÉ OVLÁDACIE TLAČIDLÁ ===
-            "AppCommander_BtnRecording",              // Start/Stop Recording tlačidlo
+           // "AppCommander_BtnRecording",  // Start/Stop Recording tlačidlo - POZOR ! VYNECHANIE RECORDING TLAČIDLA SPÔSOBÍ NEMOŽNOSŤ UKONČIŤ NHRÁVANIE !
             "AppCommander_BtnSelectTarget",           // Browse target selection
             "AppCommander_AppCommander_BtnSelectTargetByClick",    // Click to select target
             "AppCommander_BtnPlayCommands",           // Play button
@@ -816,7 +816,7 @@ namespace AppCommander.W7_11.WPF.Core
         #region Event Handlers
 
         /// <summary>
-        /// Handler pre nové okno detekované window trackerom
+        /// Handler pre  okno detekované window trackerom
         /// </summary>
         private void OnNewWindowDetected(object sender, NewWindowDetectedEventArgs e)
         {
@@ -1149,7 +1149,7 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Handler pre klik myšou + ignoruje kliky na AppCommander UI
+        /// Handler pre klik myšou + ignoruje kliky na AppCommander UI  (okrem Stop tlačidla)
         /// </summary>
         private void OnMouseClicked(object sender, MouseClickedEventArgs e)
         {
@@ -1157,31 +1157,70 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
+                // ════════════════════════════════════════
+                // 🆕 DEBUG LOGY - Začiatok
+                // ════════════════════════════════════════
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+                System.Diagnostics.Debug.WriteLine($"🖱️ MOUSE CLICK DETECTED");
+                System.Diagnostics.Debug.WriteLine($"   Position: ({e.X}, {e.Y})");
+                System.Diagnostics.Debug.WriteLine($"   Button: {e.Button}");
+                System.Diagnostics.Debug.WriteLine($"   Process: {e.ProcessName ?? "null"}");
+                System.Diagnostics.Debug.WriteLine($"   Window Handle: 0x{e.WindowHandle:X}");
+                // ════════════════════════════════════════
+
                 // FILTER 1: Kontrola ProcessName
                 if (e.ProcessName != null &&
                     e.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                 {
-                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click on AppCommander UI: {e.ProcessName}");
+                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 1 BLOCKED: ProcessName is AppCommander");
+                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                     return;
                 }
 
                 // FILTER 2: Kontrola Window Handle
                 if (IsAppCommanderWindow(e.WindowHandle))
                 {
-                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click on AppCommander window");
+                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 2 BLOCKED: Window belongs to AppCommander");
+                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                     return;
                 }
 
                 // Zisti UI element na pozícii kliknutia
                 var elementInfo = UIElementDetector.GetElementAtPoint(e.X, e.Y);
 
+                // ════════════════════════════════════════
+                // 🆕 DEBUG LOG - Element Info
+                // ════════════════════════════════════════
+                if (elementInfo != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"📍 Element detected:");
+                    System.Diagnostics.Debug.WriteLine($"   Name: '{elementInfo.Name ?? "null"}'");
+                    System.Diagnostics.Debug.WriteLine($"   AutomationId: '{elementInfo.AutomationId ?? "null"}'");
+                    System.Diagnostics.Debug.WriteLine($"   ClassName: '{elementInfo.ClassName ?? "null"}'");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ No element info detected");
+                }
+                // ════════════════════════════════════════
+
                 // FILTER 3: Kontrola UI Blacklistu (nová vrstva)
                 if (elementInfo != null && IsAppCommanderUIElement(elementInfo))
                 {
-                    System.Diagnostics.Debug.WriteLine($"🚫 Ignoring click - element is on AppCommander blacklist");
+                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 3 BLOCKED: Element is on AppCommander blacklist");
+                    System.Diagnostics.Debug.WriteLine($"   ⚠️ Click will NOT be recorded to commands");
+                    System.Diagnostics.Debug.WriteLine($"   ✅ BUT WPF Click event handler WILL fire");
+                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                     return;
                 }
 
+                // ════════════════════════════════════════
+                // 🆕 DEBUG LOG - Passed filters
+                // ════════════════════════════════════════
+                System.Diagnostics.Debug.WriteLine($"✅ Click PASSED all filters - recording command");
+                // ════════════════════════════════════════
+
+                // Vytvor príkaz (tvoja pôvodná logika)
                 var command = new Command(commandCounter++,
                     elementInfo?.Name ?? $"Click_at_{e.X}_{e.Y}",
                     CommandType.Click, e.X, e.Y)
@@ -1198,10 +1237,19 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 AddCommand(command);
+
+                // ════════════════════════════════════════
+                // 🆕 DEBUG LOG - Command recorded
+                // ════════════════════════════════════════
+                System.Diagnostics.Debug.WriteLine($"📝 Command recorded: #{command.StepNumber} - {command.ElementName}");
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
+                // ════════════════════════════════════════
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error recording mouse click: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ ERROR in OnMouseClicked: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"   Stack trace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
             }
         }
 
@@ -1232,7 +1280,7 @@ namespace AppCommander.W7_11.WPF.Core
         #region Auto Window Detection Event Handlers
 
         /// <summary>
-        /// Handler pre automaticky detekované nové okno
+        /// Handler pre automaticky detekované  okno
         /// </summary>
         private void OnAutoWindowDetected(object sender, WindowAutoDetectedEventArgs e)
         {
@@ -1325,7 +1373,7 @@ namespace AppCommander.W7_11.WPF.Core
                     var context = windowContexts[e.WindowHandle]; // PRIDANÉ - definícia context
                     var previousCount = (context.UIElements != null) ? context.UIElements.Count : 0; // PRIDANÉ - definícia previousCount
 
-                    // Konvertuj nové elementy
+                    // Konvertuj  elementy
                     var newElements = new List<UIElementInfo>();
                     if (e.NewElements != null)
                     {
@@ -1544,7 +1592,7 @@ namespace AppCommander.W7_11.WPF.Core
         #region Window Management Logic
 
         /// <summary>
-        /// Rozhodne či automaticky prepnúť na nové okno
+        /// Rozhodne či automaticky prepnúť na  okno
         /// </summary>
         private bool ShouldAutoSwitchToWindow(WindowTrackingInfo windowInfo)
         {
@@ -1567,7 +1615,7 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Automaticky prepne na nové okno
+        /// Automaticky prepne na  okno
         /// </summary>
         private void AutoSwitchToNewWindow(WindowTrackingInfo windowInfo)
         {
@@ -1580,7 +1628,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 System.Diagnostics.Debug.WriteLine($"🔄 Auto-switched from {GetWindowTitle(previousTarget)} to {windowInfo.Title}");
 
-                // Vytvor kontext pre nové okno
+                // Vytvor kontext pre  okno
                 CreateInitialWindowContext(windowInfo.WindowHandle);
 
                 // Pridaj command pre switch ak je potrebný
@@ -1589,7 +1637,7 @@ namespace AppCommander.W7_11.WPF.Core
                     AddAutoSwitchCommand(windowInfo, previousTarget);
                 }
 
-                // Spusti skenovanie pre nové okno
+                // Spusti skenovanie pre  okno
                 if (EnableRealTimeElementScanning)
                 {
                     uiElementScanner.AddWindowToScan(windowInfo.WindowHandle);

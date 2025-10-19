@@ -11,7 +11,8 @@
     WindowStartupLocation="CenterScreen" 
     FontSize="14" 
     FontFamily="Segoe UI"
-    Background="{DynamicResource WindowBackgroundBrush}">
+    Background="{DynamicResource WindowBackgroundBrush}"
+    KeyDown="Window_KeyDown">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -67,6 +68,7 @@
                 <MenuItem Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
                     <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
                     <MenuItem Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem Header="_Personal Data Protection" Click="PrivacyPolicy_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
             </Menu>
         </Border>
@@ -102,7 +104,7 @@
                         AutomationProperties.HelpText="Start recording"
                         AutomationProperties.AcceleratorKey="F9"
                         AutomationProperties.AutomationId="RecordButton"
-                        Click="ToggleRecording_Click" 
+                        Click="StartStopToggleRecording_Click" 
                         Margin="0,0,8,0"
                         Style="{DynamicResource DangerButton}" />
                 </StackPanel>

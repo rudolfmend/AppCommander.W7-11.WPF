@@ -1321,7 +1321,7 @@ namespace AppCommander.W7_11.WPF.Core
                 catch (System.Runtime.InteropServices.COMException)
                 {
                     // Aj napriek kontrole môže nastať COM exception
-                    // (pre nové neznáme problematické typy)
+                    // (pre  neznáme problematické typy)
                     Debug.WriteLine($"[UIDetector] Unexpected COM exception, trying fallback");
                 }
                 catch (ElementNotAvailableException)

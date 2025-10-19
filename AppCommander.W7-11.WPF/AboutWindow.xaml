@@ -1,0 +1,250 @@
+﻿<Window x:Class="AppCommander.W7_11.WPF.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About AppCommander" 
+        Height="650" Width="500"
+        MinHeight="550" MinWidth="450"
+        WindowStartupLocation="CenterScreen"
+        Icon="appcommander_icon.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        KeyDown="Window_KeyDown">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with Logo/Icon Area -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="30">
+            <StackPanel HorizontalAlignment="Center">
+                <!-- App Logo -->
+                <Image Source="appcommander_logo.png" 
+                       Width="200" 
+                       Height="200" 
+                       Margin="0,0,0,15"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Stretch="Uniform"/>
+
+                <TextBlock Text="AppCommander" 
+                           FontSize="28" 
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,5"/>
+
+                <TextBlock Text="WPF Edition - Version 1.0" 
+                           FontSize="14"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="30,20">
+            <StackPanel>
+
+                <!-- Description -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="About" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,10"/>
+                        <TextBlock TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   LineHeight="22">
+                            A powerful tool for automating Windows applications with advanced UI interaction capabilities and intelligent element detection.
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Features -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="✨ Key Features" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,10"/>
+
+                        <StackPanel>
+                            <TextBlock Text="• Record and playback UI interactions" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="• Smart element detection by name" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="• Table cell support" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="• Loop commands with repeat functionality" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="• Automatic window tracking" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="• Enhanced WinUI3 support" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Personal Data Protection -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="1"
+        CornerRadius="8"
+        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="🔒 Personal Data Protection" 
+                   FontSize="16" 
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Margin="0,0,0,10"/>
+
+                        <TextBlock TextWrapping="Wrap" 
+                   Foreground="{DynamicResource SecondaryTextBrush}"
+                   LineHeight="22"
+                   Margin="0,0,0,15">
+            AppCommander respects your privacy. This application does not collect, store, or transmit any personal data.
+                        </TextBlock>
+
+                        <Button Content="Learn More" 
+                Width="160" 
+                HorizontalAlignment="Left"
+                Click="LearnMorePrivacy_Click"   
+                Style="{DynamicResource PrimaryButton}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Developer Info -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="👨‍💻 Developer" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,10"/>
+
+                        <TextBlock TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   LineHeight="22">
+                            <Run Text="Developed by "/><Run Text="Rudolf Mendzezof" FontWeight="SemiBold"/>
+                            <LineBreak/>
+                            <Run Text="Enhanced with advanced automation features"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- System Info -->
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="💻 System Information" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Margin="0,0,0,10"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" 
+                                       Text="OS Version:" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,15,8"/>
+                            <TextBlock x:Name="TxtOSVersion" 
+                                       Grid.Row="0" Grid.Column="1" 
+                                       Text="Windows 11" 
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       FontWeight="Medium"
+                                       Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" 
+                                       Text=".NET Runtime:" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,15,8"/>
+                            <TextBlock x:Name="TxtDotNetVersion" 
+                                       Grid.Row="1" Grid.Column="1" 
+                                       Text=".NET Framework 4.8" 
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       FontWeight="Medium"
+                                       Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" 
+                                       Text="Architecture:" 
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,0,15,0"/>
+                            <TextBlock x:Name="TxtArchitecture" 
+                                       Grid.Row="2" Grid.Column="1" 
+                                       Text="x64" 
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       FontWeight="Medium"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderBrush}"
+                Padding="30,15">
+            <Grid>
+                <TextBlock Text="© 2025 Rudolf Mendzezof. All rights reserved." 
+                           FontSize="12"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"/>
+
+                <Button Content="Close" 
+                        Width="160" 
+                        HorizontalAlignment="Right"
+                        Click="CloseButton_Click"
+                        Style="{DynamicResource DangerButton}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

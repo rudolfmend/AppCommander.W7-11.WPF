@@ -422,7 +422,7 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Event args pre nové detekované okno - .NET Framework 4.8 compatible
+    /// Event args pre  detekované okno - .NET Framework 4.8 compatible
     /// </summary>
     public sealed class NewWindowDetectedEventArgs : WindowEventArgsBase
     {
@@ -490,7 +490,7 @@ namespace AppCommander.W7_11.WPF.Core
     }
 
     /// <summary>
-    /// Event args pre nové okno ktoré sa objavilo - .NET Framework 4.8 compatible
+    /// Event args pre  okno ktoré sa objavilo - .NET Framework 4.8 compatible
     /// </summary>
     public class NewWindowAppearedEventArgs : WindowEventArgsBase
     {
