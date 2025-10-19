@@ -259,7 +259,7 @@
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
         <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
-        <Setter Property="Width" Value="800"/>
+        <Setter Property="Width" Value="Auto"/>
     </Style>
 
     <!-- Štýl pre riadky -->

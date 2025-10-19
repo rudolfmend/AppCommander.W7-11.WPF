@@ -13,68 +13,6 @@
     FontFamily="Segoe UI"
     Background="{DynamicResource WindowBackgroundBrush}">
 
-    <Window.Resources>
-        <Style x:Key="FloatingToggleButton" TargetType="ToggleButton">
-            <Setter Property="Width" Value="50"/>
-            <Setter Property="Height" Value="50"/>
-            <Setter Property="Background" Value="#FF2196F3"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="20"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="VerticalAlignment" Value="Bottom"/>
-            <Setter Property="Margin" Value="20"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="4"/>
-                </Setter.Value>
-            </Setter>
-
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="border"
-                            CornerRadius="25"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-
-                        <ControlTemplate.Triggers>
-                            <!-- Hover efekt -->
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="Black" BlurRadius="18" Opacity="0.6" ShadowDepth="6"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter TargetName="border" Property="Background" Value="#FF42A5F5"/>
-                            </Trigger>
-
-                            <!-- Zapnutý (IsChecked=True) -->
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#FFFF9800"/>
-                                <Setter Property="Content" Value="»"/>
-                            </Trigger>
-
-                            <!-- Deaktivovaný -->
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
-
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -247,12 +185,11 @@
                         <DataGrid Grid.Row="1" x:Name="AppCommander_MainCommandTable" Style="{DynamicResource DataGridStyle}"
                             AutomationProperties.Name="Main command table"
                             AutomationProperties.HelpText="Main command table"
-                                AlternationCount="2"
-                        AutomationProperties.LabeledBy="{Binding ElementName=AppCommander_TxtCommandCount}"
-                        AutomationProperties.ItemStatus="Command list loaded"
-                        AutomationProperties.LiveSetting="Polite"
-                        AutomationProperties.AutomationId="AppCommander_MainCommandTable"
-                                  
+                            AutomationProperties.LabeledBy="{Binding ElementName=AppCommander_TxtCommandCount}"
+                            AutomationProperties.ItemStatus="Command list loaded"
+                            AutomationProperties.LiveSetting="Polite"
+                            AutomationProperties.AutomationId="AppCommander_MainCommandTable"
+                            AlternationCount="2"
                             AutoGenerateColumns="False"
                             MouseDoubleClick="AppCommander_MainCommandTable_MouseDoubleClick"
                             SelectionMode="Single"
@@ -261,7 +198,7 @@
                             IsSynchronizedWithCurrentItem="False"
                             GridLinesVisibility="Vertical"
                             HeadersVisibility="All"
-                            HorizontalAlignment="Left"
+                            HorizontalAlignment="Stretch"
                             Margin="-1,0,1,10">
 
                             <DataGrid.ContextMenu>
@@ -285,13 +222,13 @@
                             </DataGrid.ContextMenu>
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Step" Binding="{Binding StepNumber}" Width="60" IsReadOnly="True" FontWeight="DemiBold"/>
-                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay, Mode=OneWay}" Width="*" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="120" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="64" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Step" Binding="{Binding StepNumber}" Width="60" MinWidth="60" IsReadOnly="True" FontWeight="DemiBold"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay, Mode=OneWay}" Width="1.5*" MinWidth="100" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="4.5*" MinWidth="150" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="2*" MinWidth="100" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="2.5*" MinWidth="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="62" MinWidth="62" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60" MinWidth="60" IsReadOnly="True"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -312,37 +249,37 @@
             <Border  Grid.Column="2"  Width="16" />
 
             <Button x:Name="AppCommander_BtnToggleSidePanel" 
-        Grid.Column="3"
-        Click="ToggleSidePanel_Click"
-        Tag="collapsed"
-        Width="18"
-        BorderThickness="0"
-        Cursor="Hand"
-        VerticalAlignment="Stretch"
-        HorizontalAlignment="Left"
-        Padding="0"
-        ToolTip="Show side panel">
+                    Grid.Column="3"
+                    Click="ToggleSidePanel_Click"
+                    Tag="collapsed"
+                    Width="18"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Left"
+                    Padding="0"
+                    ToolTip="Show side panel">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Grid x:Name="RootGrid">
                             <Border x:Name="RightBorder"
-                        Width="18"
-                        Height="{Binding ActualHeight, ElementName=RootGrid}"
-                        Background="{DynamicResource SecondaryBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="0,1,1,1"
-                        CornerRadius="25,0,0,25"
-                        VerticalAlignment="Stretch"/>
+                                Width="18"
+                                Height="{Binding ActualHeight, ElementName=RootGrid}"
+                                Background="{DynamicResource SecondaryBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,1,1"
+                                CornerRadius="25,0,0,25"
+                                VerticalAlignment="Stretch"/>
 
                             <!-- Ikona šípky -->
                             <Viewbox Width="20" Height="20" 
-                         HorizontalAlignment="Center" 
-                         VerticalAlignment="Center"
-                         Margin="0,0,4,0">
+                                     HorizontalAlignment="Center" 
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,4,0">
                                 <Canvas Width="24" Height="24">
                                     <Path x:Name="ToggleIconPath" 
-                              Fill="{DynamicResource PrimaryTextBrush}"
-                              Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                                          Fill="{DynamicResource PrimaryTextBrush}"
+                                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
                                 </Canvas>
                             </Viewbox>
                         </Grid>
@@ -351,21 +288,21 @@
                             <!-- Hover efekt - stredná farba -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="RightBorder" Property="Background" 
-                            Value="{DynamicResource PrimaryBrush}"/>
+                                        Value="{DynamicResource PrimaryBrush}"/>
                                 <Setter TargetName="RightBorder" Property="BorderBrush" 
-                            Value="{DynamicResource HoverBorderBrush}"/>
+                                        Value="{DynamicResource HoverBorderBrush}"/>
                                 <Setter TargetName="ToggleIconPath" Property="Fill" 
-                            Value="{DynamicResource AccentTextBrush}"/>
+                                        Value="{DynamicResource AccentTextBrush}"/>
                             </Trigger>
 
                             <!-- Pressed efekt - tmavšia farba (AccentBrush je žltá v HighContrast) -->
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="RightBorder" Property="Background" 
-                            Value="{DynamicResource AccentBrush}"/>
+                                        Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="RightBorder" Property="BorderBrush" 
-                            Value="{DynamicResource AccentBrush}"/>
+                                        Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="ToggleIconPath" Property="Fill" 
-                            Value="{DynamicResource Background}"/>
+                                        Value="{DynamicResource Background}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -383,13 +320,14 @@
                     <!-- Target Information Card -->
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
-                            <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" AutomationProperties.Name="Target Information"
-                            Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                            <TextBlock Text="Target Information" FontSize="16" FontWeight="SemiBold" 
+                                       AutomationProperties.Name="Target Information"
+                                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <!-- Selection Status -->
                             <Border x:Name="AppCommander_SelectionModeIndicator" 
-                                BorderThickness="1" 
-                                CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
+                                    BorderThickness="1" 
+                                    CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
                                     <TextBlock x:Name="AppCommander_TxtSelectionMode" Text="Click Selection Active" 
@@ -444,18 +382,18 @@
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="System Status" FontSize="16" FontWeight="SemiBold" 
-                            Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
 
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="AppCommander_LblAutoDetectionStatus" Text="Auto-Detection Inactive" 
-                                    Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <Ellipse Width="8" Height="8" Fill="#D13438" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="AppCommander_LblUIRecordingStatus" Text="UI Scanning Inactive" 
-                                    Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -476,7 +414,7 @@
                     <Border Style="{DynamicResource CardStyle}" Margin="0,0,0,16">
                         <StackPanel Margin="16">
                             <TextBlock Text="Quick Actions" FontSize="16" FontWeight="SemiBold" 
-                            Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"
+                                    Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"
                                     AutomationProperties.Name="Quick Actions"/>
 
                             <StackPanel>
@@ -536,7 +474,7 @@
         <!-- ================================================================================================================ -->
         <!-- Status Bar -->
         <Border Grid.Row="4" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
-            Padding="16,8" AutomationProperties.Name="Status bar at the bottom">
+                Padding="16,8" AutomationProperties.Name="Status bar at the bottom">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -545,14 +483,14 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock x:Name="AppCommander_AppCommander_TxtStatusBar" Grid.Column="0" 
-                Text="Ready" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}"/>
+                           Text="Ready" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}"/>
                 <TextBlock x:Name="AppCommander_TxtTarget" Grid.Column="1" 
-                Text="No target selected" Foreground="{DynamicResource SecondaryTextBrush}" 
-                Margin="16,0"/>
+                           Text="No target selected" Foreground="{DynamicResource SecondaryTextBrush}" 
+                           Margin="16,0"/>
                 <TextBlock x:Name="AppCommander_LblStatusBarRecording" Grid.Column="2" 
-                        Text="Not Recording" Foreground="{DynamicResource SecondaryTextBrush}" 
-                        AutomationProperties.LiveSetting="Assertive"
-                        AutomationProperties.Name="Recording Status" />
+                           Text="Not Recording" Foreground="{DynamicResource SecondaryTextBrush}" 
+                           AutomationProperties.LiveSetting="Assertive"
+                           AutomationProperties.Name="Recording Status" />
             </Grid>
         </Border>
     </Grid>

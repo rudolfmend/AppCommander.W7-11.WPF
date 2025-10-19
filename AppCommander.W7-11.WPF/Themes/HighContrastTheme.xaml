@@ -176,7 +176,7 @@
 
     <Style x:Key="DangerButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="Black"/>
         <Setter Property="BorderBrush" Value="black"/>
         <Setter Property="BorderThickness" Value="4"/>
         <Setter Property="Padding" Value="20,10"/>
@@ -294,7 +294,7 @@
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="RowHeight" Value="40"/>
-        <Setter Property="Width" Value="980"/>        
+        <Setter Property="Width" Value="Auto"/>        
     </Style>
 
     <!-- ======================================= -->
