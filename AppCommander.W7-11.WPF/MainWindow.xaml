@@ -121,9 +121,22 @@
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" AutomationProperties.Name="Repeat" 
                             FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                        <TextBox x:Name="AppCommander_TxtRepeatCount" Text="1" AutomationProperties.Name="Repeat count" AutomationProperties.HelpText="Write the number of repetitions"
-                                Style="{DynamicResource TextBoxStyle}"     
-                                Width="50"  TextAlignment="Center" Margin="10,0,8,18"/>
+                        <TextBox x:Name="AppCommander_TxtRepeatCount" 
+         Text="1" 
+         AutomationProperties.Name="Repeat count" 
+         AutomationProperties.HelpText="Write the number of repetitions"
+         Style="{DynamicResource TextBoxStyle}"     
+         Width="50"  
+         TextAlignment="Center" 
+         Margin="10,0,8,18"
+         PreviewMouseWheel="AppCommander_TxtRepeatCount_PreviewMouseWheel"
+         PreviewKeyDown="AppCommander_TxtRepeatCount_PreviewKeyDown"
+         PreviewTextInput="AppCommander_TxtRepeatCount_PreviewTextInput"
+         LostFocus="AppCommander_TxtRepeatCount_LostFocus"
+         MaxLength="4"
+         ToolTip="Use mouse wheel or arrow keys to change value&#x0a;Ctrl + wheel/arrow = ±10&#x0a;Shift + wheel/arrow = ±5"/>
+
+                        
                     </StackPanel>
 
                     <CheckBox x:Name="AppCommander_ChkInfiniteLoop" Content="∞" VerticalAlignment="Center" 

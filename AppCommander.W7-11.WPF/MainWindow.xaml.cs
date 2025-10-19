@@ -182,6 +182,18 @@ namespace AppCommander.W7_11.WPF
             InitializeSidePanel();
         }
 
+        private void InitializeRepeatCountHandlers()
+        {
+            // Pripojenie event handlerov pre AppCommander_TxtRepeatCount
+            if (AppCommander_TxtRepeatCount != null)
+            {
+                AppCommander_TxtRepeatCount.PreviewMouseWheel += AppCommander_TxtRepeatCount_PreviewMouseWheel;
+                AppCommander_TxtRepeatCount.PreviewKeyDown += AppCommander_TxtRepeatCount_PreviewKeyDown;
+                AppCommander_TxtRepeatCount.PreviewTextInput += AppCommander_TxtRepeatCount_PreviewTextInput;
+                AppCommander_TxtRepeatCount.LostFocus += AppCommander_TxtRepeatCount_LostFocus;
+            }
+        }
+
         private void InitializeUnifiedTable()
         {
             _unifiedItems = new ObservableCollection<UnifiedItem>();
@@ -3321,6 +3333,191 @@ namespace AppCommander.W7_11.WPF
                 Debug.WriteLine($"Error in AppCommander_TxtRepeatCount_TextChanged: {ex.Message}");
             }
         }
+
+        // Pridajte tento kód do MainWindow.xaml.cs do sekcie Loop Controls
+
+        #region Mouse Wheel Support for Repeat Count
+
+        /// <summary>
+        /// Handler pre koliesko myši na TextBox AppCommander_TxtRepeatCount
+        /// </summary>
+        private void AppCommander_TxtRepeatCount_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            try
+            {
+                // Kontrola či je infinite loop zapnutý
+                if (AppCommander_ChkInfiniteLoop?.IsChecked == true)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                // Kontrola či je TextBox enabled
+                var textBox = sender as TextBox;
+                if (textBox == null || !textBox.IsEnabled)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
+                // Získanie aktuálnej hodnoty
+                int currentValue;
+                if (!int.TryParse(textBox.Text, out currentValue))
+                {
+                    currentValue = 1;
+                }
+
+                // Určenie zmeny na základe smeru kolieska
+                // e.Delta > 0 = koliesko hore (inkrementovanie)
+                // e.Delta < 0 = koliesko dole (dekrementovanie)
+                int delta = e.Delta > 0 ? 1 : -1;
+
+                // Ak je stlačený Ctrl, zväčšíme krok na 10
+                if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
+                {
+                    delta *= 10;
+                }
+                // Ak je stlačený Shift, zväčšíme krok na 5
+                else if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                {
+                    delta *= 5;
+                }
+
+                // Výpočet novej hodnoty
+                int newValue = currentValue + delta;
+
+                // Obmedzenie hodnoty (minimum 1, maximum 9999)
+                newValue = Math.Max(1, Math.Min(9999, newValue));
+
+                // Nastavenie novej hodnoty
+                textBox.Text = newValue.ToString();
+
+                // Označenie udalosti ako spracovanej
+                e.Handled = true;
+
+                // Aktualizácia statusu
+                UpdateStatus($"Repeat count changed to {newValue}");
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error handling mouse wheel", ex);
+            }
+        }
+
+        /// <summary>
+        /// Handler pre klávesy šípok na TextBox AppCommander_TxtRepeatCount
+        /// </summary>
+        private void AppCommander_TxtRepeatCount_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                // Kontrola či je infinite loop zapnutý
+                if (AppCommander_ChkInfiniteLoop?.IsChecked == true)
+                {
+                    if (e.Key == Key.Up || e.Key == Key.Down)
+                    {
+                        e.Handled = true;
+                    }
+                    return;
+                }
+
+                var textBox = sender as TextBox;
+                if (textBox == null || !textBox.IsEnabled)
+                {
+                    return;
+                }
+
+                // Spracovanie šípok hore/dole
+                if (e.Key == Key.Up || e.Key == Key.Down)
+                {
+                    int currentValue;
+                    if (!int.TryParse(textBox.Text, out currentValue))
+                    {
+                        currentValue = 1;
+                    }
+
+                    int delta = e.Key == Key.Up ? 1 : -1;
+
+                    // Modifikátory pre väčšie kroky
+                    if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
+                    {
+                        delta *= 10;
+                    }
+                    else if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                    {
+                        delta *= 5;
+                    }
+
+                    int newValue = currentValue + delta;
+                    newValue = Math.Max(1, Math.Min(9999, newValue));
+
+                    textBox.Text = newValue.ToString();
+                    textBox.SelectAll();
+
+                    e.Handled = true;
+                    UpdateStatus($"Repeat count changed to {newValue}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error handling key press", ex);
+            }
+        }
+
+        /// <summary>
+        /// Validácia vstupu pre TextBox AppCommander_TxtRepeatCount
+        /// </summary>
+        private void AppCommander_TxtRepeatCount_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            try
+            {
+                // Povolíme len číslice
+                e.Handled = !IsTextNumeric(e.Text);
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error validating input", ex);
+            }
+        }
+
+        /// <summary>
+        /// Kontrola či text obsahuje len číslice
+        /// </summary>
+        private bool IsTextNumeric(string text)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(text, "^[0-9]+$");
+        }
+
+        /// <summary>
+        /// Handler pre stratenie fokusu - validácia hodnoty
+        /// </summary>
+        private void AppCommander_TxtRepeatCount_LostFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var textBox = sender as TextBox;
+                if (textBox == null) return;
+
+                // Ak je prázdny alebo 0, nastavíme na 1
+                int value;
+                if (!int.TryParse(textBox.Text, out value) || value < 1)
+                {
+                    textBox.Text = "1";
+                    UpdateStatus("Repeat count reset to 1");
+                }
+                else if (value > 9999)
+                {
+                    textBox.Text = "9999";
+                    UpdateStatus("Repeat count limited to 9999");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error validating repeat count", ex);
+            }
+        }
+
+        #endregion
 
         #endregion
 
