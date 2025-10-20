@@ -1,4 +1,5 @@
 ﻿using AppCommander.W7_11.WPF.Core;
+using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
@@ -9,14 +10,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Microsoft.VisualBasic;
-using System.Security.Cryptography.X509Certificates;
+using System.Windows.Threading;
 
 public class SequenceSetItem : INotifyPropertyChanged
 {
@@ -180,6 +182,9 @@ namespace AppCommander.W7_11.WPF
             InitializeApplication();
             InitializeWindowClickSelector();
             InitializeSidePanel();
+            InitializeRecorder();
+            InitializePlayer();
+            UpdateRecordingButtonSimple();
         }
 
         private void InitializeRepeatCountHandlers()
@@ -548,9 +553,8 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void StartStopToggleRecording_Click(object sender, RoutedEventArgs e)
+        private async void StartStopToggleRecording_Click(object sender, RoutedEventArgs e)
         {
-
             // ════════════════════════════════════════
             System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
             System.Diagnostics.Debug.WriteLine("🔴 START/STOP RECORDING BUTTON CLICKED");
@@ -562,23 +566,311 @@ namespace AppCommander.W7_11.WPF
 
             try
             {
-                if (_recorder != null && _recorder.IsRecording)
+                // Ak už nahrávame, zastav nahrávanie
+                if (_recorder.IsRecording)
                 {
-                    System.Diagnostics.Debug.WriteLine("✅ Stopping recording...");
                     StopCurrentRecording();
+                    return;
+                }
+
+                // Ak nemáme vybraný target, automaticky spusti výber okna
+                if (_targetWindowHandle == IntPtr.Zero)
+                {
+                    await StartRecordingWithAutoSelection();
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("✅ Starting recording...");
+                    // Máme target, začni nahrávanie priamo
                     StartNewRecording();
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ ERROR: {ex.Message}");
                 ShowErrorMessage("Error toggling recording", ex);
             }
         }
+
+        // nové ↓
+        /// <summary>
+        /// Spustí nahrávanie s automatickým výberom okna
+        /// </summary>
+        private async Task StartRecordingWithAutoSelection()
+        {
+            try
+            {
+                // Informuj používateľa
+                UpdateStatus("Select target window by clicking on it...");
+
+                // Zmena UI pre indikáciu výberu
+                var originalButtonContent = AppCommander_BtnRecording.Content;
+                AppCommander_BtnRecording.Content = "⏳ Selecting Window...";
+                AppCommander_BtnRecording.IsEnabled = false;
+
+                // Zobraz selection indicator ak existuje
+                if (AppCommander_SelectionModeIndicator != null)
+                {
+                    AppCommander_SelectionModeIndicator.Visibility = Visibility.Visible;
+                    AppCommander_TxtSelectionMode.Text = "Click on target window";
+                }
+
+                // Spusti window selection
+                var selectedWindow = await _windowClickSelector.StartWindowSelectionAsync();
+
+                if (selectedWindow != null)
+                {
+                    // Úspešný výber - nastav target
+                    _targetWindowHandle = selectedWindow.WindowHandle;
+
+                    // Overenie, že nevyberáme AppCommander
+                    if (selectedWindow.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                    {
+                        MessageBox.Show(
+                            "Cannot record actions on AppCommander itself.\n" +
+                            "Please select a different application.",
+                            "Invalid Target",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+
+                        // Reset target
+                        _targetWindowHandle = IntPtr.Zero;
+                        UpdateTargetWindowInfo(null);
+                    }
+                    else
+                    {
+                        // Nastav target window info
+                        UpdateTargetWindowInfo(selectedWindow);
+
+                        // Automaticky začni nahrávanie
+                        UpdateStatus($"Target selected: {selectedWindow.ProcessName}. Starting recording...");
+
+                        // Malé oneskorenie pre lepší UX
+                        await Task.Delay(500);
+
+                        // Začni nahrávanie
+                        StartNewRecording();
+                    }
+                }
+                else
+                {
+                    // Výber bol zrušený
+                    UpdateStatus("Window selection cancelled. Recording not started.");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error during auto window selection", ex);
+            }
+            finally
+            {
+                // Reset UI
+                AppCommander_BtnRecording.IsEnabled = true;
+
+                // Skry selection indicator
+                if (AppCommander_SelectionModeIndicator != null)
+                {
+                    AppCommander_SelectionModeIndicator.Visibility = Visibility.Collapsed;
+                }
+
+                // Update button podľa stavu
+                UpdateRecordingButton();
+            }
+        }
+
+        /// <summary>
+        /// Rýchle nahrávanie - kombinuje výber okna a nahrávanie
+        /// </summary>
+        private async void QuickRecording_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Ak už nahrávame, zastav
+                if (_recorder.IsRecording)
+                {
+                    StopCurrentRecording();
+                    return;
+                }
+
+                // Vždy začni s výberom nového okna
+                await StartRecordingWithAutoSelection();
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error in quick recording", ex);
+            }
+        }
+
+        /// <summary>
+        /// Aktualizuje Recording button podľa stavu
+        /// </summary>
+        private void UpdateRecordingButton()
+        {
+            try
+            {
+                if (_recorder.IsRecording)
+                {
+                    AppCommander_BtnRecording.Content = "⏹ Stop Recording";
+                    AppCommander_BtnRecording.Style = (Style)FindResource("SuccessButton");
+                }
+                else
+                {
+                    if (_targetWindowHandle == IntPtr.Zero)
+                    {
+                        AppCommander_BtnRecording.Content = "🎯 Select & Record";
+                    }
+                    else
+                    {
+                        AppCommander_BtnRecording.Content = "🔴 Start Recording";
+                    }
+                    AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating recording button: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Upravená metóda SelectTargetByClick_Click pre kompatibilitu
+        /// </summary>
+        private async void SelectTargetByClick_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Ak je výber aktívny, zruš ho
+                if (_windowClickSelector.IsSelecting)
+                {
+                    _windowClickSelector.CancelSelection();
+                    ResetClickSelectionUI();
+                    return;
+                }
+
+                // Spusti výber
+                var selectedWindow = await SelectWindowByClick();
+
+                if (selectedWindow != null)
+                {
+                    _targetWindowHandle = selectedWindow.WindowHandle;
+                    UpdateTargetWindowInfo(selectedWindow);
+                    UpdateUI();
+
+                    // Ak chceme, môžeme automaticky začať nahrávanie
+                    if (AppCommander_ChkAutoStartRecording?.IsChecked == true)
+                    {
+                        StartNewRecording();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorMessage("Error during window selection", ex);
+            }
+        }
+
+        /// <summary>
+        /// Pomocná metóda pre výber okna kliknutím
+        /// </summary>
+        private async Task<WindowTrackingInfo> SelectWindowByClick()
+        {
+            try
+            {
+                // UI indikácia výberu
+                AppCommander_SelectionModeIndicator.Visibility = Visibility.Visible;
+                AppCommander_TxtSelectionMode.Text = "Click Selection Active";
+
+                // Zmena tlačidla
+                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "❌ Cancel Selection";
+                AppCommander_BtnSelectTarget.IsEnabled = false;
+
+                UpdateStatus("Click on any window to select it as target...");
+
+                // Spusti výber
+                var result = await _windowClickSelector.StartWindowSelectionAsync();
+
+                return result;
+            }
+            finally
+            {
+                ResetClickSelectionUI();
+            }
+        }
+
+        /// <summary>
+        /// Keyboard shortcut handler pre rýchle nahrávanie
+        /// </summary>
+        private async void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                // F9 - Toggle recording s auto-selection
+                if (e.Key == Key.F9)
+                {
+                    e.Handled = true;
+                    await StartStopToggleRecording_Click(null, null);
+                }
+                // Ctrl+R - Quick recording (vždy nový výber)
+                else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    e.Handled = true;
+                    await QuickRecording_Click(null, null);
+                }
+                // Escape - Stop recording ak beží
+                else if (e.Key == Key.Escape && _recorder.IsRecording)
+                {
+                    e.Handled = true;
+                    StopCurrentRecording();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in keyboard handler: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Overí či je možné začať nahrávanie
+        /// </summary>
+        private bool CanStartRecording()
+        {
+            // Nemôžeme nahrávať počas prehrávania
+            if (_player?.IsPlaying == true)
+            {
+                return false;
+            }
+
+            // Pre auto-selection nepotrebujeme target vopred
+            return true;
+        }
+
+        /// <summary>
+        /// Zobrazí tooltip s informáciami o rýchlom nahrávaní
+        /// </summary>
+        private void ShowQuickRecordingTooltip()
+        {
+            var tooltip = new ToolTip
+            {
+                Content = "Click to select target window and start recording immediately\n" +
+                         "Shortcut: F9 or Ctrl+R",
+                PlacementTarget = AppCommander_BtnRecording,
+                Placement = PlacementMode.Bottom,
+                IsOpen = true
+            };
+
+            // Auto-hide po 3 sekundách
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            timer.Tick += (s, e) =>
+            {
+                tooltip.IsOpen = false;
+                timer.Stop();
+            };
+            timer.Start();
+        }
+
+        // nové ↑
 
         private void StopCurrentRecording()
         {
@@ -917,56 +1209,6 @@ namespace AppCommander.W7_11.WPF
 
         #region Selection UI Updates - 
 
-        private async void SelectTargetByClick_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_windowClickSelector.IsSelecting)
-                {
-                    _windowClickSelector.CancelSelection();
-                    return;
-                }
-
-                // Zobraz selection indicator
-                AppCommander_SelectionModeIndicator.Visibility = Visibility.Visible;
-                AppCommander_TxtSelectionMode.Text = "Click Selection Active";
-
-                // Zmeni tlačidlo na cancel mode
-                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "❌ Cancel Selection";
-                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
-
-                // Disable ostatné controls počas výberu
-                AppCommander_BtnSelectTarget.IsEnabled = false;
-                AppCommander_BtnRecording.IsEnabled = false;
-
-                UpdateStatus("Click selection mode activated. Click on any window to select it as target.");
-
-                // Spusti async selection
-                var selectedWindow = await _windowClickSelector.StartWindowSelectionAsync();
-
-                if (selectedWindow != null)
-                {
-                    // Nastav vybrané okno ako target
-                    _targetWindowHandle = selectedWindow.WindowHandle;
-                    UpdateTargetWindowInfo(selectedWindow);
-
-                    UpdateUI();
-                    UpdateStatus(string.Format("Target selected by click: {0}", selectedWindow.ProcessName));
-
-                    Debug.WriteLine(string.Format("Target window selected by click: Handle=0x{0:X8}, Process={1}, Title={2}",
-                        _targetWindowHandle.ToInt64(), selectedWindow.ProcessName, selectedWindow.Title));
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowErrorMessage("Error during click selection", ex);
-            }
-            finally
-            {
-                // Vráti UI do normálneho stavu
-                ResetClickSelectionUI();
-            }
-        }
 
         #endregion
 
@@ -3872,8 +4114,11 @@ namespace AppCommander.W7_11.WPF
         [DllImport("user32.dll")]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
 
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
         #endregion
-    
+
         // Trieda pre SequenceSet item v DataGrid
         #region Sequence Set Methods
 
@@ -4936,102 +5181,6 @@ namespace AppCommander.W7_11.WPF
             for (int i = 0; i < _commands.Count; i++)
             {
                 _commands[i].StepNumber = i + 1;
-            }
-        }
-
-        #endregion
-
-        #region Keyboard Shortcuts Support
-
-        /// <summary>
-        /// Spracovanie klávesových skratiek v okne
-        /// </summary>
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            try
-            {
-                if (e.Key == Key.Escape)
-                {
-                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
-                    System.Diagnostics.Debug.WriteLine("⌨️ ESC KEY PRESSED IN MAINWINDOW");
-                    System.Diagnostics.Debug.WriteLine($"   Recorder.IsRecording: {_recorder?.IsRecording ?? false}");
-                    System.Diagnostics.Debug.WriteLine($"   Player.IsPlaying: {_player?.IsPlaying ?? false}");
-                    System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
-
-                    // Ak nahrávame, zastav nahrávanie
-                    if (_recorder != null && _recorder.IsRecording)
-                    {
-                        System.Diagnostics.Debug.WriteLine("✅ ESC: Stopping recording...");
-                        StopCurrentRecording();
-                        e.Handled = true;
-                        return;
-                    }
-
-                    // Ak prehrávame, zastav prehrávanie
-                    if (_player != null && _player.IsPlaying)
-                    {
-                        System.Diagnostics.Debug.WriteLine("✅ ESC: Stopping playback...");
-                        _player.Stop();
-
-                        // Aktualizuj UI
-                        if (AppCommander_BtnPause != null)
-                            AppCommander_BtnPause.Content = "⏸ Pause";
-
-                        UpdateStatus("Playback stopped by ESC key");
-                        e.Handled = true;
-                        return;
-                    }
-
-                    System.Diagnostics.Debug.WriteLine("⚠️ ESC: Nothing to stop (not recording/playing)");
-                }
-
-                // Ctrl + E = Edit selected command
-                if (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
-                {
-                    if (AppCommander_MainCommandTable.SelectedItem != null)
-                    {
-                        EditCommand_Click(sender, e);
-                        e.Handled = true;
-                    }
-                }
-                // Ctrl + D = Duplicate command
-                else if (e.Key == Key.D && Keyboard.Modifiers == ModifierKeys.Control)
-                {
-                    if (AppCommander_MainCommandTable.SelectedItem != null)
-                    {
-                        DuplicateCommand_Click(sender, e);
-                        e.Handled = true;
-                    }
-                }
-                // F5 = Execute sequence
-                else if (e.Key == Key.F5)
-                {
-                    ExecuteModifiedSequence_Click(sender, e);
-                    e.Handled = true;
-                }
-                // Ctrl + T = Test command
-                else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
-                {
-                    if (AppCommander_MainCommandTable.SelectedItem != null)
-                    {
-                        TestCommand_Click(sender, e);
-                        e.Handled = true;
-                    }
-                }
-                // Delete = Delete command
-                else if (e.Key == Key.Delete)
-                {
-                    if (AppCommander_MainCommandTable.SelectedItem != null)
-                    {
-                        DeleteCommand_Click(sender, e);
-                        e.Handled = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ ERROR in Window_KeyDown: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"   Stack trace: {ex.StackTrace}");
             }
         }
 

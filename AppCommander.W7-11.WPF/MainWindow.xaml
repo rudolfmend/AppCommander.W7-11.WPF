@@ -87,12 +87,6 @@
                     AutomationProperties.Name="Tool Bar Area"/>
                     <!--AutomationProperties.ControlType="Header"-->
 
-                    <Button x:Name="AppCommander_AppCommander_BtnSelectTargetByClick" Content="🎯 Click to Select" 
-                        Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
-                        Click="SelectTargetByClick_Click" 
-                        Margin="0,0,8,0" />
-
-
                 </StackPanel>
 
                 <Separator Margin="0,0,24,0" Style="{x:Null}" Background="#E1E1E1" Width="1"/>
@@ -343,6 +337,7 @@
                             <Border x:Name="AppCommander_SelectionModeIndicator" 
                                     BorderThickness="1" 
                                     CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
+                                
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
                                     <TextBlock x:Name="AppCommander_TxtSelectionMode" Text="Click Selection Active" 
@@ -388,6 +383,11 @@
                                     AutomationProperties.Name="Browse target"
                                     AutomationProperties.HelpText="Browse and select a target window manually"
                                     Height="34" Padding="8,4" FontSize="12"/>
+
+                                <Button x:Name="AppCommander_AppCommander_BtnSelectTargetByClick" Content="🎯 Click to Select" 
+                                    Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
+                                    Click="SelectTargetByClick_Click" 
+                                    Margin="0,0,8,0" />
 
                             </StackPanel>
                         </StackPanel>
