@@ -182,9 +182,9 @@ namespace AppCommander.W7_11.WPF
             InitializeApplication();
             InitializeWindowClickSelector();
             InitializeSidePanel();
-            InitializeRecorder();
-            InitializePlayer();
-            UpdateRecordingButtonSimple();
+            //InitializeRecorder();
+            //InitializePlayer();
+            //UpdateRecordingButtonSimple();
         }
 
         private void InitializeRepeatCountHandlers()
@@ -806,13 +806,13 @@ namespace AppCommander.W7_11.WPF
                 if (e.Key == Key.F9)
                 {
                     e.Handled = true;
-                    await StartStopToggleRecording_Click(null, null);
+                    StartStopToggleRecording_Click(null, null);
                 }
                 // Ctrl+R - Quick recording (vždy nový výber)
                 else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
                 {
                     e.Handled = true;
-                    await QuickRecording_Click(null, null);
+                     QuickRecording_Click(null, null);
                 }
                 // Escape - Stop recording ak beží
                 else if (e.Key == Key.Escape && _recorder.IsRecording)
@@ -4114,8 +4114,8 @@ namespace AppCommander.W7_11.WPF
         [DllImport("user32.dll")]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
 
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        //[DllImport("user32.dll")]
+        //private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         #endregion
 
