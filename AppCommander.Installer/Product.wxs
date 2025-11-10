@@ -38,7 +38,7 @@
 			<!-- Hlavný exe -->
 			<Component Id="MainExecutable" Guid="*" Win64="yes">
 				<File Id="AppCommanderExe"
-					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Ophies.exe"
 					  KeyPath="yes" />
 			</Component>
 
@@ -52,7 +52,7 @@
 			<!-- App.config ak existuje -->
 			<Component Id="AppConfig" Guid="*" Win64="yes">
 				<File Id="AppConfigFile"
-					  Source="..\AppCommander.W7-11.WPF\bin\Debug\AppCommander.exe.config"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Ophies.exe.config"
 					  KeyPath="yes" />
 			</Component>
 
