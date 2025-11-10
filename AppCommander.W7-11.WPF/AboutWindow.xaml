@@ -1,7 +1,7 @@
 ﻿<Window x:Class="AppCommander.W7_11.WPF.AboutWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="About AppCommander" 
+        Title="About Ophies" 
         Height="650" Width="500"
         MinHeight="550" MinWidth="450"
         WindowStartupLocation="CenterScreen"
@@ -23,17 +23,17 @@
                 Background="{DynamicResource PanelBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="30">
+                Padding="10,13">
             <StackPanel HorizontalAlignment="Center">
+                
                 <!-- App Logo -->
-                <Image Source="appcommander_logo.png" 
-                       Width="200" 
-                       Height="200" 
-                       Margin="0,0,0,15"
+                <Image Source="Ophies-simple-trsp.png" 
+                       Width="100" 
+                       Height="100"
                        RenderOptions.BitmapScalingMode="HighQuality"
                        Stretch="Uniform"/>
 
-                <TextBlock Text="AppCommander" 
+                <TextBlock Text="Ophies" 
                            FontSize="28" 
                            FontWeight="Bold"
                            Foreground="{DynamicResource PrimaryTextBrush}"
@@ -129,7 +129,7 @@
                    Foreground="{DynamicResource SecondaryTextBrush}"
                    LineHeight="22"
                    Margin="0,0,0,15">
-            AppCommander respects your privacy. This application does not collect, store, or transmit any personal data.
+            Ophies respects your privacy. This application does not collect, store, or transmit any personal data.
                         </TextBlock>
 
                         <Button Content="Learn More" 

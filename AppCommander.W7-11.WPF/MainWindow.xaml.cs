@@ -182,6 +182,12 @@ namespace AppCommander.W7_11.WPF
             InitializeApplication();
             InitializeWindowClickSelector();
             InitializeSidePanel();
+
+            this.AllowDrop = true;
+            this.PreviewDragEnter += MainWindow_PreviewDragEnter;
+            this.PreviewDragLeave += MainWindow_PreviewDragLeave;
+            this.PreviewDrop += MainWindow_PreviewDrop;
+
             //InitializeRecorder();
             //InitializePlayer();
             //UpdateRecordingButtonSimple();
@@ -241,6 +247,66 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ShowErrorMessage("Error initializing application", ex);
+            }
+        }
+
+        #endregion
+
+        #region Drag-and-Drop Handlers
+
+        private void MainWindow_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                DropOverlay.Visibility = Visibility.Visible;
+                e.Effects = DragDropEffects.Copy;
+            }
+            e.Handled = true;
+        }
+
+        private void MainWindow_PreviewDragLeave(object sender, DragEventArgs e)
+        {
+            // Skontroluj či myš naozaj opustila okno
+            Point pos = e.GetPosition(this);
+            if (pos.X < 0 || pos.Y < 0 || pos.X > this.ActualWidth || pos.Y > this.ActualHeight)
+            {
+                DropOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void MainWindow_PreviewDrop(object sender, DragEventArgs e)
+        {
+            DropOverlay.Visibility = Visibility.Collapsed;
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string file in files)
+                {
+                    if (file.EndsWith(".acc") || file.EndsWith(".acset"))
+                    {
+                        LoadSequenceFile(file);
+                    }
+                }
+            }
+            e.Handled = true;
+        }
+
+        private void LoadSequenceFile(string filePath)
+        {
+            // Determine file extension and load accordingly
+            var extension = System.IO.Path.GetExtension(filePath).ToLower();
+            if (extension == ".uniseq")
+            {
+                LoadUnifiedSequenceFromFile(filePath);
+            }
+            else if (extension == ".acset")
+            {
+                LoadSequenceSetFromFile(filePath);
+            }
+            else
+            {
+                LoadSequenceFromFile(filePath);
             }
         }
 
@@ -800,6 +866,8 @@ namespace AppCommander.W7_11.WPF
         /// </summary>
         private async void Window_KeyDown(object sender, KeyEventArgs e)
         {
+            await Task.Yield(); // Ensures the method is asynchronous and suppresses CS1998
+
             try
             {
                 // F9 - Toggle recording s auto-selection
@@ -812,7 +880,7 @@ namespace AppCommander.W7_11.WPF
                 else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
                 {
                     e.Handled = true;
-                     QuickRecording_Click(null, null);
+                    QuickRecording_Click(null, null);
                 }
                 // Escape - Stop recording ak beží
                 else if (e.Key == Key.Escape && _recorder.IsRecording)
@@ -826,6 +894,35 @@ namespace AppCommander.W7_11.WPF
                 Debug.WriteLine($"Error in keyboard handler: {ex.Message}");
             }
         }
+
+        //private async void Window_KeyDown(object sender, KeyEventArgs e)
+        //{
+        //    try
+        //    {
+        //        // F9 - Toggle recording s auto-selection
+        //        if (e.Key == Key.F9)
+        //        {
+        //            e.Handled = true;
+        //            StartStopToggleRecording_Click(null, null);
+        //        }
+        //        // Ctrl+R - Quick recording (vždy nový výber)
+        //        else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+        //        {
+        //            e.Handled = true;
+        //             QuickRecording_Click(null, null);
+        //        }
+        //        // Escape - Stop recording ak beží
+        //        else if (e.Key == Key.Escape && _recorder.IsRecording)
+        //        {
+        //            e.Handled = true;
+        //            StopCurrentRecording();
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Debug.WriteLine($"Error in keyboard handler: {ex.Message}");
+        //    }
+        //}
 
         #endregion
 
