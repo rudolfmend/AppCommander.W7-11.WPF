@@ -5,7 +5,7 @@
         Height="650" Width="500"
         MinHeight="550" MinWidth="450"
         WindowStartupLocation="CenterScreen"
-        Icon="appcommander_icon.ico"
+        Icon="/Ophies_mild.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI"
         FontSize="14"
@@ -27,21 +27,21 @@
             <StackPanel HorizontalAlignment="Center">
                 
                 <!-- App Logo -->
-                <Image Source="ophies-logo-lizard-trsp.png" 
+                <Image Source="/Ophies_mild.ico" 
                        Width="100" 
                        Height="100"
                        RenderOptions.BitmapScalingMode="HighQuality"
                        Stretch="Uniform"/>
 
-                <TextBlock Text="Ophies" 
+                <!--<TextBlock Text="Ophies" 
                            FontSize="28" 
                            FontWeight="Bold"
                            Foreground="{DynamicResource PrimaryTextBrush}"
                            HorizontalAlignment="Center"
-                           Margin="0,0,0,5"/>
+                           Margin="0,0,0,5"/>-->
 
                 <TextBlock Text="WPF Edition - Version 1.0" 
-                           FontSize="14"
+                           FontSize="14" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            HorizontalAlignment="Center"/>
             </StackPanel>

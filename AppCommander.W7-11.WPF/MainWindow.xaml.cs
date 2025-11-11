@@ -559,11 +559,11 @@ namespace AppCommander.W7_11.WPF
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 System.Diagnostics.Debug.WriteLine($"📍 Target process: {targetProcess}");
 
-                if (targetProcess.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                if (targetProcess.Equals("Ophies", StringComparison.OrdinalIgnoreCase))
                 {
-                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - target is AppCommander itself");
+                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - target is Ophies itself");
                     MessageBox.Show(
-                        "You cannot record actions on AppCommander itself.\n" +
+                        "You cannot record actions on Ophies itself.\n" +
                         "Please select a different target application.",
                         "Invalid Target",
                         MessageBoxButton.OK,
@@ -691,7 +691,7 @@ namespace AppCommander.W7_11.WPF
                     if (selectedWindow.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                     {
                         MessageBox.Show(
-                            "Cannot record actions on AppCommander itself.\n" +
+                            "Cannot record actions on Ophies itself.\n" +
                             "Please select a different application.",
                             "Invalid Target",
                             MessageBoxButton.OK,
@@ -2033,10 +2033,9 @@ namespace AppCommander.W7_11.WPF
             {
                 var dialog = new OpenFileDialog
                 {
-                    Filter = "All Supported Files|*.acc;*.json;*.uniseq|" +
-                            "AppCommander Files (*.acc)|*.acc|" +
+                    Filter = "All Supported Files|*.acc;*.json|" +
+                            "Ophies Files - Automation Commands Collection (*.acc)|*.acc|" +
                             "JSON Files (*.json)|*.json|" +
-                            "Unified Sequence Files (*.uniseq)|*.uniseq|" +
                             "All Files (*.*)|*.*",
                     DefaultExt = ".acc"
                 };
@@ -3508,7 +3507,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 string currentSettings = string.Format(
-                    "AppCommander Settings\n\n" +
+                    "Ophies Settings\n\n" +
                     "Recording Configuration:\n" +
                     "• Default delay: {0}ms\n" +
                     "• Auto-tracking: {1}\n" +

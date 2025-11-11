@@ -5,7 +5,7 @@
         Height="700" Width="850"
         MinHeight="600" MinWidth="750"
         WindowStartupLocation="CenterScreen"
-        Icon="appcommander_icon.ico"
+        Icon="/Ophies_mild.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI"
         FontSize="14"
