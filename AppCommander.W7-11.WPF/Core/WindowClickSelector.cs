@@ -1,11 +1,11 @@
-﻿using System;
+﻿using AppCommander.W7_11.WPF.Core;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -21,9 +21,6 @@ namespace AppCommander.W7_11.WPF
 
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetParent(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
@@ -83,9 +80,6 @@ namespace AppCommander.W7_11.WPF
 
         #region Public Methods
 
-        /// <summary>
-        /// Spustí režim výberu okna kliknutím
-        /// </summary>
         public async Task<WindowTrackingInfo> StartWindowSelectionAsync()
         {
             if (_isSelecting)
@@ -98,24 +92,20 @@ namespace AppCommander.W7_11.WPF
                 _isSelecting = true;
                 _cancellationTokenSource = new CancellationTokenSource();
 
-                OnStatusChanged("Click on any window to select it as target. Press ESC to cancel.");
+                OnStatusChanged("Click on any window to select it. Press ESC to cancel.");
 
-                // Vytvor overlay
                 _overlay = new WindowClickOverlay();
                 _overlay.Show();
                 _overlay.Topmost = true;
 
-                // Spusti timer pre real-time highlighting
                 _updateTimer = new DispatcherTimer
                 {
-                    Interval = TimeSpan.FromMilliseconds(50) // 20 FPS
+                    Interval = TimeSpan.FromMilliseconds(50)
                 };
                 _updateTimer.Tick += UpdateHighlight;
                 _updateTimer.Start();
 
-                // Čakaj na výber
                 var result = await WaitForWindowSelectionAsync(_cancellationTokenSource.Token);
-
                 return result;
             }
             catch (OperationCanceledException)
@@ -129,9 +119,6 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        /// <summary>
-        /// Zruší aktuálny výber
-        /// </summary>
         public void CancelSelection()
         {
             if (_isSelecting)
@@ -150,16 +137,13 @@ namespace AppCommander.W7_11.WPF
             {
                 await Task.Delay(50, cancellationToken);
 
-                // Kontrola ESC key
                 if ((GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
 
-                // Kontrola mouse click
                 if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
                 {
-                    // Čakaj na uvoľnenie tlačidla
                     while ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
                     {
                         await Task.Delay(10, cancellationToken);
@@ -196,10 +180,8 @@ namespace AppCommander.W7_11.WPF
                     if (windowUnderCursor != IntPtr.Zero)
                     {
                         var windowInfo = CreateWindowInfo(windowUnderCursor);
-
                         if (windowInfo != null)
                         {
-                            // Aktualizuj overlay
                             _overlay?.UpdateHighlight(windowInfo);
                             OnStatusChanged($"Hover: {windowInfo.ProcessName} - {windowInfo.Title}");
                         }
@@ -219,11 +201,8 @@ namespace AppCommander.W7_11.WPF
                 if (GetCursorPos(out POINT cursorPos))
                 {
                     var window = WindowFromPoint(cursorPos);
-
-                    // Získaj root window
                     var rootWindow = GetAncestor(window, GA_ROOT);
 
-                    // Skip náš vlastný overlay
                     if (IsOurOverlay(rootWindow))
                     {
                         return IntPtr.Zero;
@@ -263,7 +242,6 @@ namespace AppCommander.W7_11.WPF
                 var className = GetWindowClassName(windowHandle);
                 var processInfo = GetProcessInfo(windowHandle);
 
-                // Skip náš vlastný process
                 if (processInfo.processName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
@@ -336,16 +314,12 @@ namespace AppCommander.W7_11.WPF
         private void StopSelection()
         {
             _isSelecting = false;
-
             _updateTimer?.Stop();
             _updateTimer = null;
-
             _overlay?.Close();
             _overlay = null;
-
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
-
             _lastHighlightedWindow = IntPtr.Zero;
         }
 
@@ -389,10 +363,8 @@ namespace AppCommander.W7_11.WPF
                     {
                         CancelSelection();
                     }
-
                     StopSelection();
                 }
-
                 _disposed = true;
             }
         }

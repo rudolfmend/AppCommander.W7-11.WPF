@@ -85,23 +85,65 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
-                            Background="{TemplateBinding Background}"
                             BorderBrush="Transparent"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="4"
-                            SnapsToDevicePixels="True">
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        </Border.RenderTransform>
+                        <Border.Background>
+                            <SolidColorBrush Color="#569CD6"/>
+                        </Border.Background>
+
                         <ContentPresenter x:Name="contentPresenter"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Margin="{TemplateBinding Padding}"
-                                          RecognizesAccessKey="True"/>
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"/>
                     </Border>
+
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource SecondaryBrush}"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource SecondaryBrush}"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="3"/>
-                        </Trigger>
+
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#4A86BA"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#569CD6"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#3A73A0"/>
                         </Trigger>
@@ -110,9 +152,10 @@
                             <Setter Property="Foreground" Value="#808080"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+                    
                 </ControlTemplate>
             </Setter.Value>
-        </Setter>
+        </Setter>  
     </Style>
 
     <Style x:Key="SecondaryButton" TargetType="Button">
@@ -128,23 +171,65 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="Transparent"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="4"
-                        SnapsToDevicePixels="True">
+                            BorderBrush="Transparent"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        </Border.RenderTransform>
+                        <Border.Background>
+                            <SolidColorBrush Color="#569CD6"/>
+                        </Border.Background>
+
                         <ContentPresenter x:Name="contentPresenter"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Margin="{TemplateBinding Padding}"
-                                      RecognizesAccessKey="True"/>
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Margin="{TemplateBinding Padding}"
+                                  RecognizesAccessKey="True"/>
                     </Border>
+
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource SecondaryBrush}"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource SecondaryBrush}"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="3"/>
-                        </Trigger>
+
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#4A86BA"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#569CD6"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#3A73A0"/>
                         </Trigger>
@@ -171,28 +256,71 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5"
-                                SnapsToDevicePixels="True">
+                            BorderBrush="Transparent"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                        </Border.RenderTransform>
+
+                        <Border.Background>
+                            <SolidColorBrush Color="#F14C4C"/>
+                        </Border.Background>
+                        
                         <ContentPresenter x:Name="contentPresenter"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}"
                                               RecognizesAccessKey="True"/>
                     </Border>
+
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E13D42"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="#E13D42"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="3"/>
-                            <Setter TargetName="border" Property="CornerRadius" Value="2"/>
-                        </Trigger>
+
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#4A86BA"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <ColorAnimation Storyboard.TargetName="border"
+                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                            To="#569CD6"
+                            Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#CC2E33"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

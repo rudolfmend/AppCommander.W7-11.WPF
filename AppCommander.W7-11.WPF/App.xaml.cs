@@ -102,7 +102,7 @@ namespace AppCommander.W7_11.WPF
             catch (Exception ex)
             {
                 ReleaseMutex();
-                MessageBox.Show(string.Format("Application startup failed: {0}", ex.Message), "AppCommander Error",
+                MessageBox.Show(string.Format("Application startup failed: {0}", ex.Message), "Ophies Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
             }
@@ -624,7 +624,7 @@ namespace AppCommander.W7_11.WPF
                 Debug.WriteLine("═══════════════════════════════════════════════════════");
 #else
                 MessageBox.Show(string.Format("An unexpected error occurred:\n{0}\n\nThe application will continue running.", e.Exception.Message),
-                "AppCommander Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Ophies Error", MessageBoxButton.OK, MessageBoxImage.Warning);
 #endif
 
             };
@@ -649,17 +649,17 @@ namespace AppCommander.W7_11.WPF
                     Debug.WriteLine("DEBUG - CRITICAL ERROR (TERMINATING):");
                     Debug.WriteLine(exception?.ToString() ?? "Unknown error");
                     Debug.WriteLine("═══════════════════════════════════════════════════════");
-                #else
+#else
                     try
                     {
                         MessageBox.Show(string.Format("A critical error occurred and the application must close:\n{0}", message),
-                            "AppCommander Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            "Ophies Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                     catch
                     {
                         Debug.WriteLine(string.Format("Failed to show critical error: {0}", message));
                     }
-                #endif
+#endif
                 }
             };
         }

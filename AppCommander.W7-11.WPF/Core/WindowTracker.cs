@@ -146,7 +146,7 @@ namespace AppCommander.W7_11.WPF.Core
             return windows;
         }
 
-        public WindowTrackingInfo SmartFindWindow(string criteria)
+        internal WindowTrackingInfo SmartFindWindow(string criteria)
         {
             var windows = GetAllWindows();
             foreach (var hWnd in windows)
@@ -275,7 +275,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-        private WindowTrackingInfo CreateWindowTrackingInfo(IntPtr hWnd)
+        internal WindowTrackingInfo CreateWindowTrackingInfo(IntPtr hWnd)
         {
             GetWindowThreadProcessId(hWnd, out uint processId);
 

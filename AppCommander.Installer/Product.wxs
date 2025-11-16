@@ -37,7 +37,7 @@
 
 			<!-- Hlavný exe -->
 			<Component Id="MainExecutable" Guid="*" Win64="yes">
-				<File Id="AppCommanderExe"
+				<File Id="OphiesExe"
 					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Ophies.exe"
 					  KeyPath="yes" />
 			</Component>

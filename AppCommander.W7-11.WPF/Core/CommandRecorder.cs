@@ -512,6 +512,37 @@ namespace AppCommander.W7_11.WPF.Core
 
         #region Recording Methods
 
+        //public void SetTargetWindow(IntPtr handle)
+        //{
+        //    targetWindow = handle;
+        //    windowTracker.SetTargetWindow(handle);
+        //}
+
+        public void SetTargetWindow(IntPtr handle)
+        {
+            try
+            {
+                targetWindow = handle;
+                targetProcessName = GetProcessNameFromWindow(handle);
+
+                // Aktualizuj current sequence ak existuje
+                if (currentSequence != null)
+                {
+                    currentSequence.TargetProcessName = targetProcessName;
+                    currentSequence.TargetWindowTitle = GetWindowTitleFromHandle(handle);
+                    currentSequence.TargetWindowClass = GetWindowClassFromHandle(handle);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Target window set: {targetProcessName} (Handle: 0x{handle:X})");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error setting target window: {ex.Message}");
+            }
+        }
+
+      
+
         /// <summary>
         /// Spustí nahrávanie s ochranou proti nekonečnej slučke
         /// </summary>
@@ -2593,6 +2624,14 @@ namespace AppCommander.W7_11.WPF.Core
         public DateTime LastUIUpdate { get; set; }
         public bool IsActive { get; set; }
         public List<UIElementInfo> UIElements { get; set; } = new List<UIElementInfo>();
+
+        private IntPtr targetWindow = IntPtr.Zero;
+
+        public IntPtr TargetWindowHandle
+        {
+            get => targetWindow;
+            private set => targetWindow = value;
+        }
     }
 
     /// <summary>

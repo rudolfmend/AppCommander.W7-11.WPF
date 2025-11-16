@@ -93,9 +93,10 @@
 
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                    <Button x:Name="AppCommander_BtnRecording" Content="🔴 Start Recording" 
+                    <Button x:Name="AppCommander_BtnRecording" Content="Click to Select" 
                         AutomationProperties.Name="Recording"
-                        AutomationProperties.HelpText="Start recording"
+                        AutomationProperties.HelpText="Start selecting and recording"
+                        ToolTip="Click here, then click on any window to select it"
                         AutomationProperties.AcceleratorKey="F9"
                         AutomationProperties.AutomationId="RecordButton"
                         Click="StartStopToggleRecording_Click" 
@@ -269,54 +270,80 @@
                     ToolTip="Show side panel">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Grid x:Name="RootGrid">
-                            <Border x:Name="RightBorder"
-                                Width="30"
-                                Height="{Binding ActualHeight, ElementName=RootGrid}"
-                                Background="{DynamicResource SecondaryBrush}"
-                                BorderBrush="Transparent"
-                                BorderThickness="3,2,0,2"
-                                CornerRadius="25,0,0,25"
-                                VerticalAlignment="Stretch"/>
+                        <Grid x:Name="RootGrid" RenderTransformOrigin="0.5,0.5" ClipToBounds="False">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            </Grid.RenderTransform>
 
-                            <!-- Ikona šípky -->
+                            <Border x:Name="RightBorder"
+                Width="30"
+                Height="{Binding ActualHeight, ElementName=RootGrid}"
+                BorderBrush="Transparent"
+                BorderThickness="3,2,0,2"
+                CornerRadius="25,0,0,25"
+                VerticalAlignment="Stretch">
+                                <Border.Background>
+                                    <SolidColorBrush Color="#569CD6"/>
+                                </Border.Background>
+                            </Border>
+
                             <Viewbox Width="20" Height="20" 
-                                     HorizontalAlignment="Center" 
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,0,0">
+                     HorizontalAlignment="Center" 
+                     VerticalAlignment="Center">
                                 <Canvas Width="26" Height="24">
                                     <Path x:Name="ToggleIconPath" 
-                                          Fill="{DynamicResource PrimaryTextBrush}"
-                                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                          Fill="{DynamicResource PrimaryTextBrush}"
+                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
                                 </Canvas>
                             </Viewbox>
                         </Grid>
 
                         <ControlTemplate.Triggers>
-                            <!-- Hover efekt - stredná farba -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="RightBorder" Property="Background" 
-                                        Value="{DynamicResource PrimaryBrush}"/>
-                                <Setter TargetName="RightBorder" Property="BorderBrush" 
-                                        Value="{DynamicResource PrimaryBrush}"/>
-                                <Setter TargetName="ToggleIconPath" Property="Fill" 
-                                        Value="{DynamicResource Background}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                           Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                           To="1.1" Duration="0:0:0.3"/>
+                                            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                           Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                           To="1.0" Duration="0:0:0.3"/>
+                                            <ColorAnimation Storyboard.TargetName="RightBorder"
+                          Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                          To="#4A86BA" Duration="0:0:0.3"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                                               Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                                               To="0.9" Duration="0:0:0.3"/>
+                                            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                                               Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                                               To="0.9" Duration="0:0:0.3"/>
+                                            <ColorAnimation Storyboard.TargetName="RightBorder"
+                                               Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                               To="#4A86BA" Duration="0:0:0.3"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+
                             </Trigger>
 
-                            <!-- Pressed efekt - Ikona šípky -->
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="RightBorder" Property="Background" 
-                                        Value="{DynamicResource AccentBrush}"/>
-                                <Setter TargetName="RightBorder" Property="BorderBrush" 
-                                        Value="{DynamicResource AccentBrush}"/>
-                                <Setter TargetName="ToggleIconPath" Property="Fill" 
-                                        Value="{DynamicResource Background}"/>
+                                <Setter TargetName="RightBorder" Property="Background" Value="#3A73A0"/>
                             </Trigger>
+                            
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
             </Button>
 
+            <!-- Side Panel  -  ScrollViewer  -->
             <ScrollViewer x:Name="AppCommander_SidePanel" 
                     Grid.Column="4" 
                     VerticalScrollBarVisibility="Auto" 
@@ -370,11 +397,11 @@
                             <!-- Quick Actions -->
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
 
-                                <Button x:Name="AppCommander_BtnQuickReselect" Content="🔄 Reselect" 
+                                <Button x:Name="AppCommander_BtnQuickReselect" Content="🔄 Select" 
                                     Click="SelectTargetByClick_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
                                     AutomationProperties.Name="Reselect"
-                                    Height="34" Padding="8,4" Margin="0,0,8,0" FontSize="12"/>
+                                    Height="34" Padding="8,4" FontSize="12"/>
 
                                 <Button x:Name="AppCommander_BtnSelectTarget" Content="📋 Browse" 
                                     Click="SelectTarget_Click" 
@@ -383,12 +410,7 @@
                                     AutomationProperties.HelpText="Browse and select a target window manually"
                                     Height="34" Padding="8,4" FontSize="12"/>
 
-                                <Button x:Name="AppCommander_AppCommander_BtnSelectTargetByClick" Content="🎯 Click to Select" 
-                                    Style="{DynamicResource PrimaryButton}" AutomationProperties.Name="Select Target by Click"
-                                    Click="SelectTargetByClick_Click" 
-                                    Margin="0,0,8,0" />
-
-                                <CheckBox x:Name="AppCommander_ChkAutoStartRecording" />
+                                <CheckBox x:Name="AppCommander_ChkAutoStartRecording" Style="{DynamicResource CheckBox}" />
 
                             </StackPanel>
                         </StackPanel>

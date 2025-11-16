@@ -1,7 +1,7 @@
 ﻿<Window x:Class="AppCommander.W7_11.WPF.UserGuideWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="AppCommander - User Guide" 
+        Title="Ophies - User Guide" 
         Height="600" Width="800"
         MinHeight="500" MinWidth="600"
         WindowStartupLocation="CenterScreen"
@@ -20,7 +20,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="📖 AppCommander User Guide" 
+            <TextBlock Text="📖 Ophies User Guide" 
                        FontSize="24" 
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource PrimaryTextBrush}"
@@ -52,7 +52,7 @@
 
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}">
-                                <Run FontWeight="SemiBold">1. Select Target Application</Run>
+                                <Run FontWeight="SemiBold">1. Open Target Application</Run>
                                 <LineBreak/>
                                 <Run Foreground="{DynamicResource SecondaryTextBrush}">Click 'Click to Select' button and choose the window you want to automate</Run>
                             </TextBlock>

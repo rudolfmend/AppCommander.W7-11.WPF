@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -130,18 +131,21 @@ namespace AppCommander.W7_11.WPF
 {
     public partial class MainWindow : Window
     {
+        //internal WindowClickSelector _windowClickSelector;
+
         #region Private Fields - MEMBER DEFINITIONS 
 
         // Core components
-        private WindowTracker _windowTracker;
-        private CommandRecorder _recorder;
-        private CommandPlayer _player;
-        private AutomaticUIManager _automaticUIManager;
+        internal WindowTracker _windowTracker;
+        internal CommandRecorder _recorder;
+        internal CommandPlayer _player;
+        internal AutomaticUIManager _automaticUIManager;
+        internal WindowClickOverlay _overlay;
 
-        private bool _isSidePanelVisible = false;  // Side panel state (visible/hidden) 
+        internal bool _isSidePanelVisible = false;  // Side panel state (visible/hidden) 
 
         // Sequence of commands
-        private string _currentSequenceName = string.Empty;
+        internal string _currentSequenceName = string.Empty;
 
         // Collections
         private ObservableCollection<Command> _commands;
@@ -845,7 +849,7 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_TxtSelectionMode.Text = "Click Selection Active";
 
                 // Zmena tlačidla
-                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "❌ Cancel Selection";
+                //AppCommander_AppCommander_BtnSelectTargetByClick.Content = "❌ Cancel Selection";
                 AppCommander_BtnSelectTarget.IsEnabled = false;
 
                 UpdateStatus("Click on any window to select it as target...");
@@ -1318,8 +1322,8 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
-                AppCommander_AppCommander_BtnSelectTargetByClick.Content = "🎯 Click to Select";
-                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
+                //AppCommander_AppCommander_BtnSelectTargetByClick.Content = "🎯 Click to Select";
+                //AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = true;
                 AppCommander_BtnSelectTarget.IsEnabled = true;
                 AppCommander_BtnRecording.IsEnabled = _targetWindowHandle != IntPtr.Zero;
 
@@ -1540,6 +1544,100 @@ namespace AppCommander.W7_11.WPF
         private string _currentUnifiedSequenceFilePath;
         private bool _hasUnsavedUnifiedChanges;
         private object AppCommander_TxtSequenceName_Copy;
+
+        private void AppCommander_BtnRecording_Click(object sender, RoutedEventArgs e)
+        {
+            // Ak ešte nie je vybraté cieľové okno, spustíme výber kliknutím
+            if (_targetWindowHandle == IntPtr.Zero) // if (_recorder.TargetWindowHandle == IntPtr.Zero) -public IntPtr TargetWindowHandle in class WindowContext in CommandRecorder.cs
+            {
+                StartWindowClickSelection();
+                return;
+            }
+
+            // Inak štandardne spustíme nahrávanie   
+            _ = StartRecordingWithAutoSelection(); // Await the async method
+        }
+
+        private async void StartWindowClickSelection()
+        {
+            if (_windowClickSelector == null)
+                _windowClickSelector = new WindowClickSelector();
+
+            _windowClickSelector.WindowSelected += OnWindowClickSelected;
+
+            await _windowClickSelector.StartWindowSelectionAsync();
+        }
+
+        private void UpdateTargetWindowDisplay(IntPtr handle)
+        {
+            var windowInfo = _windowTracker.CreateWindowTrackingInfo(handle);
+            if (windowInfo != null)
+            {
+                // Aktualizuj label/textbox s názvom okna
+                AppCommander_TxtTarget.Text = windowInfo.Title;
+            }
+        }
+
+        private void GetWindowInfo(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("GetWindowInfo method not implemented yet.");
+            MessageBox.Show("GetWindowInfo method not implemented yet.");
+        }
+
+        public event EventHandler<IntPtr> WindowSelected;
+
+        public void StartSelection()
+        {
+            _overlay = new WindowClickOverlay();
+
+            // _overlay.WindowClicked += OnWindowClicked;
+
+            // Replace this block in MainWindow.xaml.cs
+
+            //_overlay.MouseDown += (s, args) =>
+            //{
+            //    // may to check which mouse button was pressed, e.g. left click
+            //    if (args.LeftButton == MouseButtonState.Pressed)
+            //    {                
+            //        // For example, if WindowClickOverlay has a property TargetWindowHandle:
+
+            //        IntPtr windowHandle = WindowClickOverlay.UpdateHighlightRectangle(); // <-- Replace with actual property/method- in WindowClickOverlay to get the handle.
+            //                                                     // need to implement logic to get the window handle from the overlay.
+            //        OnWindowClicked(_overlay, windowHandle);
+            //    }
+            //};
+
+            // Replace this block in MainWindow.xaml.cs
+
+            _overlay.MouseDown += (s, args) =>
+            {
+                // may to check which mouse button was pressed, e.g. left click
+                if (args.LeftButton == MouseButtonState.Pressed)
+                {
+                    // must pass a window handle to UpdateHighlightRectangle(IntPtr)
+                    // If have a target window handle, use it here. For demonstration, let's assume you have a variable 'targetWindowHandle' (IntPtr)
+                    // If not, you need to obtain the handle of the window under the mouse cursor.
+
+                    // Example: Use _targetWindowHandle if available
+                    IntPtr windowHandle = _targetWindowHandle;
+
+                    // If you need to get the handle under the mouse, you must implement that logic.
+                    // For now, this will fix the CS7036 error by passing a valid IntPtr.
+
+                    _overlay.UpdateHighlightRectangle(windowHandle); // Pass the required argument
+
+                    OnWindowClicked(_overlay, windowHandle);
+                }
+            };
+
+            _overlay.Show();
+        }
+
+        private void OnWindowClicked(object sender, IntPtr handle)
+        {
+            _overlay?.Close();
+            WindowSelected?.Invoke(this, handle);
+        }
 
         /// <summary>
         /// Inicializuje window click selector
@@ -2179,7 +2277,7 @@ namespace AppCommander.W7_11.WPF
 
                 // Aktualizuje enabled stav recording tlačidiel
                 AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
-                AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
+                //AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
                 AppCommander_BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
 
                 // Aktualizuje stavový riadok
@@ -2216,7 +2314,7 @@ namespace AppCommander.W7_11.WPF
             {
                 var dialog = new SaveFileDialog
                 {
-                    Filter = "AppCommander Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Filter = "Ophies Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     DefaultExt = ".acc",
                     FileName = string.Format("Sequence_{0:yyyyMMdd_HHmmss}.acc", DateTime.Now)
                 };
@@ -2961,7 +3059,7 @@ namespace AppCommander.W7_11.WPF
                 var dialog = new OpenFileDialog
                 {
                     InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    Filter = "AppCommander Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Filter = "Ophies Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     Title = "Select Sequence File to Add",
                     Multiselect = false
                 };
@@ -5470,8 +5568,8 @@ namespace AppCommander.W7_11.WPF
                     AppCommander_MainCommandTable.IsEnabled = enabled;
 
                 // Selection buttons
-                if (AppCommander_AppCommander_BtnSelectTargetByClick != null)
-                    AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = enabled;
+                //if (AppCommander_AppCommander_BtnSelectTargetByClick != null)
+                //    AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = enabled;
 
                 if (AppCommander_BtnSelectTarget != null)
                     AppCommander_BtnSelectTarget.IsEnabled = enabled;

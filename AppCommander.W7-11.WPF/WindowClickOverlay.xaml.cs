@@ -16,7 +16,7 @@ namespace AppCommander.W7_11.WPF
         private static extern bool GetCursorPos(out POINT lpPoint);
 
         [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+        internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
@@ -107,7 +107,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void UpdateCrosshairPosition(Point position)
+        internal void UpdateCrosshairPosition(Point position)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void UpdateHighlightRectangle(IntPtr windowHandle)
+        internal void UpdateHighlightRectangle(IntPtr windowHandle)
         {
             try
             {
