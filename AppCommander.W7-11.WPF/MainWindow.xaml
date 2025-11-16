@@ -116,7 +116,7 @@
                         Click="PlaySequence_Click" Margin="0,0,4,0"/>
 
                     <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,8,0" AutomationProperties.Name="Repeat" 
+                        <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,9,0" AutomationProperties.Name="Repeat" 
                             FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                         <TextBox x:Name="AppCommander_TxtRepeatCount" 
          Text="1" 
@@ -125,7 +125,7 @@
          Style="{DynamicResource TextBoxStyle}"     
          Width="50"  
          TextAlignment="Center" 
-         Margin="10,0,8,18"
+         Margin="10,0,15,18"
          PreviewMouseWheel="AppCommander_TxtRepeatCount_PreviewMouseWheel"
          PreviewKeyDown="AppCommander_TxtRepeatCount_PreviewKeyDown"
          PreviewTextInput="AppCommander_TxtRepeatCount_PreviewTextInput"
@@ -136,7 +136,7 @@
                         
                     </StackPanel>
 
-                    <CheckBox x:Name="AppCommander_ChkInfiniteLoop" Content="∞" VerticalAlignment="Center" 
+                    <CheckBox x:Name="AppCommander_ChkInfiniteLoop" Content="endless" VerticalAlignment="Center" 
                             FontStretch="UltraExpanded"  FontWeight="ExtraBold"
                             AutomationProperties.Name="Infinite Loop" AutomationProperties.HelpText="Infinite Loop"
                             Checked="InfiniteLoop_Checked" Unchecked="InfiniteLoop_Unchecked" Margin="0,0,16,-3"/>

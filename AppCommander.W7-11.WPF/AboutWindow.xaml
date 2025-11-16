@@ -33,14 +33,20 @@
                        RenderOptions.BitmapScalingMode="HighQuality"
                        Stretch="Uniform"/>
 
-                <!--<TextBlock Text="Ophies" 
-                           FontSize="28" 
+                <TextBlock Text="Work easier and have more time for what's important." 
                            FontWeight="Bold"
                            Foreground="{DynamicResource PrimaryTextBrush}"
                            HorizontalAlignment="Center"
-                           Margin="0,0,0,5"/>-->
+                           Margin="0,10,0,0"/>
 
-                <TextBlock Text="WPF Edition - Version 1.0" 
+                <TextBlock Text="...as if by magic." 
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,5"/>
+
+                <TextBlock x:Name="TxtVersion"
+                           Text="WPF Edition - Version 1.0" 
                            FontSize="14" Margin="0,8,0,0"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            HorizontalAlignment="Center"/>
@@ -241,6 +247,7 @@
 
                 <Button Content="Close" 
                         Width="160" 
+                        Padding="10,5"
                         HorizontalAlignment="Right"
                         Click="CloseButton_Click"
                         Style="{DynamicResource DangerButton}"/>

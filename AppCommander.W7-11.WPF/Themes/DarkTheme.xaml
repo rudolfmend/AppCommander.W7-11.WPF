@@ -291,7 +291,7 @@
                              Duration="0:0:0.3"/>
                                     <ColorAnimation Storyboard.TargetName="border"
                             Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                            To="#4A86BA"
+                            To="#a82020"
                             Duration="0:0:0.3"/>
                                 </Storyboard>
                             </BeginStoryboard>
@@ -310,14 +310,14 @@
                              Duration="0:0:0.3"/>
                                     <ColorAnimation Storyboard.TargetName="border"
                             Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                            To="#569CD6"
+                            To="#F14C4C"
                             Duration="0:0:0.3"/>
                                 </Storyboard>
-                            </BeginStoryboard>
+                            </BeginStoryboard> 
                         </EventTrigger>
                         
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#CC2E33"/>
+                            <Setter TargetName="border" Property="Background" Value="#db2a2a"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
 

@@ -243,6 +243,7 @@ namespace AppCommander.W7_11.WPF
 
                 SubscribeToEvents();
                 UpdateUI();
+                UpdateRecordingButton();
                 UpdateUnsavedCommandsWarning();
                 UpdateStatus("Application initialized - Ready to start");
 
@@ -637,7 +638,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 // Ak už nahrávame, zastav nahrávanie
-                if (_recorder.IsRecording)
+                if (_recorder != null && _recorder.IsRecording)
                 {
                     StopCurrentRecording();
                     return;
@@ -1168,9 +1169,9 @@ namespace AppCommander.W7_11.WPF
                 if (AppCommander_BtnSelectTarget != null)
                     AppCommander_BtnSelectTarget.IsEnabled = !isRecording;
 
-                // Recording button state
+                // Recording button state - vždy aktívne (umožní výber okna)
                 if (AppCommander_BtnRecording != null)
-                    AppCommander_BtnRecording.IsEnabled = hasTargetWindow || isRecording;
+                    AppCommander_BtnRecording.IsEnabled = true;
 
                 // Playback buttons
                 if (AppCommander_BtnPlayCommands != null)
@@ -2283,7 +2284,7 @@ namespace AppCommander.W7_11.WPF
                 // Aktualizuje stavový riadok
                 if (_recorder?.IsRecording ?? false)
                 {
-                    UpdateStatus("Recording in progress..."); 
+                    UpdateStatus("Recording in progress...");
                     UpdateUnsavedCommandsWarning();
 
                 }
@@ -3425,7 +3426,7 @@ namespace AppCommander.W7_11.WPF
 
                     _hasUnsavedUnifiedChanges = true;
                     AppCommander_MainCommandTable.Items.Refresh();
-                    
+
                     string.Format("Command '{0}' updated", item.Name);
                 }
             }
@@ -5174,7 +5175,7 @@ namespace AppCommander.W7_11.WPF
                     // Apply theme
                     SetAppTheme(theme);
                     UpdateStatus($"{menuItem.Header} selected");
-                    DebugCurrentTheme(); 
+                    DebugCurrentTheme();
                 }
             }
             catch (Exception ex)
@@ -6074,7 +6075,7 @@ namespace AppCommander.W7_11.WPF
                     // ═══════════════════════════════════════════════════════════
                     //  USE CASE: Edituj VŠETKY príkazy v AppCommander_MainCommandTable   
 
-                    if (_unifiedItems == null || _unifiedItems.Count == 0) 
+                    if (_unifiedItems == null || _unifiedItems.Count == 0)
                     {
                         MessageBox.Show(
                             "No commands to edit. Please record or load some commands first.",

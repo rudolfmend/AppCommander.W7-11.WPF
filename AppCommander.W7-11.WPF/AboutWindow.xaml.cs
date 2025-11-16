@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using System.Reflection;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -18,6 +19,21 @@ namespace AppCommander.W7_11.WPF
         {
             InitializeComponent();
             LoadSystemInformation();
+            LoadVersionInfo();
+        }
+
+        private void LoadVersionInfo()
+        {
+            try
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                TxtVersion.Text = $"WPF Edition - Version {version.Major}.{version.Minor}.{version.Build}";
+            }
+            catch (Exception ex)
+            {
+                TxtVersion.Text = "WPF Edition - Version 1.0";
+                System.Diagnostics.Debug.WriteLine($"Error loading version: {ex.Message}");
+            }
         }
 
         private void LoadSystemInformation()
