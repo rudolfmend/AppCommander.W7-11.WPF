@@ -23,11 +23,6 @@ using System.Windows.Threading;
 
 public class SequenceSetItem : INotifyPropertyChanged
 {
-    private ObservableCollection<UnifiedItem> _unifiedItems;
-    private UnifiedSequence _currentUnifiedSequence;
-    private string _currentUnifiedSequenceFilePath;
-    private bool _hasUnsavedUnifiedChanges;
-
     private int _stepNumber;
     private string _sequenceName;
     private int _repeatCount;
@@ -6232,7 +6227,7 @@ namespace AppCommander.W7_11.WPF
                     if (commandEditor.ShowDialog() == true && commandEditor.WasSaved)
                     {
                         // Aktualizuj item v tabuľke s editovanými údajmi
-                        commandEditor.UpdateUnifiedItem(selectedItem);
+                        //commandEditor.UpdateUnifiedItem(selectedItem);
 
                         _hasUnsavedUnifiedChanges = true;
                         UpdateUI();

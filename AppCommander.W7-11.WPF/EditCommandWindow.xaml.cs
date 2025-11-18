@@ -18,7 +18,7 @@ namespace AppCommander.W7_11.WPF
             WasSaved = false;
         }
 
-        // NOVÝ konštruktor - prijíma UnifiedItem
+        // konštruktor - prijíma UnifiedItem
         public EditCommandWindow(UnifiedItem item) : this()
         {
             if (item == null)
@@ -29,6 +29,12 @@ namespace AppCommander.W7_11.WPF
         }
 
         public bool WasSaved { get; internal set; }
+
+        // property to expose the edited item
+        public UnifiedItem EditedItem
+        {
+            get { return _editedItem; }
+        }
 
         /// <summary>
         /// Načíta dáta z UnifiedItem do formulára
@@ -96,34 +102,34 @@ namespace AppCommander.W7_11.WPF
         /// <summary>
         /// Aktualizuje UnifiedItem s editovanými údajmi
         /// </summary>
-        public void UpdateUnifiedItem(UnifiedItem item)
-        {
-            if (item == null || !WasSaved)
-                return;
+        //public void UpdateUnifiedItem(UnifiedItem item)
+        //{
+        //    if (item == null || !WasSaved)
+        //        return;
 
-            try
-            {
-                // Aktualizuj iba editovateľné polia
-                item.Name = AppCommander_TxtName.Text;
-                item.Value = AppCommander_TxtValue.Text;
+        //    try
+        //    {
+        //        // Aktualizuj iba editovateľné polia
+        //        item.Name = AppCommander_TxtName.Text;
+        //        item.Value = AppCommander_TxtValue.Text;
 
-                // Ak existuje pole pre RepeatCount a je editovateľné
-                if (AppCommander_TxtRepeatCount != null && int.TryParse(AppCommander_TxtRepeatCount.Text, out int repeatCount))
-                {
-                    item.RepeatCount = repeatCount;
-                }
+        //        // Ak existuje pole pre RepeatCount a je editovateľné
+        //        if (AppCommander_TxtRepeatCount != null && int.TryParse(AppCommander_TxtRepeatCount.Text, out int repeatCount))
+        //        {
+        //            item.RepeatCount = repeatCount;
+        //        }
 
-                item.Timestamp = DateTime.Now; // Aktualizuj timestamp
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Error updating item: {ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
-        }
+        //        item.Timestamp = DateTime.Now; // Aktualizuj timestamp
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show(
+        //            $"Error updating item: {ex.Message}",
+        //            "Error",
+        //            MessageBoxButton.OK,
+        //            MessageBoxImage.Error);
+        //    }
+        //}
 
         private void AppCommander_ButtonSaveCommands_Click(object sender, RoutedEventArgs e)
         {
@@ -139,6 +145,18 @@ namespace AppCommander.W7_11.WPF
                         MessageBoxImage.Warning);
                     return;
                 }
+
+                // Aktualizuj _editedItem s novými hodnotami
+                _editedItem.Name = AppCommander_TxtName.Text;
+                _editedItem.Value = AppCommander_TxtValue.Text;
+
+                // Ak existuje pole pre RepeatCount a je editovateľné
+                if (AppCommander_TxtRepeatCount != null && int.TryParse(AppCommander_TxtRepeatCount.Text, out int repeatCount))
+                {
+                    _editedItem.RepeatCount = repeatCount;
+                }
+
+                _editedItem.Timestamp = DateTime.Now;
 
                 // Označíme že boli zmeny uložené
                 WasSaved = true;

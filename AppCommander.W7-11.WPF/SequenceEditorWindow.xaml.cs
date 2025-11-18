@@ -1,10 +1,11 @@
-﻿using System;
+﻿using AppCommander.W7_11.WPF.Core;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using AppCommander.W7_11.WPF.Core;
+using System.Windows.Input;
 
 namespace AppCommander.W7_11.WPF
 {
@@ -19,6 +20,7 @@ namespace AppCommander.W7_11.WPF
         private string _sequenceName;
         private string _originalFilePath; // Cesta k súboru sekvencie
         private bool _isEditingSequenceFile; // Flag či editujeme súbor alebo len items
+        private UnifiedItem _editedItem;
 
         // Prázdny konštruktor (pre XAML designer)
         public SequenceEditorWindow()
@@ -27,6 +29,16 @@ namespace AppCommander.W7_11.WPF
             WasSaved = false;
             EditedItems = new List<UnifiedItem>();
             _isEditingSequenceFile = false;
+            this.PreviewKeyDown += SequenceEditorWindow_PreviewKeyDown;  // handler pre klávesové skratky - ESC na zatvorenie okna
+        }
+
+        private void SequenceEditorWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                this.Close();
+                e.Handled = true;
+            }
         }
 
         // Konštruktor s parametrami (používa MainWindow)
@@ -34,7 +46,7 @@ namespace AppCommander.W7_11.WPF
         {
             _sequenceName = sequenceName ?? "Untitled Sequence";
 
-            // NOVÁ LOGIKA: Skontroluj či items obsahujú SequenceReference
+            // kontrola či items obsahujú SequenceReference
             var itemsList = items.ToList();
             _items = new ObservableCollection<UnifiedItem>();
 
@@ -298,22 +310,22 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-        private void EditSelectedCommand(UnifiedItem item)
-        {
-            // TODO: Implementovať advanced edit dialog
-            // Zatiaľ len zobraz info
-            var message = $"Edit command: {item.Name}\n\n" +
-                         $"Type: {item.TypeDisplay}\n" +
-                         $"Action: {item.Action}\n" +
-                         $"Value: {item.Value}\n" +
-                         $"Repeat: {item.RepeatCount}x";
+        //private void EditSelectedCommand(UnifiedItem item)
+        //{
+        //    // TODO: Implementovať advanced edit dialog
+        //    // Zatiaľ len zobraz info
+        //    var message = $"Edit command: {item.Name}\n\n" +
+        //                 $"Type: {item.TypeDisplay}\n" +
+        //                 $"Action: {item.Action}\n" +
+        //                 $"Value: {item.Value}\n" +
+        //                 $"Repeat: {item.RepeatCount}x";
 
-            MessageBox.Show(
-                message,
-                "Command Details",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
+        //    MessageBox.Show(
+        //        message,
+        //        "Command Details",
+        //        MessageBoxButton.OK,
+        //        MessageBoxImage.Information);
+        //}
 
         #region Toolbar Commands
 
@@ -576,6 +588,50 @@ namespace AppCommander.W7_11.WPF
         #endregion
 
         #region Helper Methods
+
+        /// <summary>
+        /// Edituje vybranú položku - otvorí EditCommandWindow
+        /// </summary>
+        private void EditSelectedCommand(UnifiedItem selectedItem)
+        {
+            try
+            {
+                // Vytvor kópiu pre editáciu
+                var itemToEdit = CloneUnifiedItem(selectedItem);
+
+                // Otvor EditCommandWindow
+                var editWindow = new EditCommandWindow(itemToEdit);
+                bool? result = editWindow.ShowDialog();
+
+                if (result == true && editWindow.EditedItem != null)
+                {
+                    // Nájdi index pôvodnej položky
+                    int index = _items.IndexOf(selectedItem);
+
+                    if (index >= 0)
+                    {
+                        // Zachovaj StepNumber
+                        editWindow.EditedItem.StepNumber = selectedItem.StepNumber;
+
+                        // Nahraď položku
+                        _items[index] = editWindow.EditedItem;
+
+                        // Refresh UI
+                        CommandTable.Items.Refresh();
+
+                        UpdateStatus($"Edited: {editWindow.EditedItem.Name}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error editing command: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
 
         /// <summary>
         /// Prepočíta StepNumber pre všetky položky v poradí
