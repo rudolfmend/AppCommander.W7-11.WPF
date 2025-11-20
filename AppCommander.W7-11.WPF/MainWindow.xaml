@@ -89,8 +89,6 @@
 
                 </StackPanel>
 
-                <Separator Margin="0,0,24,0" Style="{x:Null}" Background="#E1E1E1" Width="1"/>
-
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                     <Button x:Name="AppCommander_BtnRecording" Content="Click to Select" 
@@ -104,11 +102,9 @@
                         Style="{DynamicResource DangerButton}" />
                 </StackPanel>
 
-                <Separator Margin="0,0,24,0" Style="{x:Null}" Background="#E1E1E1" Width="1"/>
-
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="AppCommander_BtnPlayCommands" Content="      ▶    Play        " 
+                    <Button x:Name="AppCommander_BtnPlayCommands" Content="   ▶    Play    " 
                         Style="{DynamicResource PrimaryButton}" 
                         AutomationProperties.Name="Play commands" 
                         AutomationProperties.HelpText="Play commands"
@@ -126,6 +122,7 @@
          Width="50"  
          TextAlignment="Center" 
          Margin="10,0,15,18"
+         KeyDown="AppCommander_TxtRepeatCount_KeyDown"
          PreviewMouseWheel="AppCommander_TxtRepeatCount_PreviewMouseWheel"
          PreviewKeyDown="AppCommander_TxtRepeatCount_PreviewKeyDown"
          PreviewTextInput="AppCommander_TxtRepeatCount_PreviewTextInput"

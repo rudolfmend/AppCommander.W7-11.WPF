@@ -22,7 +22,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 public class SequenceSetItem : INotifyPropertyChanged
-{
+{ 
     private int _stepNumber;
     private string _sequenceName;
     private int _repeatCount;
@@ -3798,6 +3798,15 @@ namespace AppCommander.W7_11.WPF
             finally
             {
                 _isUpdatingRepeatCount = false;
+            }
+        }
+
+        private void AppCommander_TxtRepeatCount_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                AppCommander_BtnPlayCommands.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
         }
 
