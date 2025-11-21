@@ -775,6 +775,9 @@ namespace AppCommander.W7_11.WPF
                 if (_recorder.IsRecording)
                 {
                     AppCommander_BtnRecording.Content = "⏹ Stop Recording";
+                    // Použiť default style bez zmeny (alebo nastaviť Background priamo)
+                    AppCommander_BtnRecording.ClearValue(Button.StyleProperty);
+                    AppCommander_BtnRecording.Background = (SolidColorBrush)FindResource("SuccessGreen");
                     AppCommander_BtnRecording.Style = (Style)FindResource("SuccessButton");
                 }
                 else
@@ -787,7 +790,8 @@ namespace AppCommander.W7_11.WPF
                     {
                         AppCommander_BtnRecording.Content = "🔴 Start Recording";
                     }
-                    AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
+                    AppCommander_BtnRecording.ClearValue(Button.StyleProperty);
+                    AppCommander_BtnRecording.Background = (SolidColorBrush)FindResource("DangerRed");
                 }
             }
             catch (Exception ex)
@@ -2127,8 +2131,9 @@ namespace AppCommander.W7_11.WPF
             {
                 var dialog = new OpenFileDialog
                 {
-                    Filter = "All Supported Files|*.acc;*.json|" +
+                    Filter = "All Supported Files|*.acc;*.json;*.uniseq|" +
                             "Ophies Files - Automation Commands Collection (*.acc)|*.acc|" +
+                            "Unified Sequence Files (*.uniseq)|*.uniseq|" +
                             "JSON Files (*.json)|*.json|" +
                             "All Files (*.*)|*.*",
                     DefaultExt = ".acc"
@@ -2137,15 +2142,53 @@ namespace AppCommander.W7_11.WPF
                 if (dialog.ShowDialog() == true)
                 {
                     var extension = Path.GetExtension(dialog.FileName).ToLower();
+                    var filePath = dialog.FileName;
 
                     if (extension == ".uniseq")
                     {
-                        LoadUnifiedSequenceFromFile(dialog.FileName);
+                        // Načítaj celú unified sequence
+                        LoadUnifiedSequenceFromFile(filePath);
+                    }
+                    else if (extension == ".acc" || extension == ".json")
+                    {
+                        // Pridaj .acc/.json súbor ako SequenceReference do unified tabuľky
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+
+                        // Validácia obsahu súboru
+                        if (!ValidateSequenceFile(filePath))
+                        {
+                            MessageBox.Show($"File '{fileName}' is not a valid sequence file.",
+                                           "Invalid File",
+                                           MessageBoxButton.OK,
+                                           MessageBoxImage.Error);
+                            return;
+                        }
+
+                        // Skontroluj duplicitu
+                        if (_unifiedItems.Any(item =>
+                            item.Type == UnifiedItem.ItemType.SequenceReference &&
+                            item.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            MessageBox.Show($"Sequence '{fileName}' is already in the list.",
+                                           "Duplicate Sequence",
+                                           MessageBoxButton.OK,
+                                           MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        // Vytvor UnifiedItem ako SequenceReference
+                        var unifiedItem = UnifiedItem.FromSequenceFile(filePath, _unifiedItems.Count + 1);
+                        _unifiedItems.Add(unifiedItem);
+
+                        _hasUnsavedUnifiedChanges = true;
+                        RecalculateStepNumbers();
+
+                        UpdateStatus($"Sequence '{fileName}' added to list");
+                        Debug.WriteLine($"Added sequence: {fileName} from {filePath}");
                     }
                     else
                     {
-                        // Load as traditional sequence
-                        LoadSequenceFromFile(dialog.FileName);
+                        MessageBox.Show("Unsupported file format.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }

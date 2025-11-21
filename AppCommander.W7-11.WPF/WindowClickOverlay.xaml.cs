@@ -206,6 +206,13 @@ namespace AppCommander.W7_11.WPF
         {
             try
             {
+                // Kontrola či je element pripojený k PresentationSource
+                if (PresentationSource.FromVisual(highlightRectangle) == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Highlight rectangle not connected to PresentationSource, skipping animation");
+                    return;
+                }
+
                 // Jednoduchá pulsing animácia
                 var animation = new System.Windows.Media.Animation.DoubleAnimation
                 {

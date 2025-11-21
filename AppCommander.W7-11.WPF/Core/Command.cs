@@ -718,56 +718,89 @@ namespace AppCommander.W7_11.WPF.Core
         /// <summary>
         /// Loads command sequence from file
         /// </summary>
+        /// <summary>
+        /// Loads command sequence from file
+        /// </summary>
         public static CommandSequence LoadFromFile(string filePath)
         {
             if (!System.IO.File.Exists(filePath))
                 return null;
 
-            var sequence = new CommandSequence();
-            sequence.Name = System.IO.Path.GetFileNameWithoutExtension(filePath);
-
-            var lines = System.IO.File.ReadAllLines(filePath);
-
-            foreach (var line in lines)
+            try
             {
-                // Skip comments and empty lines
-                if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line))
-                {
-                    // Try to extract metadata from comments
-                    if (line.StartsWith("# Name:"))
-                        sequence.Name = line.Substring(7).Trim();
-                    else if (line.StartsWith("# Description:"))
-                        sequence.Description = line.Substring(14).Trim();
-                    else if (line.StartsWith("# Target Application:"))
-                        sequence.TargetApplication = line.Substring(21).Trim();
-                    else if (line.StartsWith("# Target Process:"))
-                        sequence.TargetProcessName = line.Substring(17).Trim();
-                    else if (line.StartsWith("# Target Window Title:"))
-                        sequence.TargetWindowTitle = line.Substring(22).Trim();
-                    else if (line.StartsWith("# Target Window Class:"))
-                        sequence.TargetWindowClass = line.Substring(22).Trim();
-                    else if (line.StartsWith("# Auto Find Target:"))
-                    {
-                        if (bool.TryParse(line.Substring(19).Trim(), out bool autoFind))
-                            sequence.AutoFindTarget = autoFind;
-                    }
-                    else if (line.StartsWith("# Max Wait Time:"))
-                    {
-                        if (int.TryParse(line.Substring(16).Trim(), out int maxWait))
-                            sequence.MaxWaitTimeSeconds = maxWait;
-                    }
+                // Prečítaj celý obsah súboru
+                string content = System.IO.File.ReadAllText(filePath);
 
-                    continue;
+                // Skús najprv JSON formát
+                if (content.TrimStart().StartsWith("{") || content.TrimStart().StartsWith("["))
+                {
+                    try
+                    {
+                        var loadedSequence = Newtonsoft.Json.JsonConvert.DeserializeObject<CommandSequence>(content);
+                        if (loadedSequence != null && loadedSequence.Commands != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ Loaded JSON sequence with {loadedSequence.Commands.Count} commands");
+                            return loadedSequence;
+                        }
+                    }
+                    catch (Exception jsonEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ JSON parsing failed: {jsonEx.Message}, trying text format...");
+                    }
                 }
 
-                var command = Command.FromFileFormat(line);
-                if (command != null)
+                // Fallback na textový formát
+                var sequence = new CommandSequence();
+                sequence.Name = System.IO.Path.GetFileNameWithoutExtension(filePath);
+
+                var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+                foreach (var line in lines)
                 {
-                    sequence.Commands.Add(command);
+                    // Skip comments and empty lines
+                    if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line))
+                    {
+                        // Try to extract metadata from comments
+                        if (line.StartsWith("# Name:"))
+                            sequence.Name = line.Substring(7).Trim();
+                        else if (line.StartsWith("# Description:"))
+                            sequence.Description = line.Substring(14).Trim();
+                        else if (line.StartsWith("# Target Application:"))
+                            sequence.TargetApplication = line.Substring(21).Trim();
+                        else if (line.StartsWith("# Target Process:"))
+                            sequence.TargetProcessName = line.Substring(17).Trim();
+                        else if (line.StartsWith("# Target Window Title:"))
+                            sequence.TargetWindowTitle = line.Substring(22).Trim();
+                        else if (line.StartsWith("# Target Window Class:"))
+                            sequence.TargetWindowClass = line.Substring(22).Trim();
+                        else if (line.StartsWith("# Auto Find Target:"))
+                        {
+                            if (bool.TryParse(line.Substring(19).Trim(), out bool autoFind))
+                                sequence.AutoFindTarget = autoFind;
+                        }
+                        else if (line.StartsWith("# Max Wait Time:"))
+                        {
+                            if (int.TryParse(line.Substring(16).Trim(), out int maxWait))
+                                sequence.MaxWaitTimeSeconds = maxWait;
+                        }
+                        continue;
+                    }
+
+                    var command = Command.FromFileFormat(line);
+                    if (command != null)
+                    {
+                        sequence.Commands.Add(command);
+                    }
                 }
+
+                System.Diagnostics.Debug.WriteLine($"✅ Loaded text format sequence with {sequence.Commands.Count} commands");
+                return sequence;
             }
-
-            return sequence;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error loading sequence from {filePath}: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>

@@ -441,7 +441,11 @@ namespace AppCommander.W7_11.WPF
                 // Vytvoriť kópiu
                 var duplicate = CloneUnifiedItem(selectedItem);
                 duplicate.StepNumber = _items.Count + 1;
-                duplicate.Name = selectedItem.Name + " (copy)";
+
+                //duplicate.Name = selectedItem.Name + " (copy)"; //  Problém 1: Prázdne názvy pri duplikovaní - Príčina: selectedItem.Name je prázdny už pri načítaní
+                //Dočasné riešenie
+                duplicate.Name = (string.IsNullOrEmpty(selectedItem.Name) ? "Command" : selectedItem.Name) + " (copy)";
+
                 duplicate.Status = "Ready";
                 duplicate.Timestamp = DateTime.Now;
 

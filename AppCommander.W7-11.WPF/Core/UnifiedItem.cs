@@ -235,10 +235,41 @@ namespace AppCommander.W7_11.WPF.Core
         {
             var itemType = GetItemTypeFromCommand(command.Type);
 
+            // Inteligentný fallback pre Name
+            string name;
+            if (!string.IsNullOrWhiteSpace(command.ElementName))
+            {
+                name = command.ElementName;
+            }
+            else if (!string.IsNullOrWhiteSpace(command.ElementText))
+            {
+                name = command.ElementText;
+            }
+            else if (!string.IsNullOrWhiteSpace(command.ElementId))
+            {
+                name = command.ElementId;
+            }
+            else if (!string.IsNullOrWhiteSpace(command.ElementClass))
+            {
+                name = command.ElementClass;
+            }
+            else if (command.Type == CommandType.KeyPress)
+            {
+                name = $"Key: {command.Value}";
+            }
+            else if (command.ElementX > 0 || command.ElementY > 0)
+            {
+                name = $"{command.Type} at ({command.ElementX}, {command.ElementY})";
+            }
+            else
+            {
+                name = command.Type.ToString();
+            }
+
             return new UnifiedItem(itemType)
             {
                 StepNumber = stepNumber,
-                Name = command.ElementName ?? "Unknown Element",
+                Name = name,
                 Action = command.Type.ToString(),
                 Value = command.Value ?? "",
                 RepeatCount = command.RepeatCount > 0 ? command.RepeatCount : 1,
@@ -647,8 +678,9 @@ namespace AppCommander.W7_11.WPF.Core
                         // Načítaj a rozbal príkazy zo súboru sekvencie
                         if (!string.IsNullOrEmpty(item.FilePath) && System.IO.File.Exists(item.FilePath))
                         {
-                            var json = System.IO.File.ReadAllText(item.FilePath);
-                            var loadedSequence = Newtonsoft.Json.JsonConvert.DeserializeObject<CommandSequence>(json);
+                            //var json = System.IO.File.ReadAllText(item.FilePath);
+                            //var loadedSequence = Newtonsoft.Json.JsonConvert.DeserializeObject<CommandSequence>(json);
+                            var loadedSequence = CommandSequence.LoadFromFile(item.FilePath);
 
                             if (loadedSequence != null && loadedSequence.Commands != null)
                             {
