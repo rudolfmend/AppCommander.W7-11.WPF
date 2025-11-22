@@ -22,7 +22,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 public class SequenceSetItem : INotifyPropertyChanged
-{ 
+{
     private int _stepNumber;
     private string _sequenceName;
     private int _repeatCount;
@@ -591,7 +591,7 @@ namespace AppCommander.W7_11.WPF
                 System.Diagnostics.Debug.WriteLine("📍 Calling _recorder.StartRecording()...");
 
                 // ════════════════════════════════════════
-                // ⚠️ KRITICKÉ: TU SA MÁ ZAVOLAŤ StartRecording()!
+                // ⚠️ TU SA MÁ ZAVOLAŤ StartRecording()
                 // ════════════════════════════════════════
 
                 _recorder.StartRecording($"Recording_{DateTime.Now:yyyyMMdd_HHmmss}", _targetWindowHandle);
@@ -1174,7 +1174,7 @@ namespace AppCommander.W7_11.WPF
 
                 // Playback buttons
                 if (AppCommander_BtnPlayCommands != null)
-                    AppCommander_BtnPlayCommands.IsEnabled = _commands.Any() && !isRecording && !isPlaying;
+                    AppCommander_BtnPlayCommands.IsEnabled = (_commands.Any() || _unifiedItems.Count > 0) && !isRecording && !isPlaying;
 
                 if (AppCommander_BtnPause != null)
                     AppCommander_BtnPause.IsEnabled = isPlaying;
@@ -6393,3 +6393,4 @@ namespace AppCommander.W7_11.WPF
 
     #endregion
 }
+ 
