@@ -147,6 +147,7 @@
                       GridLinesVisibility="Horizontal"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                       Background="{DynamicResource CardBackgroundBrush}"
+                      Foreground="{DynamicResource PrimaryTextBrush}"
                       RowBackground="{DynamicResource CardBackgroundBrush}"
                       AlternatingRowBackground="{DynamicResource PanelBackgroundBrush}"
                       MouseDoubleClick="CommandTable_MouseDoubleClick">
