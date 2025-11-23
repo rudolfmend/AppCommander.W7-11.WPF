@@ -559,11 +559,11 @@ namespace AppCommander.W7_11.WPF
                 string targetProcess = GetProcessNameFromWindow(_targetWindowHandle);
                 System.Diagnostics.Debug.WriteLine($"📍 Target process: {targetProcess}");
 
-                if (targetProcess.Equals("Ophies", StringComparison.OrdinalIgnoreCase))
+                if (targetProcess.Equals("Sercull", StringComparison.OrdinalIgnoreCase))
                 {
-                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - target is Ophies itself");
+                    System.Diagnostics.Debug.WriteLine("❌ Cannot start - target is Sercull itself");
                     MessageBox.Show(
-                        "You cannot record actions on Ophies itself.\n" +
+                        "You cannot record actions on Sercull itself.\n" +
                         "Please select a different target application.",
                         "Invalid Target",
                         MessageBoxButton.OK,
@@ -599,8 +599,9 @@ namespace AppCommander.W7_11.WPF
                 System.Diagnostics.Debug.WriteLine($"📍 After StartRecording: _recorder.IsRecording = {_recorder.IsRecording}");
 
                 // Aktualizuj UI
+
                 AppCommander_BtnRecording.Content = "⏹ Stop Recording";
-                AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
+                // AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton"); // ← prepisuje dynamic resource XAML theme
 
                 UpdateStatusLabels(true);
 
@@ -691,7 +692,7 @@ namespace AppCommander.W7_11.WPF
                     if (selectedWindow.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
                     {
                         MessageBox.Show(
-                            "Cannot record actions on Ophies itself.\n" +
+                            "Cannot record actions on Sercull itself.\n" +
                             "Please select a different application.",
                             "Invalid Target",
                             MessageBoxButton.OK,
@@ -775,10 +776,6 @@ namespace AppCommander.W7_11.WPF
                 if (_recorder.IsRecording)
                 {
                     AppCommander_BtnRecording.Content = "⏹ Stop Recording";
-                    // Použiť default style bez zmeny (alebo nastaviť Background priamo)
-                    AppCommander_BtnRecording.ClearValue(Button.StyleProperty);
-                    AppCommander_BtnRecording.Background = (SolidColorBrush)FindResource("SuccessGreen");
-                    AppCommander_BtnRecording.Style = (Style)FindResource("SuccessButton");
                 }
                 else
                 {
@@ -790,9 +787,8 @@ namespace AppCommander.W7_11.WPF
                     {
                         AppCommander_BtnRecording.Content = "🔴 Start Recording";
                     }
-                    AppCommander_BtnRecording.ClearValue(Button.StyleProperty);
-                    AppCommander_BtnRecording.Background = (SolidColorBrush)FindResource("DangerRed");
                 }
+                // Style zostane DangerButton z XAML - netreba meniť
             }
             catch (Exception ex)
             {
@@ -981,17 +977,15 @@ namespace AppCommander.W7_11.WPF
                 _windowTracker.StopTracking();
                 _automaticUIManager.StopMonitoring();
 
-                AppCommander_BtnRecording.Content = "🔴 Start Recording";
-                AppCommander_BtnRecording.Style = (Style)FindResource("DangerButton");
+                // Aktualizácia button cez existujúcu metódu
+                UpdateRecordingButton();
 
                 UpdateStatusLabels(false);
-
                 AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
                 AppCommander_ProgressEnhancedRecording.IsIndeterminate = false;
-
                 UpdateStatus("Recording stopped");
 
-                // ✅  LOGIKA: Automaticky ulož príkazy po ukončení nahrávania
+                // Automaticky uloží príkazy po ukončení nahrávania
                 if (_commands != null && _commands.Count > 0)
                 {
                     // Opýtaj sa používateľa, či chce uložiť príkazy
@@ -2132,7 +2126,7 @@ namespace AppCommander.W7_11.WPF
                 var dialog = new OpenFileDialog
                 {
                     Filter = "All Supported Files|*.acc;*.json;*.uniseq|" +
-                            "Ophies Files - Automation Commands Collection (*.acc)|*.acc|" +
+                            "Sercull Files - Automation Commands Collection (*.acc)|*.acc|" +
                             "Unified Sequence Files (*.uniseq)|*.uniseq|" +
                             "JSON Files (*.json)|*.json|" +
                             "All Files (*.*)|*.*",
@@ -2353,7 +2347,7 @@ namespace AppCommander.W7_11.WPF
             {
                 var dialog = new SaveFileDialog
                 {
-                    Filter = "Ophies Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Filter = "Sercull Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     DefaultExt = ".acc",
                     FileName = string.Format("Sequence_{0:yyyyMMdd_HHmmss}.acc", DateTime.Now)
                 };
@@ -3109,7 +3103,7 @@ namespace AppCommander.W7_11.WPF
                 var dialog = new OpenFileDialog
                 {
                     InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    Filter = "Ophies Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    Filter = "Sercull Files (*.acc)|*.acc|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
                     Title = "Select Sequence File to Add",
                     Multiselect = false
                 };
@@ -3655,7 +3649,7 @@ namespace AppCommander.W7_11.WPF
             try
             {
                 string currentSettings = string.Format(
-                    "Ophies Settings\n\n" +
+                    "Sercull Settings\n\n" +
                     "Recording Configuration:\n" +
                     "• Default delay: {0}ms\n" +
                     "• Auto-tracking: {1}\n" +

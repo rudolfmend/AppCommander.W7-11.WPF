@@ -5,9 +5,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
     mc:Ignorable="av" 
     x:Class="AppCommander.W7_11.WPF.MainWindow"
-    Title="Ophies" 
+    Title="Sercull" 
     MinHeight="500" MinWidth="400"
-    Icon="/Ophies_mild.ico"
+    Icon="/Pictures/Sercull-logo-bright-star.ico"
     WindowStartupLocation="CenterScreen" 
     FontSize="14" 
     FontFamily="Segoe UI"
@@ -91,7 +91,8 @@
 
                 <!-- Recording Controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                    <Button x:Name="AppCommander_BtnRecording" Content="Click to Select" 
+                    <Button x:Name="AppCommander_BtnRecording" 
+                        Content="    ☻   Click to Select        " 
                         AutomationProperties.Name="Recording"
                         AutomationProperties.HelpText="Start selecting and recording"
                         ToolTip="Click here, then click on any window to select it"
@@ -99,13 +100,13 @@
                         AutomationProperties.AutomationId="RecordButton"
                         Click="StartStopToggleRecording_Click" 
                         Margin="0,0,8,0"
-                        Style="{DynamicResource DangerButton}" />
+                        Style="{DynamicResource RecordButton}" RenderTransformOrigin="25451165.762,16.597" />
                 </StackPanel>
 
                 <!-- Playback Controls -->
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="AppCommander_BtnPlayCommands" Content="   ▶    Play    " 
-                        Style="{DynamicResource PrimaryButton}" 
+                    <Button x:Name="AppCommander_BtnPlayCommands" Content="       ▶    Play             " 
+                        Style="{DynamicResource PlayButton}" 
                         AutomationProperties.Name="Play commands" 
                         AutomationProperties.HelpText="Play commands"
                         AutomationProperties.AutomationId="PlayButton"

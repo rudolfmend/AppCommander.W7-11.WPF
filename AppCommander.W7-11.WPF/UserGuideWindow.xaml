@@ -1,11 +1,11 @@
 ﻿<Window x:Class="AppCommander.W7_11.WPF.UserGuideWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Ophies - User Guide" 
+        Title="Sercull - User Guide" 
         Height="600" Width="800"
         MinHeight="500" MinWidth="600"
         WindowStartupLocation="CenterScreen"
-        Icon="/Ophies_mild.ico"
+        Icon="/Pictures/Sercull-logo-bright-star.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI"
         FontSize="14"
@@ -20,7 +20,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="📖 Ophies User Guide" 
+            <TextBlock Text="📖 Sercull User Guide" 
                        FontSize="24" 
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource PrimaryTextBrush}"

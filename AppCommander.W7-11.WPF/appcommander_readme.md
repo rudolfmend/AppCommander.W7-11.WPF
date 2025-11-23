@@ -1,6 +1,6 @@
-# Ophies
+# Sercull
 ## Automate Any App on Windows 7–11 
-**Ophies** is a lightweight Windows automation tool that allows you to:
+**Sercull** is a lightweight Windows automation tool that allows you to:
 - Automatically interact with other applications' text fields and buttons
 - Simulate input, calculations, and button clicks
 - Define, save, and load automation configurations
@@ -59,7 +59,7 @@ Simply download the latest `AppCommander.exe` from the [Releases](https://github
 ---
 
 ## 🤝 Contributing
-Issues and pull requests are welcome! Please feel free to contribute to making Ophies even better.
+Issues and pull requests are welcome! Please feel free to contribute to making Sercull even better.
 
 ---
 

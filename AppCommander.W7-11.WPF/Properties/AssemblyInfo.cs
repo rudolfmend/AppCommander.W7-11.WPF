@@ -3,7 +3,7 @@ using System.Resources;
 using System.Runtime.InteropServices;
 using System.Windows;
 
-[assembly: AssemblyTitle("Ophies")]
+[assembly: AssemblyTitle("Sercull")]
 [assembly: AssemblyDescription("Automation tool for interacting with text fields and buttons in other applications. " +
     " Allows you to enter values ​​in text fields and confirm them with a button in the controlled application. " +
     "The program can identify and manipulate user interface elements of external applications. " +
@@ -14,9 +14,9 @@ using System.Windows;
     "Supports Windows 7, 8, 8.1, 10 and 11.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Dethcap Byte Solutions")]
-[assembly: AssemblyProduct("Ophies")]
+[assembly: AssemblyProduct("Sercull")]
 [assembly: AssemblyCopyright("Copyright © Rudolf Mendzezof 2025")]
-[assembly: AssemblyTrademark("Ophies")]
+[assembly: AssemblyTrademark("Sercull")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 
