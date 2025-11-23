@@ -2550,7 +2550,18 @@ namespace AppCommander.W7_11.WPF
                 // Vždy používa _unifiedItems ak existujú
                 if (_unifiedItems.Count > 0)
                 {
-                    Debug.WriteLine("Using unified sequence for playback");
+                    Debug.WriteLine("Using unified sequence for playback from MainCommandTable");
+                    Debug.WriteLine($"_unifiedItems.Count = {_unifiedItems.Count}, _commands.Count = {_commands.Count}");
+
+                    // KRITICKÁ OPRAVA: Vyčisti _commands pred playbackom aby sa použili iba _unifiedItems
+                    // Problém: Ak _commands obsahuje staré príkazy, mohli by sa použiť namiesto _unifiedItems
+                    if (_commands.Count > 0)
+                    {
+                        Debug.WriteLine("⚠️ WARNING: _commands collection is not empty - clearing it to use only _unifiedItems");
+                        _commands.Clear();
+                        _hasUnsavedChanges = false;
+                    }
+
                     PlayUnifiedSequence();
                 }
                 else if (_commands.Any())
@@ -6393,4 +6404,3 @@ namespace AppCommander.W7_11.WPF
 
     #endregion
 }
- 
