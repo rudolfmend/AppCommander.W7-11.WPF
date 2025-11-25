@@ -326,8 +326,8 @@
     <!-- ======================================= -->
     <!--                MenuItem                 -->
     <!-- ======================================= -->
-    
-        <Style x:Key="MenuItemStyle" TargetType="MenuItem">
+
+    <Style x:Key="MenuItemStyle" TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="16,6"/>
@@ -807,6 +807,250 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+
+    <!-- 🎯 RECORD BUTTON - Červený s pulzujúcou animáciou -->
+    <Style x:Key="RecordButton" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="MaxHeight" Value="44"/>
+        <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <!-- Pulzujúci outer glow -->
+                        <Ellipse x:Name="pulseGlow"
+                             Width="50" Height="50"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"
+                             Margin="10,0,0,0"
+                             Opacity="0">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Color="#50D13438" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+
+                        <!-- Main button border -->
+                        <Border x:Name="border"
+                            BorderBrush="Transparent"
+                            BorderThickness="0"
+                            CornerRadius="22"
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#E53935" Offset="0"/>
+                                    <GradientStop Color="#C62828" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ContentPresenter Grid.Column="1"
+                                            x:Name="contentPresenter"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Margin="0"
+                                            RecognizesAccessKey="True"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Shine overlay -->
+                        <Border x:Name="shineBorder"
+                            CornerRadius="22"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#40FFFFFF" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="0.5"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#EF5350" Offset="0"/>
+                                        <GradientStop Color="#E53935" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="shineBorder" Property="Opacity" Value="0.2"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#C62828" Offset="0"/>
+                                        <GradientStop Color="#B71C1C" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Background" Value="#D0D0D0"/>
+                            <Setter Property="Foreground" Value="#808080"/>
+                        </Trigger>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetName="pulseGlow"
+                                                 Storyboard.TargetProperty="Opacity"
+                                                 From="0" To="0.6" Duration="0:0:1.2"
+                                                 AutoReverse="True"/>
+                                    <DoubleAnimation Storyboard.TargetName="pulseGlow"
+                                                 Storyboard.TargetProperty="Width"
+                                                 From="50" To="70" Duration="0:0:1.2"
+                                                 AutoReverse="True"/>
+                                    <DoubleAnimation Storyboard.TargetName="pulseGlow"
+                                                 Storyboard.TargetProperty="Height"
+                                                 From="50" To="70" Duration="0:0:1.2"
+                                                 AutoReverse="True"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ▶️ PLAY BUTTON - Zelený s animáciou -->
+    <Style x:Key="PlayButton" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="MaxHeight" Value="44"/>
+        <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="border"
+                            BorderBrush="Transparent"
+                            BorderThickness="0"
+                            CornerRadius="22"
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2E7D32" Offset="0"/>
+                                    <GradientStop Color="#1B5E20" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ContentPresenter Grid.Column="1"
+                                            x:Name="contentPresenter"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Margin="0"
+                                            RecognizesAccessKey="True"/>
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="shineBorder"
+                            CornerRadius="22"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#40FFFFFF" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="0.5"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#43A047" Offset="0"/>
+                                        <GradientStop Color="#2E7D32" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="shineBorder" Property="Opacity" Value="0.2"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#1B5E20" Offset="0"/>
+                                        <GradientStop Color="#0D3A0F" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Background" Value="#D0D0D0"/>
+                            <Setter Property="Foreground" Value="#808080"/>
+                        </Trigger>
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                 To="1.05" Duration="0:0:0.15"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                 To="1.05" Duration="0:0:0.15"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                 To="1" Duration="0:0:0.15"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                 To="1" Duration="0:0:0.15"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 
     <!-- ======================================= -->
     <!--             GROUPBOX STYLE              -->
