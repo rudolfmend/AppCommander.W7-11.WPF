@@ -214,13 +214,11 @@
 
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="📝 Edit Commands" Click="ContextMenu_Edit_Click" FontWeight="SemiBold"/>
-                                    <MenuItem Header="🗑️ Delete Commands" Click="ContextMenu_Delete_Click"/>
-                                    <Separator/>
                                     <MenuItem Header="📋 Open Sequence Editor" Click="OpenSequenceEditor_Click" FontWeight="Bold"/>
                                     <Separator/>
-                                    <MenuItem Header="Edit Selected Commands Only" Click="OpenSequenceEditorForSelection_Click"/>
-                                    <MenuItem Header="Edit repeat number"  Click="QuickEditItem_Click"/>
+                                    <MenuItem Header="🗑️ Delete Commands" Click="ContextMenu_Delete_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="&#10227; Edit repeat number"  Click="QuickEditItem_Click"/>
                                     <Separator/>
                                     <MenuItem Header="📋 Copy Details" Click="ContextMenu_Copy_Click"/>
                                     <MenuItem Header="📄 Duplicate Command" Click="ContextMenu_Duplicate_Click"/>
@@ -233,13 +231,13 @@
                             </DataGrid.ContextMenu>
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Step" Binding="{Binding StepNumber}" Width="60" MinWidth="60" IsReadOnly="True" FontWeight="DemiBold"/>
-                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay, Mode=OneWay}"  MinWidth="100" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" MinWidth="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Action" Binding="{Binding Action}" MinWidth="100" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Value" Binding="{Binding Value}"  MinWidth="120" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="62" MinWidth="62" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60" MinWidth="60" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Step" Binding="{Binding StepNumber}" Width="50" MinWidth="46" IsReadOnly="True" FontWeight="DemiBold"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay, Mode=OneWay}" Width="*" MinWidth="80" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}"  MinWidth="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Action" Binding="{Binding Action}"  MinWidth="80" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" MinWidth="80" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Repeat" Binding="{Binding RepeatCount}" Width="55" MinWidth="65" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60" MinWidth="58" IsReadOnly="True"/>
                             </DataGrid.Columns>
                         </DataGrid>
 

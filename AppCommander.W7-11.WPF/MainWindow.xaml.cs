@@ -242,7 +242,7 @@ namespace AppCommander.W7_11.WPF
                 UpdateUnsavedCommandsWarning();
                 UpdateStatus("Application initialized - Ready to start");
 
-                Debug.WriteLine("MainWindow initialized successfully");
+                //Debug.WriteLine("MainWindow initialized successfully");
             }
             catch (Exception ex)
             {
@@ -2142,11 +2142,13 @@ namespace AppCommander.W7_11.WPF
                     {
                         // Načítaj celú unified sequence
                         LoadUnifiedSequenceFromFile(filePath);
+                        UpdateMainWindowUI();
                     }
                     else if (extension == ".acc" || extension == ".json")
                     {
                         // Pridaj .acc/.json súbor ako SequenceReference do unified tabuľky
                         var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        UpdateMainWindowUI();
 
                         // Validácia obsahu súboru
                         if (!ValidateSequenceFile(filePath))
@@ -2169,6 +2171,7 @@ namespace AppCommander.W7_11.WPF
                                            MessageBoxImage.Warning);
                             return;
                         }
+                        UpdateMainWindowUI();
 
                         // Vytvor UnifiedItem ako SequenceReference
                         var unifiedItem = UnifiedItem.FromSequenceFile(filePath, _unifiedItems.Count + 1);
@@ -2176,7 +2179,7 @@ namespace AppCommander.W7_11.WPF
 
                         _hasUnsavedUnifiedChanges = true;
                         RecalculateStepNumbers();
-
+                        UpdateMainWindowUI();
                         UpdateStatus($"Sequence '{fileName}' added to list");
                         Debug.WriteLine($"Added sequence: {fileName} from {filePath}");
                     }
