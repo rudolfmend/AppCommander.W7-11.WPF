@@ -671,7 +671,6 @@ namespace AppCommander.W7_11.WPF
                 // Zmena UI pre indikáciu výberu
                 var originalButtonContent = AppCommander_BtnRecording.Content;
                 AppCommander_BtnRecording.Content = "⏳ Selecting Window...";
-                AppCommander_BtnRecording.IsEnabled = false;
 
                 // Zobraz selection indicator ak existuje
                 if (AppCommander_SelectionModeIndicator != null)
@@ -1359,7 +1358,8 @@ namespace AppCommander.W7_11.WPF
                 {
                     AppCommander_LblTargetWindow.Text = "No target selected";
                     AppCommander_TxtTargetProcess.Text = "-";
-                    AppCommander_BtnRecording.IsEnabled = false;
+                    // Tlačidlo zostane kliknuteľné ak sú načítané príkazy (.acc súbor)
+                    AppCommander_BtnRecording.IsEnabled = _unifiedItems.Count > 0;
                 }
             }
             catch (Exception ex)
@@ -1367,7 +1367,8 @@ namespace AppCommander.W7_11.WPF
                 Debug.WriteLine($"Error updating target window info: {ex.Message}");
                 AppCommander_TxtTargetProcess.Text = "-";
                 AppCommander_LblTargetWindow.Text = "Error loading target info";
-                AppCommander_BtnRecording.IsEnabled = false;
+                // Tlačidlo zostane kliknuteľné ak sú načítané príkazy (.acc súbor)
+                AppCommander_BtnRecording.IsEnabled = _unifiedItems.Count > 0;
             }
             finally
             {
@@ -2312,7 +2313,8 @@ namespace AppCommander.W7_11.WPF
                 AppCommander_BtnStop.IsEnabled = _player?.IsPlaying ?? false;
 
                 // Aktualizuje enabled stav recording tlačidiel
-                AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false);
+                // Tlačidlo je kliknuteľné ak je vybraté cieľové okno, alebo prebieha nahrávanie, alebo sú načítané príkazy (.acc súbor)
+                AppCommander_BtnRecording.IsEnabled = (_targetWindowHandle != IntPtr.Zero) || (_recorder?.IsRecording ?? false) || (_unifiedItems.Count > 0);
                 //AppCommander_AppCommander_BtnSelectTargetByClick.IsEnabled = !(_recorder?.IsRecording ?? false);
                 AppCommander_BtnSelectTarget.IsEnabled = !(_recorder?.IsRecording ?? false);
 
