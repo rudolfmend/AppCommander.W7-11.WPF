@@ -934,66 +934,36 @@ namespace AppCommander.W7_11.WPF
             timer.Start();
         }
 
-        // nové ↑
-
         private void StopCurrentRecording()
         {
             try
             {
                 _recordingManager.StopRecording();
-
-                // Aktualizácia button cez existujúcu metódu
                 UpdateRecordingButton();
-
                 UpdateStatusLabels(false);
                 AppCommander_ProgressEnhancedRecording.Visibility = Visibility.Collapsed;
                 AppCommander_ProgressEnhancedRecording.IsIndeterminate = false;
                 UpdateStatus("Recording stopped");
 
-                // Automaticky uloží príkazy po ukončení nahrávania
                 if (_commands != null && _commands.Count > 0)
                 {
-                    // Opýtaj sa používateľa, či chce uložiť príkazy
-                    var result = MessageBox.Show(
-                        $"You have recorded {_commands.Count} commands.\n\n" +
-                        "Do you want to save them as a sequence file?\n\n" +
-                        "• YES - Save to file and add to sequence list\n" +
-                        "• NO - Keep commands in memory (unsaved)\n" +
-                        "• CANCEL - Discard recorded commands",
-                        "Save Recorded Commands",
-                        MessageBoxButton.YesNoCancel,
-                        MessageBoxImage.Question);
+                    int commandCount = _commands.Count;
 
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        // Automatické uloženie s default názvom
-                        var defaultFileName = $"Sequence_{DateTime.Now:yyyyMMdd_HHmmss}.acc";
-                        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                        var appCommanderPath = Path.Combine(documentsPath, "AppCommander", "Sequences");
+                    // Automatické uloženie bez MessageBoxu
+                    var defaultFileName = $"Sequence_{DateTime.Now:yyyyMMdd_HHmmss}.acc";
+                    var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    var appCommanderPath = Path.Combine(documentsPath, "Senaro", "Sequences");
 
-                        // Vytvor adresár ak neexistuje
-                        Directory.CreateDirectory(appCommanderPath);
+                    Directory.CreateDirectory(appCommanderPath);
+                    var filePath = Path.Combine(appCommanderPath, defaultFileName);
 
-                        var filePath = Path.Combine(appCommanderPath, defaultFileName);
+                    _sequenceManager.SaveSequenceToFile(filePath);
+                    _sequenceManager.OnSequenceSavedSuccessfully(filePath);
 
-                        // Ulož príkazy do súboru
-                        _sequenceManager.SaveSequenceToFile(filePath);
-
-                        // Pridaj SequenceReference do AppCommander_MainCommandTable tabuľky
-                        _sequenceManager.OnSequenceSavedSuccessfully(filePath);
-
-                        ShowToast(
-                            "Sequence Saved",
-                            $"File: {defaultFileName}\nLocation: {appCommanderPath}\nCommands: {_commands.Count}",
-                            3000);
-                    }
-                    else if (result == MessageBoxResult.Cancel)
-                    {
-                        // Vymaž príkazy
-                        _commands.Clear();
-                        UpdateStatus("Recorded commands discarded");
-                    }
-                    // Ak NO - ponechaj príkazy v _commands (neuložené)
+                    ShowToast(
+                        "Sequence Saved",
+                        $"File: {defaultFileName}\nLocation: {appCommanderPath}\nCommands: {commandCount}",
+                        3000);
                 }
 
                 _sequenceManager.UpdateUnsavedCommandsWarning();
@@ -1004,7 +974,7 @@ namespace AppCommander.W7_11.WPF
             }
         }
 
-            //  toast notifikácie
+        //  toast notifikácie
         private void ShowToast(string v1, string v2, int v3)
         {
             MessageBox.Show(v2, v1, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1998,7 +1968,7 @@ namespace AppCommander.W7_11.WPF
                 UpdateUI();
 
                 // Aktualizuje title okna
-                string title = "AppCommander";
+                string title = "Senaro";
                 if (!string.IsNullOrEmpty(_sequenceManager.CurrentUnifiedSequenceFilePath))
                 {
                     title += string.Format(" - {0}", Path.GetFileName(_sequenceManager.CurrentUnifiedSequenceFilePath));

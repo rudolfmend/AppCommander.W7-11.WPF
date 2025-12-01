@@ -368,7 +368,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
                                     <TextBlock x:Name="AppCommander_TxtSelectionMode" Text="Click Selection Active" 
-                                            FontWeight="SemiBold" Foreground="#8A6914"/>
+                                            FontWeight="SemiBold" Foreground="AliceBlue"/>
                                 </StackPanel>
                             </Border>
 
@@ -386,13 +386,13 @@
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Window:" AutomationProperties.Name="Window"
                                         FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="AppCommander_LblTargetWindow" Grid.Row="0" Grid.Column="1" 
-                                        Text="No target selected" Foreground="#605E5C" 
+                                        Text="No target selected" Foreground="AliceBlue" 
                                         TextWrapping="Wrap" Margin="0,0,0,4"/>
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Process:" AutomationProperties.Name="Process"
                                         FontWeight="SemiBold" Margin="0,0,8,4" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <TextBlock x:Name="AppCommander_TxtTargetProcess" Grid.Row="1" Grid.Column="1" 
-                                        Text="-" Foreground="#605E5C" Margin="0,0,0,4"/>
+                                        Text="-" Foreground="AliceBlue" Margin="0,0,0,4"/>
                             </Grid>
 
                             <!-- Quick Actions -->

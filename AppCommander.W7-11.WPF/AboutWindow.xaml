@@ -27,7 +27,7 @@
             <StackPanel HorizontalAlignment="Center">
                 
                 <!-- App Logo -->
-                <Image Source="/Pictures/Senaro-logo.png"
+                <Image Source="/Pictures/Senaro-blue-wand-golden-circle–white.png"
                        Width="100" 
                        Height="100"
                        RenderOptions.BitmapScalingMode="HighQuality"
