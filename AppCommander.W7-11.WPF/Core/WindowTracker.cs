@@ -47,6 +47,10 @@ namespace AppCommander.W7_11.WPF.Core
         private bool disposed;
         private IntPtr lastActiveWindow = IntPtr.Zero;
 
+        // for UI Automation tracking for multi-app instances 
+        private Dictionary<IntPtr, AutomationElement> _trackedElements = new Dictionary<IntPtr, AutomationElement>();
+        private object _lockObject = new object();
+
         #endregion
 
         #region Properties
@@ -176,6 +180,99 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                 }
                 Thread.Sleep(500);
+            }
+        }
+
+        public void TrackWindow(IntPtr hwnd)
+        {
+            lock (_lockObject)
+            {
+                if (!_trackedElements.ContainsKey(hwnd))
+                {
+                    var element = SafeGetElement(hwnd);
+                    if (element != null)
+                    {
+                        _trackedElements[hwnd] = element;
+                        System.Diagnostics.Debug.WriteLine($"📌 Tracking element for window: {hwnd}");
+                    }
+                }
+            }
+        }
+
+        public void UntrackWindow(IntPtr hwnd)
+        {
+            lock (_lockObject)
+            {
+                if (_trackedElements.Remove(hwnd))
+                {
+                    System.Diagnostics.Debug.WriteLine($"📍 Untracked element for window: {hwnd}");
+                }
+            }
+        }
+
+        public AutomationElement GetTrackedElement(IntPtr hwnd)
+        {
+            lock (_lockObject)
+            {
+                if (_trackedElements.TryGetValue(hwnd, out var element))
+                {
+                    try
+                    {
+                        // Validácia že element je stále prístupný
+                        var _ = element.Current.Name;
+                        return element;
+                    }
+                    catch (ElementNotAvailableException)
+                    {
+                        // Element už nie je platný, odstráň z cache
+                        _trackedElements.Remove(hwnd);
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Cached element invalidated for window: {hwnd}");
+                        return null;
+                    }
+                }
+                return null;
+            }
+        }
+
+        private AutomationElement SafeGetElement(IntPtr hwnd)
+        {
+            try
+            {
+                var element = AutomationElement.FromHandle(hwnd);
+                if (element != null)
+                {
+                    try
+                    {
+                        var _ = element.Current.Name;
+                        return element;
+                    }
+                    catch (ElementNotAvailableException)
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch (COMException)
+            {
+                return null;
+            }
+            return null;
+        }
+
+        public void ClearTrackedElements()
+        {
+            lock (_lockObject)
+            {
+                _trackedElements.Clear();
+                System.Diagnostics.Debug.WriteLine("🧹 Cleared all tracked elements");
+            }
+        }
+
+        public int GetTrackedElementCount()
+        {
+            lock (_lockObject)
+            {
+                return _trackedElements.Count;
             }
         }
 
@@ -360,6 +457,11 @@ namespace AppCommander.W7_11.WPF.Core
                     windowMonitorTimer?.Dispose();
                     knownWindows.Clear();
                     trackedWindows.Clear();
+
+                    lock (_lockObject)
+                    {
+                        _trackedElements.Clear();
+                    }
                 }
 
                 disposed = true;

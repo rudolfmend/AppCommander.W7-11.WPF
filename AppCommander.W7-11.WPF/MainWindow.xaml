@@ -5,12 +5,12 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
     mc:Ignorable="av" 
     x:Class="AppCommander.W7_11.WPF.MainWindow"
-    Title="Sercull" 
+    Title="Senaro" 
     MinHeight="500" MinWidth="400"
-    Icon="/Pictures/Sercull-logo-bright-star.ico"
+    Icon="/Pictures/Senaro-logo-bright-star.ico"
     WindowStartupLocation="CenterScreen" 
     FontSize="14" 
-    FontFamily="Segoe UI"
+    FontFamily="Segoe UI"  
     Background="{DynamicResource WindowBackgroundBrush}"
     KeyDown="Window_KeyDown">
 
@@ -28,54 +28,56 @@
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
 
             <Menu x:Name="AppCommander_MenuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
-                <MenuItem Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
+                <MenuItem x:Name="MenuItemFile" Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem x:Name="MenuItemNewSequence" Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemOpenSequence" Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
                     <Separator Margin="-20,4,10,4"/>
-                    <MenuItem Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemSaveSequence" Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemSaveSequenceAs" Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{DynamicResource MenuItemStyle}" />
                     <Separator Margin="-20,4,10,4"/>
-                    <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemExit" Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Commands" AutomationProperties.Name="Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
+                <MenuItem x:Name="MenuItemCommands" Header="_Commands" AutomationProperties.Name="Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem x:Name="MenuItemAddWaitCommand" Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemAddLoopStart" Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemAddLoopEnd" Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
                     <Separator Margin="-20,4,10,4"/>
-                    <MenuItem Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemEditSelectedCommand" Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemDeleteSelectedCommand" Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="_Tools" AutomationProperties.Name="Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
+                <MenuItem x:Name="MenuItemTools" Header="_Tools" AutomationProperties.Name="Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem x:Name="MenuItemWindowSelector" Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemElementInspector" Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemSettings" Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
 
-                <MenuItem Header="Th_emes" AutomationProperties.Name="Themes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem Header="System Default" IsCheckable="True" IsChecked="True" 
-                    Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
+                <MenuItem x:Name="MenuItemThemes" Header="Th_emes" AutomationProperties.Name="Themes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem x:Name="MenuItemThemeSystem" Header="System Default" IsCheckable="True" 
+                              Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
                     <Separator Margin="-20,4,10,4"/>
-                    <MenuItem Header="Light Theme" AutomationProperties.Name="Light Theme" IsCheckable="True" 
+                    <MenuItem  x:Name="MenuItemThemeLight"  Header="Light Theme" AutomationProperties.Name="Light Theme" IsCheckable="True" 
                     Click="ThemeMenuItem_Click" Tag="Light" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem Header="Dark Theme" AutomationProperties.Name="Dark Theme" IsCheckable="True" 
+                    <MenuItem x:Name="MenuItemThemeDark" Header="Dark Theme" AutomationProperties.Name="Dark Theme" IsCheckable="True" 
                     Click="ThemeMenuItem_Click" Tag="Dark" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem Header="High Contrast" AutomationProperties.Name="High Contrast Theme" IsCheckable="True" 
+                    <MenuItem x:Name="MenuItemThemeHighContrast" Header="High Contrast" AutomationProperties.Name="High Contrast Theme" IsCheckable="True" 
                     Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{DynamicResource MenuItemStyle}"/>
                 </MenuItem>
 
-                <MenuItem Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem Header="_Personal Data Protection" Click="PrivacyPolicy_Click" Style="{DynamicResource MenuItemStyle}" />
+                <MenuItem x:Name="MenuItemHelp" Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                    <MenuItem x:Name="MenuItemUserGuide" Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemAbout" Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
+                    <MenuItem x:Name="MenuItemPrivacyPolicy" Header="_Personal Data Protection" Click="PrivacyPolicy_Click" Style="{DynamicResource MenuItemStyle}" />
                 </MenuItem>
             </Menu>
         </Border>
 
         <!-- Toolbar -->
 
-        <Border x:Name="TopBar" Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16">
+        <Border x:Name="TopBar" Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" 
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16">
+            
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0"

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
 using System.Windows.Automation;
 using AutomationCondition = System.Windows.Automation.Condition;
 
@@ -24,6 +25,46 @@ namespace AppCommander.W7_11.WPF.Core
 
             try
             {
+                bool hasRealIdentifier =
+                    !string.IsNullOrEmpty(command.ElementId) ||
+                    !string.IsNullOrEmpty(command.ElementName) ||
+                    !string.IsNullOrEmpty(command.ElementClass) ||
+                    !string.IsNullOrEmpty(command.ElementControlType);
+
+                // Špeciálny prípad: Spinner – UIA element NEEXISTUJE → hľadáme parent EDIT box
+                if (string.Equals(command.ElementControlType, "Spinner", StringComparison.OrdinalIgnoreCase))
+                {
+                    AutomationElement rootWindow = AutomationElement.FromHandle(windowHandle);
+                    var edit = FindSpinnerParentElement(rootWindow, command);
+
+                    if (edit != null)
+                    {
+                        return CreateSuccessResult(edit, "SpinnerParentEdit", 0.99);
+                    }
+
+                    return new ElementSearchResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Spinner parent edit box not found"
+                    };
+                }
+
+
+                // Špeciálny prípad: spinner – nechceme používať fallback podľa pozície
+                // ControlType = "spinner" (LocalizedControlType)
+                // ClassName typicky obsahuje "UPDOWN" (WinForms: WindowsForms10.UPDOWN32...)
+                if (string.Equals(command.ElementControlType, "spinner", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasRealIdentifier = true;
+                }
+
+                if (!string.IsNullOrEmpty(command.ElementClass) &&
+                    command.ElementClass.IndexOf("UPDOWN", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    hasRealIdentifier = true;
+                }
+
+
                 AutomationElement window = AutomationElement.FromHandle(windowHandle);
                 if (window == null)
                 {
@@ -43,6 +84,16 @@ namespace AppCommander.W7_11.WPF.Core
                         return winui3Result;
                     }
                 }
+
+                // Pokus 0: Stabilná WinForms Spinner detekcia podľa štruktúry
+                var spinnerElement = FindWinFormsSpinner(window, command);
+                if (spinnerElement != null && ValidateElement(spinnerElement))
+                {
+                    result = CreateSuccessResult(spinnerElement, "WinFormsSpinnerStructure", 0.98);
+                    System.Diagnostics.Debug.WriteLine($"Found via WinFormsSpinnerStructure: {result.Element}");
+                    return result;
+                }
+
 
                 // Pokus 1: Presný match podľa AutomationId (najspoľahlivejší)
                 if (!string.IsNullOrEmpty(command.ElementId))
@@ -105,7 +156,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Pokus 5: Presná pozícia (malá tolerancia)
-                if (command.ElementX > 0 && command.ElementY > 0)
+                if (!hasRealIdentifier && command.ElementX > 0 && command.ElementY > 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"Trying Exact Position: ({command.ElementX}, {command.ElementY})");
                     var element = FindByPosition(window, command.ElementX, command.ElementY, 10); // 10px tolerance
@@ -118,7 +169,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Pokus 6: Širšia pozičná tolerancia
-                if (command.ElementX > 0 && command.ElementY > 0)
+                if (!hasRealIdentifier && command.ElementX > 0 && command.ElementY > 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"Trying Position with tolerance: ({command.ElementX}, {command.ElementY})");
                     var element = FindByPosition(window, command.ElementX, command.ElementY, 50); // 50px tolerance
@@ -154,6 +205,38 @@ namespace AppCommander.W7_11.WPF.Core
                 return result;
             }
         }
+
+        private static AutomationElement FindSpinnerParentElement(AutomationElement root, Command command)
+        {
+            try
+            {
+                // Spinner v UIA neexistuje – musíme nájsť rodičovský EDIT control
+                var editCondition = new PropertyCondition(
+                    AutomationElement.ControlTypeProperty, ControlType.Edit);
+
+                var edits = root.FindAll(TreeScope.Descendants, editCondition);
+                foreach (AutomationElement edit in edits)
+                {
+                    if (!ValidateElement(edit)) continue;
+
+                    var rect = edit.Current.BoundingRectangle;
+
+                    // Pôvodný klik musí patriť do tohto edit boxu
+                    if (command.OriginalX >= rect.X && command.OriginalX <= rect.X + rect.Width &&
+                        command.OriginalY >= rect.Y && command.OriginalY <= rect.Y + rect.Height)
+                    {
+                        return edit; // Našli sme rodičovský control
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
 
         /// <summary>
         /// Špeciálna metóda pre vyhľadávanie WinUI3 elementov
@@ -229,7 +312,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Analyzuj obsah bridge
-                var descendants = bridge.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+                var descendants = bridge.FindAll(TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition);
 
                 foreach (AutomationElement descendant in descendants)
                 {
@@ -460,7 +543,7 @@ namespace AppCommander.W7_11.WPF.Core
                     }
 
                     // Pridaj všetky descendant elementy s užitočnými properties
-                    var descendants = bridge.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+                    var descendants = bridge.FindAll(TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition);
                     foreach (AutomationElement descendant in descendants)
                     {
                         if (IsUsefulWinUI3Element(descendant))
@@ -578,7 +661,7 @@ namespace AppCommander.W7_11.WPF.Core
                         elements.Add(new UIElementInfo
                         {
                             Name = element.Current.Name ?? string.Empty,
-                            AutomationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty), 
+                            AutomationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty),
                             ClassName = UIElementDetector.GetProperty(element, AutomationElement.ClassNameProperty),
                             ControlType = element.Current.ControlType?.LocalizedControlType ?? "Unknown",
                             X = (int)(rect.X + rect.Width / 2),
@@ -647,7 +730,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Analyzuj descendants
-                var descendants = bridge.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+                var descendants = bridge.FindAll(TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition);
                 foreach (AutomationElement descendant in descendants)
                 {
                     if (IsUsefulWinUI3Element(descendant))
@@ -686,7 +769,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         private static string GetMeaningfulElementName(AutomationElement element)
         {
-            // OPRAVENÉ: používame public metódy z UIElementDetector
+            // používa public metódy z UIElementDetector
             string name = UIElementDetector.GetProperty(element, AutomationElement.NameProperty);
             string automationId = UIElementDetector.GetProperty(element, AutomationElement.AutomationIdProperty);
             string controlType = UIElementDetector.GetControlTypeSafe(element);
@@ -703,9 +786,7 @@ namespace AppCommander.W7_11.WPF.Core
             if (!string.IsNullOrWhiteSpace(automationId))
                 return automationId;
 
-            return $"{controlType}_Element";
-
-            // Skús získať text z pattern
+            // Skús získať text z pattern PRED defaultným returnom
             try
             {
                 if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object valuePattern))
@@ -717,6 +798,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
             catch { }
 
+            // Teraz až default return
             return $"{controlType}_Interactive";
         }
 
@@ -869,37 +951,89 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        public static AutomationElement FromPointSafe(int x, int y, IntPtr targetRoot)
+        {
+            try
+            {
+                if (targetRoot == IntPtr.Zero)
+                    return null;
+
+                var root = AutomationElement.FromHandle(targetRoot);
+                if (root == null)
+                    return null;
+
+                // Získaj element pod kurzorom
+                var element = AutomationElement.FromPoint(new System.Windows.Point(x, y));
+                if (element == null)
+                    return null;
+
+                // Over, že element patrí pod target root
+                var walker = TreeWalker.RawViewWalker;
+                var current = element;
+
+                while (current != null)
+                {
+                    if (current.Equals(root))
+                        return element;
+
+                    current = walker.GetParent(current);
+                }
+
+                // Element NIE JE v target okne
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static AutomationElement FindByPosition(AutomationElement parent, int x, int y, int tolerance)
         {
             try
             {
-                // Najprv skús presný point
-                var point = new System.Windows.Point(x, y);
-                var element = AutomationElement.FromPoint(point);
+                AutomationElement element = null;
 
-                if (element != null && ValidateElement(element))
+                // Pokus 1: ak vieme získať NativeWindowHandle, použijeme FromPointSafe
+                IntPtr rootHandle = IntPtr.Zero;
+                try
                 {
-                    // Skontroluj, či patrí do tohto okna
-                    var windowElement = parent;
-                    var currentElement = element;
+                    // NativeWindowHandle je int, premeníme na IntPtr
+                    rootHandle = new IntPtr(parent.Current.NativeWindowHandle);
+                }
+                catch
+                {
+                    // ak sa nepodarí, necháme rootHandle = IntPtr.Zero
+                }
 
-                    while (currentElement != null)
+                if (rootHandle != IntPtr.Zero)
+                {
+                    element = FromPointSafe(x, y, rootHandle);
+                }
+                else
+                {
+                    // fallback – klasický FromPoint + overenie, či patrí do parent okna
+                    var raw = AutomationElement.FromPoint(new System.Windows.Point(x, y));
+                    if (raw != null)
                     {
-                        if (currentElement.Equals(windowElement))
-                            return element;
-
-                        try
+                        var walker = TreeWalker.RawViewWalker;
+                        var current = raw;
+                        while (current != null)
                         {
-                            currentElement = TreeWalker.ControlViewWalker.GetParent(currentElement);
-                        }
-                        catch
-                        {
-                            break;
+                            if (current.Equals(parent))
+                            {
+                                element = raw;
+                                break;
+                            }
+                            current = walker.GetParent(current);
                         }
                     }
                 }
 
-                // Ak presný point nebol úspešný, skús v tolerancii
+                if (element != null && ValidateElement(element))
+                    return element;
+
+                // Pokus 2: ak presný bod zlyhal, použijeme hľadanie v tolerancii
                 return FindNearestElementInTolerance(parent, x, y, tolerance);
             }
             catch (Exception ex)
@@ -908,6 +1042,7 @@ namespace AppCommander.W7_11.WPF.Core
                 return null;
             }
         }
+
 
         private static AutomationElement FindNearestElementInTolerance(AutomationElement parent, int x, int y, int tolerance)
         {
@@ -1497,7 +1632,8 @@ namespace AppCommander.W7_11.WPF.Core
                 if (row < rows.Count)
                 {
                     var targetRow = rows[row] as AutomationElement;
-                    var cells = targetRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+                    var cells = targetRow.FindAll(TreeScope.Children, System.Windows.Automation.Condition.TrueCondition
+);
 
                     if (column < cells.Count)
                     {
@@ -1540,7 +1676,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 if (firstRow != null)
                 {
-                    var cells = firstRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+                    var cells = firstRow.FindAll(TreeScope.Children, System.Windows.Automation.Condition.TrueCondition);
                     for (int i = 0; i < cells.Count; i++)
                     {
                         var cell = cells[i] as AutomationElement;
@@ -1573,7 +1709,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 // Zisti počet stĺpcov z prvého riadka
                 var firstRow = rows[0] as AutomationElement;
-                var firstRowCells = firstRow.FindAll(TreeScope.Children, Condition.TrueCondition);
+                var firstRowCells = firstRow.FindAll(TreeScope.Children, System.Windows.Automation.Condition.TrueCondition);
                 int columnCount = firstRowCells.Count;
 
                 var cells = new AutomationElement[rows.Count, columnCount];
@@ -1581,7 +1717,7 @@ namespace AppCommander.W7_11.WPF.Core
                 for (int row = 0; row < rows.Count; row++)
                 {
                     var rowElement = rows[row] as AutomationElement;
-                    var rowCells = rowElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+                    var rowCells = rowElement.FindAll(TreeScope.Children, System.Windows.Automation.Condition.TrueCondition);
 
                     for (int col = 0; col < Math.Min(columnCount, rowCells.Count); col++)
                     {
@@ -1655,6 +1791,142 @@ namespace AppCommander.W7_11.WPF.Core
 
             // Levenshtein distance similarity
             return CalculateSimilarity(expected, actual);
+        }
+
+        /// <summary>
+        /// Nájde element podľa Name a ControlType kombinácie
+        /// </summary>
+        private static AutomationElement FindByNameAndType(AutomationElement parent, string name, string controlType)
+        {
+            try
+            {
+                var allElements = parent.FindAll(TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition);
+
+                foreach (AutomationElement element in allElements)
+                {
+                    try
+                    {
+                        string elementName = UIElementDetector.GetProperty(element, AutomationElement.NameProperty);
+                        string elementType = UIElementDetector.GetControlTypeSafe(element);
+
+                        if (elementName.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+                            elementType.Equals(controlType, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return element;
+                        }
+                    }
+                    catch { }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Skontroluje či je Name generický
+        /// </summary>
+        private static bool IsGenericName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return true;
+
+            var genericPatterns = new[]
+            {
+                "Key_", "Click_at_", "Element_at_", "Unknown",
+                "pane_Unknown", "Microsoft.UI.Content", "DesktopChildSiteBridge"
+            };
+
+            return genericPatterns.Any(p => name.StartsWith(p) || name.Contains(p));
+        }
+
+        /// <summary>
+        /// Skontroluje či je ClassName generický
+        /// </summary>
+        private static bool IsGenericClassName(string className)
+        {
+            if (string.IsNullOrEmpty(className)) return true;
+
+            var genericClasses = new[]
+            {
+                "ContentPresenter", "Border", "Grid", "StackPanel",
+                "Canvas", "ScrollViewer", "UserControl", "Panel",
+                "Microsoft.UI.Content.DesktopChildSiteBridge"
+            };
+
+            return genericClasses.Any(g => className.Equals(g, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Špeciálna stabilná detekcia WinForms Spinner / UpDown kontrol
+        /// </summary>
+        private static AutomationElement FindWinFormsSpinner(AutomationElement window, Command command)
+        {
+            try
+            {
+                var allElements = window.FindAll(TreeScope.Descendants, AutomationCondition.TrueCondition);
+
+                foreach (AutomationElement element in allElements)
+                {
+                    if (!ValidateElement(element))
+                        continue;
+
+                    string className = "";
+                    try { className = element.Current.ClassName ?? ""; } catch { }
+
+                    ControlType ct = null;
+                    try { ct = element.Current.ControlType; } catch { }
+
+                    //
+                    // 1. Skutočný UIA Spinner
+                    //
+                    if (ct == ControlType.Spinner)
+                        return element;
+
+                    //
+                    // 2. WinForms UpDown ClassNames (stabilné pre NumericUpDown & DateTimePicker)
+                    //
+                    if (!string.IsNullOrEmpty(className))
+                    {
+                        if (className.IndexOf("UpDown", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            className.IndexOf("msctls_updown32", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            return element;
+                        }
+                    }
+
+                    //
+                    // 3. Strukturálna detekcia – Spinner má presne 2 deti: UpButton + DownButton
+                    //
+                    AutomationElementCollection children = null;
+                    try
+                    {
+                        children = element.FindAll(TreeScope.Children, AutomationCondition.TrueCondition);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    if (children != null && children.Count == 2)
+                    {
+                        bool bothButtons =
+                            children[0].Current.ControlType == ControlType.Button &&
+                            children[1].Current.ControlType == ControlType.Button;
+
+                        if (bothButtons)
+                            return element;
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 

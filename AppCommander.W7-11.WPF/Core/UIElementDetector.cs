@@ -5,11 +5,124 @@ using System.Windows.Automation;
 using System.Collections.Generic;
 using AppCommander.W7_11.WPF.Core;
 using System.Diagnostics;
+using System.Drawing;
 
 namespace AppCommander.W7_11.WPF.Core
 {
-    public static class UIElementDetector
+    public static partial class UIElementDetector
     {
+        public enum UiFramework
+        {
+            Unknown,
+            Win32,
+            WinForms,
+            Wpf,
+            WinUI3,
+            WebView2,
+            XYFallback
+        }
+
+        public static UiFramework DetectFramework(IntPtr hwnd)
+        {
+            var className = GetClassName(hwnd);
+
+            if (className == "#32770") return UiFramework.Win32; // MessageBox/Dialog
+            if (className.StartsWith("WindowsForms")) return UiFramework.WinForms;
+            if (className.Contains("HwndWrapper")) return UiFramework.Wpf;
+            if (className.Contains("Chrome") || className.Contains("WebView2")) return UiFramework.WebView2;
+            if (className.Contains("WinUIDesktopWin32WindowClass")) return UiFramework.WinUI3;
+
+            return UiFramework.Unknown;
+        }
+
+        private static UIElementInfo GetElementSkippingAboutBlank(IntPtr hwnd, int x, int y)
+        {
+            var root = AutomationElement.FromHandle(hwnd);
+
+            // Skip about:blank root
+            if (GetProperty(root, AutomationElement.NameProperty) == "about:blank")
+            {
+                var walker = TreeWalker.RawViewWalker;
+                var child = walker.GetFirstChild(root);
+
+                while (child != null)
+                {
+                    if (GetProperty(child, AutomationElement.NameProperty) != "about:blank")
+                    {
+                        // OPRAVENÉ: AutomationElement.FromPoint namiesto child.FromPoint
+                        var element = AutomationElement.FromPoint(new System.Windows.Point(x, y));
+                        if (element != null && element != root)
+                            return ExtractElementInfo(element, x, y);
+                    }
+                    child = walker.GetNextSibling(child);
+                }
+            }
+
+            return GetElementAtPoint(x, y);
+        }
+
+        private static UIElementInfo GetWin32Element(IntPtr hwnd, int x, int y)
+        {
+            try
+            {
+                var className = GetClassName(hwnd);
+
+                // Win32 MessageBox alebo Dialog
+                if (className == "#32770")
+                {
+                    // Hľadaj buttony v dialógu
+                    var children = new List<IntPtr>();
+                    EnumChildWindows(hwnd, (childHwnd, lParam) =>
+                    {
+                        var childClass = GetClassName(childHwnd);
+                        if (childClass == "Button")
+                        {
+                            RECT rect;
+                            GetWindowRect(childHwnd, out rect);
+
+                            if (x >= rect.Left && x <= rect.Right &&
+                                y >= rect.Top && y <= rect.Bottom)
+                            {
+                                children.Add(childHwnd);
+                            }
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+
+                    if (children.Count > 0)
+                    {
+                        var buttonHwnd = children[0];
+                        var buttonText = GetWindowText(buttonHwnd);
+                        RECT btnRect;
+                        GetWindowRect(buttonHwnd, out btnRect);
+
+                        return new UIElementInfo
+                        {
+                            Name = $"Win32Button_{buttonText}",
+                            ClassName = "Button",
+                            ControlType = "Button",
+                            WindowHandle = buttonHwnd,
+                            X = x,
+                            Y = y,
+                            BoundingRectangle = new System.Windows.Rect(
+                                btnRect.Left, btnRect.Top,
+                                btnRect.Right - btnRect.Left,
+                                btnRect.Bottom - btnRect.Top),
+                            IsEnabled = IsWindowEnabled(buttonHwnd),
+                            IsVisible = IsWindowVisible(buttonHwnd)
+                        };
+                    }
+                }
+
+                // Fallback na štandardnú detekciu
+                return GetElementAtPoint(x, y);
+            }
+            catch
+            {
+                return GetElementAtPoint(x, y);
+            }
+        }
+
         /// <summary>
         /// Získa element na danej pozícii
         /// </summary>
@@ -393,6 +506,17 @@ namespace AppCommander.W7_11.WPF.Core
                 }
                 catch { }
 
+                // TreePath - hierarchická cesta v UI strome
+                try
+                {
+                    elementInfo.TreePath = ElementIdentifier.GenerateTreePath(element);
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] TreePath generated: {elementInfo.TreePath}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[UIDetector] TreePath generation failed: {ex.Message}");
+                }
+
                 // === FALLBACK: Win32 API ak nemáme žiadne info ===
                 if (string.IsNullOrEmpty(elementInfo.Name) &&
                     string.IsNullOrEmpty(elementInfo.AutomationId) &&
@@ -569,8 +693,8 @@ namespace AppCommander.W7_11.WPF.Core
                         Debug.WriteLine($"Error analyzing descendant: {ex.Message}");
                     }
                 }
-            
-                
+
+
 
                 if (bestInfo != null)
                 {
@@ -668,6 +792,179 @@ namespace AppCommander.W7_11.WPF.Core
 
             return false;
         }
+
+        private static UIElementInfo DetectWin32Element(UiDetectionContext ctx)
+        {
+            // MessageBox (#32770) alebo Dialog
+            if (ctx.ClassName == "#32770")
+            {
+                var buttons = new List<(IntPtr hwnd, string text, RECT rect)>();
+
+                EnumChildWindows(ctx.Hwnd, (childHwnd, lParam) =>
+                {
+                    if (GetClassName(childHwnd) == "Button")
+                    {
+                        var text = GetWindowText(childHwnd);
+                        RECT rect;
+                        GetWindowRect(childHwnd, out rect);
+
+                        if (ctx.ClickPoint.X >= rect.Left && ctx.ClickPoint.X <= rect.Right &&
+                            ctx.ClickPoint.Y >= rect.Top && ctx.ClickPoint.Y <= rect.Bottom)
+                        {
+                            buttons.Add((childHwnd, text, rect));
+                        }
+                    }
+                    return true;
+                }, IntPtr.Zero);
+
+                if (buttons.Count > 0)
+                {
+                    var btn = buttons[0];
+                    return new UIElementInfo
+                    {
+                        Name = $"Win32Button_{btn.text}",
+                        ClassName = "Button",
+                        ControlType = "Button",
+                        WindowHandle = btn.hwnd,
+                        X = ctx.ClickPoint.X,
+                        Y = ctx.ClickPoint.Y,
+                        BoundingRectangle = new System.Windows.Rect(
+                            btn.rect.Left, btn.rect.Top,
+                            btn.rect.Right - btn.rect.Left,
+                            btn.rect.Bottom - btn.rect.Top),
+                        IsEnabled = IsWindowEnabled(btn.hwnd),
+                        IsVisible = IsWindowVisible(btn.hwnd),
+                        ElementText = btn.text
+                    };
+                }
+            }
+
+            // Fallback
+            return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        private static UIElementInfo DetectWinFormsElement(UiDetectionContext ctx)
+        {
+            try
+            {
+                var element = AutomationElement.FromPoint(
+                    new System.Windows.Point(ctx.ClickPoint.X, ctx.ClickPoint.Y));
+
+                if (element != null)
+                {
+                    var info = ExtractElementInfo(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+
+                    // ❌ SKIP "about:blank" - rovnako ako DetectWebElement
+                    if (info != null &&
+                        info.Name == "about:blank" &&
+                        info.AutomationId == "RootWebArea" &&
+                        info.ControlType == "document")
+                    {
+                        Debug.WriteLine("[WinForms] Skipping 'about:blank' root, using fallback");
+                        return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+                    }
+
+                    // WinForms často nemá AutomationId - použi ClassName
+                    if (string.IsNullOrEmpty(info.AutomationId) && !string.IsNullOrEmpty(info.ClassName))
+                    {
+                        info.Name = $"{info.ControlType}_{info.ClassName}";
+                    }
+
+                    return info;
+                }
+            }
+            catch { }
+
+            return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        private static UIElementInfo DetectWpfElement(UiDetectionContext ctx)
+        {
+            // WPF má spoľahlivý UIA
+            return GetElementAtPoint(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        private static UIElementInfo DetectWinUI3Element(UiDetectionContext ctx)
+        {
+            // Už máš implementované v ProcessWinUI3Element
+            try
+            {
+                var element = AutomationElement.FromHandle(ctx.Hwnd);
+                return ProcessWinUI3Element(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+            }
+            catch
+            {
+                return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+            }
+        }
+
+        private static UIElementInfo DetectWebElement(UiDetectionContext ctx)
+        {
+            try
+            {
+                var root = AutomationElement.FromHandle(ctx.Hwnd);
+
+                // Skip about:blank root - hľadaj reálne elementy
+                if (GetProperty(root, AutomationElement.NameProperty) == "about:blank")
+                {
+                    var walker = TreeWalker.RawViewWalker;
+                    var child = walker.GetFirstChild(root);
+
+                    while (child != null)
+                    {
+                        var name = GetProperty(child, AutomationElement.NameProperty);
+                        if (name != "about:blank")
+                        {
+                            // OPRAVENÉ: ctx.ClickPoint.X, ctx.ClickPoint.Y namiesto x, y
+                            var element = AutomationElement.FromPoint(
+                                new System.Windows.Point(ctx.ClickPoint.X, ctx.ClickPoint.Y));
+
+                            if (element != null && element != root)
+                            {
+                                var info = ExtractElementInfo(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+
+                                // Ak stále about:blank, použi XY fallback
+                                if (info.Name == "about:blank")
+                                {
+                                    return new UIElementInfo
+                                    {
+                                        Name = $"WebClick_{ctx.ClickPoint.X}_{ctx.ClickPoint.Y}",
+                                        ControlType = "WebElement",
+                                        X = ctx.ClickPoint.X,
+                                        Y = ctx.ClickPoint.Y,
+                                        WindowHandle = ctx.Hwnd,
+                                        ClassName = ctx.ClassName
+                                    };
+                                }
+
+                                return info;
+                            }
+                        }
+                        child = walker.GetNextSibling(child);
+                    }
+                }
+            }
+            catch { }
+
+            // XY fallback
+            return new UIElementInfo
+            {
+                Name = $"WebClick_{ctx.ClickPoint.X}_{ctx.ClickPoint.Y}",
+                ControlType = "WebElement",
+                X = ctx.ClickPoint.X,
+                Y = ctx.ClickPoint.Y,
+                WindowHandle = ctx.Hwnd
+            };
+        }
+
+        private static UIElementInfo DetectGenericElement(UiDetectionContext ctx)
+        {
+            // Generic UIA fallback
+            return GetElementAtPoint(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         private static UIElementInfo DetectByPatternsWinUI3(AutomationElement element, int clickX, int clickY)
         {
@@ -851,18 +1148,64 @@ namespace AppCommander.W7_11.WPF.Core
                 RECT rect;
                 GetWindowRect(hwnd, out rect);
 
+                // Pokús sa použiť UIA pre lepšiu identifikáciu
+                string elementName = windowText;
+                string controlType = "Window";
+
+                try
+                {
+                    var element = AutomationElement.FromHandle(hwnd);
+                    if (element != null)
+                    {
+                        // Získaj lepšie info z UIA
+                        var uiaName = GetProperty(element, AutomationElement.NameProperty);
+                        var uiaControlType = GetControlTypeSafe(element);
+
+                        if (!string.IsNullOrEmpty(uiaName) && uiaName != "about:blank")
+                        {
+                            elementName = uiaName;
+                        }
+
+                        if (!string.IsNullOrEmpty(uiaControlType) && uiaControlType != "Unknown")
+                        {
+                            controlType = uiaControlType;
+                        }
+                    }
+                }
+                catch
+                {
+                    // UIA zlyhalo, použij Win32 info
+                }
+
+                // Vytvor zmysluplný názov
+                string finalName;
+                if (!string.IsNullOrWhiteSpace(elementName))
+                {
+                    finalName = CleanName(elementName);
+                }
+                else if (!string.IsNullOrWhiteSpace(windowText))
+                {
+                    finalName = $"Window_{CleanName(windowText)}";
+                }
+                else
+                {
+                    // Použij ClassName ako základ
+                    finalName = $"{controlType}_{CleanName(className)}";
+                }
+
                 return new UIElementInfo
                 {
-                    Name = !string.IsNullOrWhiteSpace(windowText) ? $"Window_{CleanName(windowText)}" : "Unknown_Window",
+                    Name = finalName,
                     ClassName = className,
-                    ControlType = "Window",
+                    ControlType = controlType,
                     X = x,
                     Y = y,
                     BoundingRectangle = new System.Windows.Rect(rect.Left, rect.Top,
                         rect.Right - rect.Left, rect.Bottom - rect.Top),
                     WindowHandle = hwnd,
                     IsEnabled = IsWindowEnabled(hwnd),
-                    IsVisible = IsWindowVisible(hwnd)
+                    IsVisible = IsWindowVisible(hwnd),
+                    ElementText = elementName
                 };
             }
 
@@ -1705,6 +2048,12 @@ namespace AppCommander.W7_11.WPF.Core
         #region Win32 API Declarations
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
+
+        private delegate bool EnumChildProc(IntPtr hwnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
         private static extern IntPtr WindowFromPoint(POINT Point);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -1756,5 +2105,232 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         #endregion
+
+        public class UiDetectionContext
+        {
+            public IntPtr Hwnd { get; set; }
+            public System.Drawing.Point ClickPoint { get; set; } 
+            public UiFramework Framework { get; set; }
+            public string ClassName { get; set; }
+            public string ProcessName { get; set; }
+        }
+
+        public static UIElementInfo DetectElementWithRouting(int x, int y)
+        {
+            var context = BuildDetectionContext(x, y);
+            Debug.WriteLine($"[Routing] Framework: {context.Framework}, Process: {context.ProcessName}, Class: {context.ClassName}");
+
+            // ═══════════════════════════════════════════════════════════
+            // ŠPECIFICKÉ PRÍPADY - kontroluj PRED switch
+            // ═══════════════════════════════════════════════════════════
+
+            // 1. Win32 MessageBox detection (#32770)
+            if (context.ClassName == "#32770")
+            {
+                Debug.WriteLine("[Routing] Detected Win32 Dialog/MessageBox");
+                return DetectWin32Element(context);
+            }
+
+            // 2. WinForms Button/Control detection
+            if (context.ClassName.StartsWith("WindowsForms10."))
+            {
+                Debug.WriteLine("[Routing] Detected WinForms control");
+                return DetectWinFormsElement(context);
+            }
+
+            // 3. Chrome/Edge WebView detection
+            if (context.ClassName.Contains("Chrome_WidgetWin") ||
+                context.ClassName.Contains("Chrome_RenderWidgetHostHWND"))
+            {
+                Debug.WriteLine("[Routing] Detected Chrome/WebView2");
+                return DetectWebElement(context);
+            }
+
+            // 4. WinUI3 DesktopChildSiteBridge
+            if (context.ClassName.Contains("DesktopChildSiteBridge"))
+            {
+                Debug.WriteLine("[Routing] Detected WinUI3 DesktopChildSiteBridge");
+                return DetectWinUI3Element(context);
+            }
+
+            // 5. Office aplikácie (Word, Excel, PowerPoint)
+            if (context.ProcessName.Contains("WINWORD") ||
+                context.ProcessName.Contains("EXCEL") ||
+                context.ProcessName.Contains("POWERPNT"))
+            {
+                Debug.WriteLine("[Routing] Detected Office application");
+                return DetectOfficeElement(context);
+            }
+
+            // 6. Java aplikácie (Swing/AWT)
+            if (context.ClassName.StartsWith("SunAwt"))
+            {
+                Debug.WriteLine("[Routing] Detected Java Swing/AWT");
+                return DetectJavaElement(context);
+            }
+
+            // 7. Qt aplikácie
+            if (context.ClassName.StartsWith("Qt"))
+            {
+                Debug.WriteLine("[Routing] Detected Qt application");
+                return DetectQtElement(context);
+            }
+
+            // 8. Electron aplikácie (VS Code, Discord, Slack...)
+            if (context.ProcessName.Contains("electron") ||
+                context.ProcessName == "Code" ||
+                context.ProcessName == "Discord" ||
+                context.ProcessName == "Slack")
+            {
+                Debug.WriteLine("[Routing] Detected Electron app");
+                return DetectWebElement(context); // Electron používa Chromium
+            }
+
+            // 9. Legacy Win32 controls (Button, Edit, Static...)
+            if (IsLegacyWin32Control(context.ClassName))
+            {
+                Debug.WriteLine("[Routing] Detected legacy Win32 control");
+                return DetectWin32Element(context);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // ŠTANDARDNÝ SWITCH (ak nič nevyhovelo vyššie)
+            // ═══════════════════════════════════════════════════════════
+
+            switch (context.Framework)
+            {
+                case UiFramework.Win32:
+                    return DetectWin32Element(context);
+
+                case UiFramework.WinForms:
+                    return DetectWinFormsElement(context);
+
+                case UiFramework.Wpf:
+                    return DetectWpfElement(context);
+
+                case UiFramework.WinUI3:
+                    return DetectWinUI3Element(context);
+
+                case UiFramework.WebView2:
+                    return DetectWebElement(context);
+
+                default:
+                    return DetectGenericElement(context);
+            }
+        }
+
+        /// <summary>
+        /// Kontroluje či je className legacy Win32 control
+        /// </summary>
+        private static bool IsLegacyWin32Control(string className)
+        {
+            var legacyControls = new[]
+            {
+                "Button", "Edit", "Static", "ListBox", "ComboBox",
+                "ScrollBar", "SysTreeView32", "SysListView32",
+                "SysHeader32", "msctls_statusbar32", "ToolbarWindow32",
+                "RichEdit", "RichEdit20W", "RichEdit20A", "RichEdit50W"
+            };
+
+            return legacyControls.Any(c => className.Equals(c, StringComparison.OrdinalIgnoreCase) ||
+                                           className.StartsWith(c, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Detektor pre Office aplikácie (Word, Excel, PowerPoint)
+        /// </summary>
+        private static UIElementInfo DetectOfficeElement(UiDetectionContext ctx)
+        {
+            try
+            {
+                var element = AutomationElement.FromPoint(
+                    new System.Windows.Point(ctx.ClickPoint.X, ctx.ClickPoint.Y));
+
+                if (element != null)
+                {
+                    return ExtractElementInfo(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Office] Detection failed: {ex.Message}");
+            }
+
+            return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        /// <summary>
+        /// Detektor pre Java Swing/AWT aplikácie
+        /// </summary>
+        private static UIElementInfo DetectJavaElement(UiDetectionContext ctx)
+        {
+            try
+            {
+                // Java Swing používa AccessBridge, ale funguje aj UIA
+                var element = AutomationElement.FromPoint(
+                    new System.Windows.Point(ctx.ClickPoint.X, ctx.ClickPoint.Y));
+
+                if (element != null)
+                {
+                    return ExtractElementInfo(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Java] Detection failed: {ex.Message}");
+            }
+
+            return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        /// <summary>
+        /// Detektor pre Qt aplikácie
+        /// </summary>
+        private static UIElementInfo DetectQtElement(UiDetectionContext ctx)
+        {
+            try
+            {
+                // Qt aplikácie - UIA podporuje Qt 5.7+
+                var element = AutomationElement.FromPoint(
+                    new System.Windows.Point(ctx.ClickPoint.X, ctx.ClickPoint.Y));
+
+                if (element != null)
+                {
+                    return ExtractElementInfo(element, ctx.ClickPoint.X, ctx.ClickPoint.Y);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Qt] Detection failed: {ex.Message}");
+            }
+
+            return GetBasicWindowInfo(ctx.ClickPoint.X, ctx.ClickPoint.Y);
+        }
+
+        private static UiDetectionContext BuildDetectionContext(int x, int y)
+        {
+            var hwnd = WindowFromPoint(new POINT { x = x, y = y });
+            var className = GetClassName(hwnd);
+
+            GetWindowThreadProcessId(hwnd, out uint processId);
+            var processName = "";
+            try
+            {
+                using (var process = Process.GetProcessById((int)processId))
+                {
+                    processName = process.ProcessName;
+                }
+            }
+            catch { }
+
+            return new UiDetectionContext
+            {
+                Hwnd = hwnd,
+                ClickPoint = new System.Drawing.Point(x, y),
+                ClassName = className,
+                ProcessName = processName,
+                Framework = DetectFramework(hwnd)
+            };
+        }
     }
 }

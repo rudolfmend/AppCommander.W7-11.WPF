@@ -1,11 +1,11 @@
 ﻿<Window x:Class="AppCommander.W7_11.WPF.AboutWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="About Sercull" 
+        Title="About Senaro" 
         Height="650" Width="500"
         MinHeight="550" MinWidth="450"
         WindowStartupLocation="CenterScreen"
-        Icon="/Pictures/Sercull-logo-bright-star.ico"
+        Icon="/Pictures/Senaro-logo-bright-star.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI"
         FontSize="14"
@@ -27,7 +27,7 @@
             <StackPanel HorizontalAlignment="Center">
                 
                 <!-- App Logo -->
-                <Image Source="/Pictures/Sercull-logo.png"
+                <Image Source="/Pictures/Senaro-logo.png"
                        Width="100" 
                        Height="100"
                        RenderOptions.BitmapScalingMode="HighQuality"
@@ -135,7 +135,7 @@
                    Foreground="{DynamicResource SecondaryTextBrush}"
                    LineHeight="22"
                    Margin="0,0,0,15">
-            Sercull respects your privacy. This application does not collect, store, or transmit any personal data.
+            Senaro respects your privacy. This application does not collect, store, or transmit any personal data.
                         </TextBlock>
 
                         <Button Content="Learn More" 

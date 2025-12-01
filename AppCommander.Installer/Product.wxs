@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="*"
-			 Name="Sercull"
+			 Name="Senaro"
 			 Language="1033"
 			 Version="1.0.0.0"
 			 Manufacturer="Rudolf Mendzezof"
@@ -11,13 +11,13 @@
 				 Compressed="yes"
 				 InstallScope="perMachine"
 				 Platform="x64"
-				 Description="Sercull - Automation tool for Windows applications" />
+				 Description="Senaro - Automation tool for Windows applications" />
 
-		<Media Id="1" Cabinet="Sercull.cab" EmbedCab="yes" />
+		<Media Id="1" Cabinet="Senaro.cab" EmbedCab="yes" />
 		<MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
 
 		<!-- Hlavná feature -->
-		<Feature Id="ProductFeature" Title="Sercull" Level="1">
+		<Feature Id="ProductFeature" Title="Senaro" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 	</Product>
@@ -26,7 +26,7 @@
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFiles64Folder">
-				<Directory Id="INSTALLFOLDER" Name="Sercull" />
+				<Directory Id="INSTALLFOLDER" Name="Senaro" />
 			</Directory>
 		</Directory>
 	</Fragment>
@@ -37,8 +37,8 @@
 
 			<!-- Hlavný exe -->
 			<Component Id="MainExecutable" Guid="*" Win64="yes">
-				<File Id="SercullExe"
-					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Sercull.exe"
+				<File Id="SenaroExe"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Senaro.exe"
 					  KeyPath="yes" />
 			</Component>
 
@@ -52,7 +52,7 @@
 			<!-- App.config ak existuje -->
 			<Component Id="AppConfig" Guid="*" Win64="yes">
 				<File Id="AppConfigFile"
-					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Sercull.exe.config"
+					  Source="..\AppCommander.W7-11.WPF\bin\Debug\Senaro.exe.config"
 					  KeyPath="yes" />
 			</Component>
 

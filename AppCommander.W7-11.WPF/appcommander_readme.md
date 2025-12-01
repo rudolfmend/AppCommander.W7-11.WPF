@@ -1,6 +1,6 @@
-# Sercull
+# Senaro
 ## Automate Any App on Windows 7–11 
-**Sercull** is a lightweight Windows automation tool that allows you to:
+**Senaro** is a lightweight Windows automation tool that allows you to:
 - Automatically interact with other applications' text fields and buttons
 - Simulate input, calculations, and button clicks
 - Define, save, and load automation configurations
@@ -59,7 +59,7 @@ Simply download the latest `AppCommander.exe` from the [Releases](https://github
 ---
 
 ## 🤝 Contributing
-Issues and pull requests are welcome! Please feel free to contribute to making Sercull even better.
+Issues and pull requests are welcome! Please feel free to contribute to making Senaro even better.
 
 ---
 

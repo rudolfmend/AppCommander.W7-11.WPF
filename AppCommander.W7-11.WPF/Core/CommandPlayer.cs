@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Text;
 
 namespace AppCommander.W7_11.WPF.Core
 {
@@ -28,7 +29,32 @@ namespace AppCommander.W7_11.WPF.Core
         [DllImport("dwmapi.dll")]
         private static extern int DwmIsCompositionEnabled(out bool enabled);
 
+        // 🔽 PRIDAJ ODTERAZ:
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, string windowTitle);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
+
+        internal delegate bool EnumChildProc(IntPtr hwnd, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxLength);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder text, int maxLength);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const uint BM_CLICK = 0x00F5;
+
         #endregion
+
 
         #region Private Fields
 
@@ -360,6 +386,23 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
+        private void ExecuteSpinnerClick(UIElementInfo editElement, Command.SpinnerDirection direction)
+        {
+            var rect = editElement.BoundingRectangle;
+
+            int centerY = (int)(rect.Y + rect.Height / 2);
+
+            // UP/DOWN buttony sú vždy na pravej strane edit boxu
+            int clickX = (int)(rect.X + rect.Width - 10);
+
+            int clickY = direction == Command.SpinnerDirection.Up
+                ? (int)(rect.Y + rect.Height * 0.25)     // Horný button
+                : (int)(rect.Y + rect.Height * 0.75);    // Dolný button
+
+            actionSimulator.ClickAt(clickX, clickY);
+        }
+
+
         private async Task ExecuteCommandAsync(Command command, CancellationToken cancellationToken)
         {
             try
@@ -421,6 +464,22 @@ namespace AppCommander.W7_11.WPF.Core
         {
             try
             {
+                Debug.WriteLine("private async Task ExecuteClickCommand(Command command, CancellationToken cancellationToken) - Command details: " + command.ToString());
+
+                // 🔹 ŠPECIÁLNY FALLBACK: Win32 MessageBox / dialog
+                // Použijeme ho NAJME v prípadoch, kedy nahrávka mala "about:blank"
+                // alebo prázdny ElementName - presne tvoj prípad s MessageBox OK.
+                if (string.IsNullOrEmpty(command.ElementName) ||
+                    string.Equals(command.ElementName, "about:blank", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (TryClickWin32DialogButton(command))
+                    {
+                        Debug.WriteLine("private async Task ExecuteClickCommand - click bol obslúžený cez Win32 dialog helper.");
+                        await Task.Delay(50, cancellationToken);
+                        return;
+                    }
+                }
+
                 UIElementInfo targetElement = null;
 
                 Debug.WriteLine("private async Task ExecuteClickCommand(Command command, CancellationToken cancellationToken) - Command details: " + command.ToString());
@@ -470,6 +529,20 @@ namespace AppCommander.W7_11.WPF.Core
                 {
                     System.Diagnostics.Debug.WriteLine("Element search timed out after 5 seconds");
                 }
+
+                // === SPECIAL CASE: SPINNER ===
+                if (command.ElementControlType == "Spinner" && targetElement != null)
+                {
+                    // Default smer keď recorder nezaznamenal smer
+                    var dir = command.SpinnerAction == Command.SpinnerDirection.Down
+                        ? Command.SpinnerDirection.Down
+                        : Command.SpinnerDirection.Up;
+
+
+                    ExecuteSpinnerClick(targetElement, dir);
+                    return;
+                }
+
 
                 // Execute click
                 if (targetElement == null)
@@ -839,6 +912,114 @@ namespace AppCommander.W7_11.WPF.Core
         #endregion
 
         #region Helper Methods
+
+        /// <summary>
+        /// Pokusí sa nájsť Win32 MessageBox (#32770) a kliknúť na jeho tlačidlo (OK/Yes/Áno…).
+        /// Vracia true, ak klik prebehol.
+        /// </summary>
+        private bool TryClickWin32DialogButton(Command command)
+        {
+            try
+            {
+                // Nájdeme ľubovoľný Win32 dialog (MessageBox, CommonDialog...) - trieda #32770
+                IntPtr dlg = FindWindow("#32770", null);
+                if (dlg == IntPtr.Zero)
+                {
+                    Debug.WriteLine("[Win32Dialog] Žiadne dialog okno (#32770) nenašlo.");
+                    return false;
+                }
+
+                Debug.WriteLine("[Win32Dialog] Dialog okno nájdené, hľadám tlačidlo...");
+
+                // Kandidáti na titulok tlačidla
+                var possibleCaptions = new List<string>();
+
+                // Ak má Command nejaké meno, pridáme ho ako prvý kandidát (ak to nie je náš problémový about:blank)
+                if (!string.IsNullOrWhiteSpace(command.ElementName) &&
+                    !string.Equals(command.ElementName, "about:blank", StringComparison.OrdinalIgnoreCase))
+                {
+                    possibleCaptions.Add(command.ElementName.Trim());
+                }
+
+                // Typické labely pre OK/Yes/Áno a spol.
+                possibleCaptions.AddRange(new[]
+                {
+                    "OK", "Ok", "O K",
+                    "Áno", "Ano", "Yes",
+                    "Nie", "No",
+                    "&OK", "&Yes", "&Áno", "&Ano"
+                });
+
+                IntPtr foundButton = IntPtr.Zero;
+
+                EnumChildWindows(dlg, (hwnd, lParam) =>
+                {
+                    var classNameSb = new StringBuilder(64);
+                    GetClassName(hwnd, classNameSb, classNameSb.Capacity);
+
+                    // Nás zaujímajú len Button-y
+                    if (!string.Equals(classNameSb.ToString(), "Button", StringComparison.OrdinalIgnoreCase))
+                        return true; // pokračovať v enumerácii
+
+                    var textSb = new StringBuilder(256);
+                    GetWindowText(hwnd, textSb, textSb.Capacity);
+                    var caption = textSb.ToString().Trim();
+
+                    if (string.IsNullOrEmpty(caption))
+                        return true;
+
+                    foreach (var expected in possibleCaptions)
+                    {
+                        if (string.Equals(caption, expected, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Debug.WriteLine($"[Win32Dialog] Našiel som tlačidlo '{caption}'");
+                            foundButton = hwnd;
+                            return false; // stop enumerácia
+                        }
+                    }
+
+                    return true; // pokračovať
+                }, IntPtr.Zero);
+
+                // Ak sme nenašli nič podľa titulku, skúsime aspoň prvý Button v dialogu (default)
+                if (foundButton == IntPtr.Zero)
+                {
+                    Debug.WriteLine("[Win32Dialog] Nenašiel som zhodný titulok, beriem prvé Button okno.");
+
+                    EnumChildWindows(dlg, (hwnd, lParam) =>
+                    {
+                        var classNameSb = new StringBuilder(64);
+                        GetClassName(hwnd, classNameSb, classNameSb.Capacity);
+
+                        if (string.Equals(classNameSb.ToString(), "Button", StringComparison.OrdinalIgnoreCase))
+                        {
+                            foundButton = hwnd;
+                            return false; // stop
+                        }
+
+                        return true;
+                    }, IntPtr.Zero);
+                }
+
+                if (foundButton == IntPtr.Zero)
+                {
+                    Debug.WriteLine("[Win32Dialog] V dialogu sa nenašlo žiadne tlačidlo.");
+                    return false;
+                }
+
+                // Reálne kliknutie (BM_CLICK)
+                SendMessage(foundButton, BM_CLICK, IntPtr.Zero, IntPtr.Zero);
+                Debug.WriteLine("[Win32Dialog] BM_CLICK poslaný na tlačidlo dialogu.");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[Win32Dialog] Chyba pri pokuse kliknúť na dialog: " + ex.Message);
+                return false;
+            }
+        }
+
 
         private async Task FocusTargetWindow(Command command, CancellationToken cancellationToken)
         {

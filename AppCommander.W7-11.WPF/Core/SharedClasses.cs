@@ -934,7 +934,7 @@ namespace AppCommander.W7_11.WPF.Core
     /// <summary>
     /// Rozšírené informácie o UI elemente - .NET Framework 4.8 compatible
     /// </summary>
-    public class UIElementInfo
+    public partial class UIElementInfo
     {
         public UIElementInfo()
         {

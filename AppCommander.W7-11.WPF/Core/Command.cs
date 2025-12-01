@@ -7,8 +7,17 @@ using AppCommander.W7_11.WPF.Core;
 
 namespace AppCommander.W7_11.WPF.Core
 {
-    public class Command
+    public partial class Command
     {
+
+        public enum SpinnerDirection
+        {
+            Up,
+            Down
+        }
+
+        public SpinnerDirection SpinnerAction { get; set; } = SpinnerDirection.Up;
+
         public int StepNumber { get; set; }
         public string ElementName { get; set; } = string.Empty;
         public CommandType Type { get; set; }
@@ -24,6 +33,7 @@ namespace AppCommander.W7_11.WPF.Core
         public string ElementId { get; set; } = string.Empty;
         public string ElementClass { get; set; } = string.Empty;
         public string ElementControlType { get; set; } = string.Empty;
+        public string ElementTreePath { get; set; } = string.Empty; // Hierarchická cesta (napr. "Window[0]/Panel[2]/Button[1]")
         public int ElementX { get; set; }
         public int ElementY { get; set; }
 
@@ -136,6 +146,10 @@ namespace AppCommander.W7_11.WPF.Core
             if (!string.IsNullOrEmpty(elementInfo.ControlType) && string.IsNullOrEmpty(ElementControlType))
                 ElementControlType = elementInfo.ControlType;
 
+            // Aktualizuj TreePath (hierarchická cesta v UI strome)
+            if (!string.IsNullOrEmpty(elementInfo.TreePath) && string.IsNullOrEmpty(ElementTreePath))
+                ElementTreePath = elementInfo.TreePath;
+
             // Aktualizuj text informácie
             if (!string.IsNullOrEmpty(elementInfo.ElementText))
                 ElementText = elementInfo.ElementText;
@@ -166,19 +180,23 @@ namespace AppCommander.W7_11.WPF.Core
 
             // AutomationId má najvyššiu váhu
             if (!string.IsNullOrEmpty(ElementId) && !IsGenericId(ElementId))
-                confidence += 0.4;
+                confidence += 0.35;
+
+            // TreePath má vysokú váhu (hierarchická pozícia)
+            if (!string.IsNullOrEmpty(ElementTreePath))
+                confidence += 0.25;
 
             // Text má strednú váhu
             if (!string.IsNullOrEmpty(ElementText) && ElementText.Length > 1)
-                confidence += 0.3;
+                confidence += 0.20;
 
             // Name má nižšiu váhu
             if (!string.IsNullOrEmpty(ElementName) && !IsGenericName(ElementName))
-                confidence += 0.2;
+                confidence += 0.15;
 
             // Valid coordinates
             if (ElementX > 0 && ElementY > 0)
-                confidence += 0.1;
+                confidence += 0.05;
 
             ElementConfidence = Math.Min(confidence, 1.0);
         }

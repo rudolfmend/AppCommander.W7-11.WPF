@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -179,6 +180,9 @@ namespace AppCommander.W7_11.WPF.Core
             autoWindowDetector = new AutoWindowDetector();
             uiElementScanner = new UIElementScanner();
             windowContexts = new Dictionary<IntPtr, WindowContext>();
+
+            // OPRAVENÉ - AutomaticUIManager nemá parameter
+            automaticUIManager = new AutomaticUIManager();
 
             // Subscribe to hook events
             globalHook.KeyPressed += OnKeyPressed;
@@ -1217,7 +1221,7 @@ namespace AppCommander.W7_11.WPF.Core
                 }
 
                 // Zisti UI element na pozícii kliknutia
-                var elementInfo = UIElementDetector.GetElementAtPoint(e.X, e.Y);
+                var elementInfo = UIElementDetector.DetectElementWithRouting(e.X, e.Y);
 
                 // ════════════════════════════════════════
                 // 🆕 DEBUG LOG - Element Info
@@ -2275,6 +2279,75 @@ namespace AppCommander.W7_11.WPF.Core
         #region Helper Methods
 
         /// <summary>
+        /// Deteguje, či je teraz na obrazovke Win32 MessageBox (#32770)
+        /// a či kliknutý bod (x,y) spadol do jeho bounds.
+        /// </summary>
+        private IntPtr TryDetectMessageBoxAtPoint(int x, int y)
+        {
+            try
+            {
+                // Nájdeme každé okno triedy #32770 (dialog/messagebox)
+                IntPtr dialog = FindWindow("#32770", null);
+                if (dialog == IntPtr.Zero)
+                    return IntPtr.Zero;
+
+                // Získaj bounding rectangle
+                AutomationElement ae = AutomationElement.FromHandle(dialog);
+                if (ae == null)
+                    return IntPtr.Zero;
+
+                var rect = (System.Windows.Rect)ae.GetCurrentPropertyValue(AutomationElement.BoundingRectangleProperty);
+
+                // Skontroluj, že kliknutý bod je vo vnútri dialogu
+                if (rect.Contains(new System.Windows.Point(x, y)))
+                {
+                    Debug.WriteLine("📌 MessageBox detected at click location.");
+                    return dialog;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error detecting MessageBox: " + ex.Message);
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private string TryDetectDialogButtonName(IntPtr dialogHandle)
+        {
+            string result = null;
+
+            EnumChildWindows(dialogHandle, (child, _) =>
+            {
+                var sbClass = new StringBuilder(64);
+                GetClassName(child, sbClass, sbClass.Capacity);
+
+                if (sbClass.ToString() != "Button")
+                    return true;
+
+                var sbText = new StringBuilder(256);
+                GetWindowText(child, sbText, sbText.Capacity);
+
+                var text = sbText.ToString().Trim();
+                if (string.IsNullOrEmpty(text))
+                    return true;
+
+                // Typické názvy
+                if (new[] { "OK", "Yes", "No", "Cancel", "Áno", "Ano" }
+                    .Contains(text, StringComparer.OrdinalIgnoreCase))
+                {
+                    result = text;
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return result;
+        }
+
+
+        /// <summary>
         /// Skenuje UI elementy okna
         /// </summary>
         private List<UIElementInfo> ScanUIElements(IntPtr windowHandle)
@@ -2462,14 +2535,31 @@ namespace AppCommander.W7_11.WPF.Core
         #region Win32 API Imports
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, string windowTitle);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
+
+        internal delegate bool EnumChildProc(IntPtr hwnd, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxLength);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const uint BM_CLICK = 0x00F5;
+
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetParent(IntPtr hWnd);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
-
+        
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
