@@ -4,7 +4,7 @@
     xmlns:av="http://schemas.microsoft.com/expression/blend/2008" 
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
     xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
-    xmlns:controls="clr-namespace:AppCommander.W7_11.WPF.Controls"
+    xmlns:controls=  "clr-namespace:AppCommander.W7_11.WPF.Controls"
     xmlns:converters="clr-namespace:AppCommander.W7_11.WPF.Converters"
     mc:Ignorable="av" 
     x:Class="AppCommander.W7_11.WPF.MainWindow"

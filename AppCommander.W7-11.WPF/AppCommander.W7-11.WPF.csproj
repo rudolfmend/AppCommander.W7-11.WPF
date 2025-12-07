@@ -374,6 +374,9 @@
   <ItemGroup>
     <Resource Include="Pictures\Senaro-blue-wand-golden-circle–white.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Pictures\Senaro-big-background.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

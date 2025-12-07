@@ -3,7 +3,7 @@ using AppCommander.W7_11.WPF.Core.Managers;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace AppCommander.W7_11.WPF
+namespace AppCommander.W7_11.WPF.Controls
 {
     /// <summary>
     /// UserControl pre prepínanie používateľských režimov

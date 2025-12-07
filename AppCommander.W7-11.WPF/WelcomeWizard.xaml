@@ -1,8 +1,8 @@
 ﻿<Window x:Class="AppCommander.W7_11.WPF.WelcomeWizard"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Vitajte v Senaro" 
-        Height="500" Width="650"
+        Title="Welcome to Senaro" 
+        Height="766" Width="1430"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -10,10 +10,10 @@
         Background="Transparent">
 
     <Window.Resources>
-        <!-- Štýl pre veľké mode tlačidlá -->
+        <!-- Style for large mode buttons -->
         <Style x:Key="BigModeButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="130"/>
-            <Setter Property="Height" Value="120"/>
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="200"/>
             <Setter Property="Margin" Value="8"/>
             <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -43,7 +43,7 @@
             </Setter>
         </Style>
 
-        <!-- Štýl pre navigačné tlačidlá -->
+        <!-- Style for navigation buttons -->
         <Style x:Key="NavButtonStyle" TargetType="Button">
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="FontSize" Value="14"/>
@@ -89,11 +89,17 @@
             <Border Grid.Row="0" Background="{DynamicResource AccentBrush}" Padding="20">
                 <Grid>
                     <StackPanel>
-                        <TextBlock Text="✨ Vitajte v Senaro" 
-                                   FontSize="24" FontWeight="Bold" 
+                        <TextBlock Text="✨ Welcome " 
+                                   FontSize="24" FontWeight="UltraLight" 
                                    Foreground="White"/>
+
+                        <TextBlock Text="How will you be using Senaro?" 
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,2"/>
                         <TextBlock x:Name="TxtSubtitle" 
-                                   Text="Krok 1 z 3 - Vyberte váš profil" 
+                                   Text="Step 1 of 3 - Select your profile" 
                                    FontSize="14" 
                                    Foreground="#CCFFFFFF"
                                    Margin="0,4,0,0"/>
@@ -116,14 +122,16 @@
             <!-- Content Area -->
             <Grid Grid.Row="1" Margin="20">
 
+
+                <!-- App Logo -->
+                <Image Source="/Pictures/Senaro-big-background.png"
+                           Localization.Comments="App logo"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Stretch="UniformToFill" Margin="-101,-20,-23,266" />
+
                 <!-- Step 1: Mode Selection -->
                 <Grid x:Name="Step1_ModeSelection">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Ako budete používať Senaro?" 
-                                   FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource PrimaryTextBrush}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,20"/>
+                    <StackPanel VerticalAlignment="Bottom">
 
                         <WrapPanel HorizontalAlignment="Center">
                             <!-- Accountant -->
@@ -131,11 +139,11 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectAccountant_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🧾" FontSize="36" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Ekonóm" FontWeight="SemiBold" 
+                                    <TextBlock Text="🧾" FontSize="40" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Accountant" FontWeight="SemiBold" 
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Dokumenty" FontSize="11"
+                                    <TextBlock Text="Documents" FontSize="14"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -146,26 +154,27 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectTester_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🧪" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🧪" FontSize="40" HorizontalAlignment="Center"/>
                                     <TextBlock Text="Tester" FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="UI testovanie" FontSize="11"
+                                    <TextBlock Text="UI Testing" FontSize="14"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Worker -->
+                            <!-- 
+                            -->
                             <Button x:Name="BtnSelectWorker" 
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectWorker_Click">
                                 <StackPanel>
-                                    <TextBlock Text="👨‍💼" FontSize="36" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Administratíva" FontWeight="SemiBold"
+                                    <TextBlock Text="📝" FontSize="40" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Office Worker" FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Prehrávanie" FontSize="11"
+                                    <TextBlock Text="Playback" FontSize="14"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -176,11 +185,11 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectDeveloper_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🛠️" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🛠️" FontSize="40" HorizontalAlignment="Center"/>
                                     <TextBlock Text="Developer" FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Všetko" FontSize="11"
+                                    <TextBlock Text="All Features" FontSize="14"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -188,7 +197,7 @@
                         </WrapPanel>
 
                         <TextBlock x:Name="TxtModeDescription" 
-                                   Text="Vyberte profil ktorý najlepšie popisuje vašu prácu"
+                                   Text="Select the profile that best describes your work"
                                    FontSize="13"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center"
@@ -203,7 +212,7 @@
                 <Grid x:Name="Step2_Settings" Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400">
                         <TextBlock x:Name="TxtStep2Title" 
-                                   Text="Nastavenia pre váš profil" 
+                                   Text="Settings for your profile" 
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    HorizontalAlignment="Center"
@@ -212,11 +221,11 @@
                         <!-- Accountant Settings -->
                         <StackPanel x:Name="AccountantSettings" Visibility="Collapsed">
                             <CheckBox x:Name="ChkAutoProcess" 
-                                      Content="Automaticky spracovať nové súbory"
+                                      Content="Auto-process new files"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       Margin="0,8"/>
                             <StackPanel Orientation="Horizontal" Margin="0,8">
-                                <TextBlock Text="Výstupný formát:" VerticalAlignment="Center" Margin="0,0,10,0"
+                                <TextBlock Text="Output format:" VerticalAlignment="Center" Margin="0,0,10,0"
                                            Foreground="{DynamicResource PrimaryTextBrush}"/>
                                 <ComboBox x:Name="CmbOutputFormat" Width="120">
                                     <ComboBoxItem Content="Excel" IsSelected="True"/>
@@ -228,16 +237,16 @@
                         <!-- Tester Settings -->
                         <StackPanel x:Name="TesterSettings" Visibility="Collapsed">
                             <CheckBox x:Name="ChkEnableInspector" 
-                                      Content="Povoliť UI Inspector"
+                                      Content="Enable UI Inspector"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       IsChecked="True"
                                       Margin="0,8"/>
                             <CheckBox x:Name="ChkDebugOverlay" 
-                                      Content="Povoliť Debug Overlay"
+                                      Content="Enable Debug Overlay"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       Margin="0,8"/>
                             <CheckBox x:Name="ChkRealtimeHighlight" 
-                                      Content="Realtime highlight elementov"
+                                      Content="Real-time element highlighting"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       IsChecked="True"
                                       Margin="0,8"/>
@@ -246,7 +255,7 @@
                         <!-- Worker Settings -->
                         <StackPanel x:Name="WorkerSettings" Visibility="Collapsed">
                             <CheckBox x:Name="ChkShowRecommended" 
-                                      Content="Zobraziť odporúčané sekvencie"
+                                      Content="Show recommended sequences"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       IsChecked="True"
                                       Margin="0,8"/>
@@ -259,12 +268,12 @@
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       Margin="0,8"/>
                             <CheckBox x:Name="ChkDebugModules" 
-                                      Content="Povoliť debug moduly"
+                                      Content="Enable debug modules"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       IsChecked="True"
                                       Margin="0,8"/>
                             <CheckBox x:Name="ChkAutoDebugConsole" 
-                                      Content="Automaticky otvoriť debug konzolu"
+                                      Content="Auto-open debug console"
                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                       Margin="0,8"/>
                         </StackPanel>
@@ -275,21 +284,21 @@
                 <Grid x:Name="Step3_Finish" Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="✅" FontSize="48" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Všetko je pripravené!" 
+                        <TextBlock Text="All set!" 
                                    FontSize="24" FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    HorizontalAlignment="Center"
                                    Margin="0,16,0,8"/>
 
                         <TextBlock x:Name="TxtFinishSummary"
-                                   Text="Profil: Developer"
+                                   Text="Profile: Developer"
                                    FontSize="14"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,4"/>
 
                         <TextBlock x:Name="TxtFinishFeatures"
-                                   Text="Aktívne funkcie: Recording, Playback, Debug"
+                                   Text="Active features: Recording, Playback, Debug"
                                    FontSize="12"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center"
@@ -297,7 +306,7 @@
                                    TextAlignment="Center"
                                    MaxWidth="350"/>
 
-                        <TextBlock Text="Režim môžete kedykoľvek zmeniť v pravom hornom rohu."
+                        <TextBlock Text="You can change your mode anytime in the top-right corner."
                                    FontSize="12"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center"
@@ -321,7 +330,7 @@
 
                     <Button x:Name="BtnBack" 
                             Grid.Column="0"
-                            Content="← Späť" 
+                            Content="← Back" 
                             Style="{StaticResource NavButtonStyle}"
                             Background="{DynamicResource SecondaryButtonBrush}"
                             Click="BtnBack_Click"
@@ -339,7 +348,7 @@
 
                     <Button x:Name="BtnNext" 
                             Grid.Column="2"
-                            Content="Ďalej →" 
+                            Content="Next →" 
                             Style="{StaticResource NavButtonStyle}"
                             Click="BtnNext_Click"
                             IsEnabled="False"/>

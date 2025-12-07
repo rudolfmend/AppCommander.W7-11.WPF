@@ -73,6 +73,111 @@
 
     <!-- Button Styles -->
 
+    <!--User Mode Ribbon Button - ActiveModeButtonStyle-->
+
+    <!-- Shine overlay, blue gradient effect, hover state, active state -->
+    <Style x:Key="ActiveModeButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="LightGray"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="FontWeight" Value="UltraLight"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="MaxHeight" Value="40"/>
+        <Setter Property="Effect" Value="{StaticResource ElevationMedium}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="border"
+                                BorderBrush="Transparent"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <Border.Background>
+                                <SolidColorBrush Color="#569CD6"/>
+                            </Border.Background>
+                            <ContentPresenter x:Name="contentPresenter"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <!-- Shine overlay -->
+                        <Border x:Name="shineBorder"
+                            CornerRadius="4"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#60FFFFFF" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="0.5"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- Hover effect -->
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.05"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                                                     To="1.05"
+                                                     Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="shineBorder"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                        To="0.4"
+                                                        Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="border"
+                             Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                             To="1.0"
+                             Duration="0:0:0.3"/>
+                                    <DoubleAnimation Storyboard.TargetName="shineBorder"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                        To="0"
+                                                        Duration="0:0:0.3"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <!-- Pressed state -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            <Setter Property="Foreground" Value="#999999"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- 🎯 RECORD BUTTON - Červený s pulzujúcou animáciou -->
     <Style x:Key="RecordButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>

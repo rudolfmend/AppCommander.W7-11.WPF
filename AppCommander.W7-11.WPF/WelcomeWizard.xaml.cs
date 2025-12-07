@@ -145,26 +145,26 @@ namespace AppCommander.W7_11.WPF
             {
                 case 1:
                     Step1_ModeSelection.Visibility = Visibility.Visible;
-                    TxtSubtitle.Text = "Krok 1 z 3 - Vyberte váš profil";
+                    TxtSubtitle.Text = "Step 1 of 3 - Select your profile";
                     BtnBack.Visibility = Visibility.Collapsed;
-                    BtnNext.Content = "Ďalej →";
+                    BtnNext.Content = "Next →";
                     BtnNext.IsEnabled = false; // Dokiaľ nevyberie režim
                     break;
 
                 case 2:
                     Step2_Settings.Visibility = Visibility.Visible;
-                    TxtSubtitle.Text = "Krok 2 z 3 - Nastavenia";
+                    TxtSubtitle.Text = "Step 2 of 3 - Settings";
                     BtnBack.Visibility = Visibility.Visible;
-                    BtnNext.Content = "Ďalej →";
+                    BtnNext.Content = "Next →";
                     BtnNext.IsEnabled = true;
                     ShowModeSpecificSettings();
                     break;
 
                 case 3:
                     Step3_Finish.Visibility = Visibility.Visible;
-                    TxtSubtitle.Text = "Krok 3 z 3 - Hotovo";
+                    TxtSubtitle.Text = "Step 3 of 3 - Finish";
                     BtnBack.Visibility = Visibility.Visible;
-                    BtnNext.Content = "Spustiť Senaro ✨";
+                    BtnNext.Content = "Start Senaro ✨";
                     BtnNext.IsEnabled = true;
                     UpdateFinishSummary();
                     break;
@@ -182,7 +182,7 @@ namespace AppCommander.W7_11.WPF
             WorkerSettings.Visibility = Visibility.Collapsed;
             DeveloperSettings.Visibility = Visibility.Collapsed;
 
-            TxtStep2Title.Text = $"Nastavenia pre {_selectedMode.GetIcon()} {_selectedMode.GetDisplayName()}";
+            TxtStep2Title.Text = $"Settings for {_selectedMode.GetIcon()} {_selectedMode.GetDisplayName()}";
 
             // Zobraz príslušný panel
             switch (_selectedMode)
@@ -286,13 +286,13 @@ namespace AppCommander.W7_11.WPF
 
         private void UpdateFinishSummary()
         {
-            TxtFinishSummary.Text = $"Profil: {_selectedMode.GetIcon()} {_selectedMode.GetDisplayName()}";
+            TxtFinishSummary.Text = $"Profile: {_selectedMode.GetIcon()} {_selectedMode.GetDisplayName()}";
 
             // Dočasne nastavíme režim pre získanie features
             _modeManager.SetMode(_selectedMode);
 
             var features = _modeManager.GetEnabledFeatures();
-            TxtFinishFeatures.Text = $"Aktívne funkcie: {string.Join(", ", features)}";
+            TxtFinishFeatures.Text = $"Active features: {string.Join(", ", features)}";
         }
 
         #endregion

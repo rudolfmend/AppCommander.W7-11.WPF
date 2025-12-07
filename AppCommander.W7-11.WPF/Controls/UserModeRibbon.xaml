@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AppCommander.W7_11.WPF.UserModeRibbon"
+﻿<UserControl x:Class="AppCommander.W7_11.WPF.Controls.UserModeRibbon"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,7 @@
              d:DesignHeight="40" d:DesignWidth="300">
 
     <UserControl.Resources>
-        <!-- Štýl pre mode tlačidlá -->
+        <!-- Style for mode buttons -->
         <Style x:Key="ModeButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -39,35 +39,6 @@
             </Setter>
         </Style>
 
-        <!-- Štýl pre aktívne mode tlačidlo -->
-        <Style x:Key="ActiveModeButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" 
-                                Background="{TemplateBinding Background}" 
-                                BorderBrush="{DynamicResource AccentBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource PanelBackgroundBrush}" 
@@ -81,28 +52,28 @@
             <Button x:Name="BtnAccountant" 
                     Content="🧾" 
                     Click="BtnAccountant_Click"
-                    ToolTip="Ekonóm - Spracovanie dokumentov"
+                    ToolTip="Accountant - Document processing"
                     Style="{StaticResource ModeButtonStyle}"/>
 
             <!-- Tester Mode -->
             <Button x:Name="BtnTester" 
                     Content="🧪" 
                     Click="BtnTester_Click"
-                    ToolTip="Tester - UI testovanie a recording"
+                    ToolTip="Tester - UI testing and recording"
                     Style="{StaticResource ModeButtonStyle}"/>
 
             <!-- Worker Mode -->
             <Button x:Name="BtnWorker" 
-                    Content="👨‍💼" 
+                    Content="📝" 
                     Click="BtnWorker_Click"
-                    ToolTip="Administratíva - Prehrávanie sekvencií"
+                    ToolTip="Office Worker - Playback sequences"
                     Style="{StaticResource ModeButtonStyle}"/>
 
             <!-- Developer Mode -->
             <Button x:Name="BtnDeveloper" 
                     Content="🛠️" 
                     Click="BtnDeveloper_Click"
-                    ToolTip="Developer - Všetky funkcie"
+                    ToolTip="Developer - All features"
                     Style="{StaticResource ModeButtonStyle}"/>
 
             <!-- Separator -->

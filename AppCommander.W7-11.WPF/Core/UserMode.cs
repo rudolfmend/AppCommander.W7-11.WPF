@@ -18,7 +18,7 @@ namespace AppCommander.W7_11.WPF.Core
         Tester,
 
         /// <summary>
-        /// 👨‍💼 Administratívny pracovník - prehrávanie sekvencií, základné ovládanie
+        /// 📝 Administratívny pracovník - prehrávanie sekvencií, základné ovládanie
         /// </summary>
         Worker,
 
@@ -45,7 +45,7 @@ namespace AppCommander.W7_11.WPF.Core
                 case UserMode.Tester:
                     return "🧪";
                 case UserMode.Worker:
-                    return "👨‍💼";
+                    return "📝";
                 case UserMode.Developer:
                     return "🛠️";
                 default:
@@ -61,15 +61,15 @@ namespace AppCommander.W7_11.WPF.Core
             switch (mode)
             {
                 case UserMode.Accountant:
-                    return "Ekonóm";
+                    return "Accountant";
                 case UserMode.Tester:
                     return "Tester";
                 case UserMode.Worker:
-                    return "Administratíva";
+                    return "Office Worker";
                 case UserMode.Developer:
                     return "Developer";
                 default:
-                    return "Neznámy";
+                    return "Unknown";
             }
         }
 
@@ -81,13 +81,13 @@ namespace AppCommander.W7_11.WPF.Core
             switch (mode)
             {
                 case UserMode.Accountant:
-                    return "Spracovanie dokumentov a faktúr. Minimálne rozhranie bez pokročilých funkcií.";
+                    return "Processing documents and invoices. Minimal interface without advanced features.";
                 case UserMode.Tester:
-                    return "Testovanie UI elementov, recording akcií, debug nástroje.";
+                    return "Testing UI elements, recording actions, debug tools.";
                 case UserMode.Worker:
-                    return "Prehrávanie sekvencií a základné ovládanie. Bez recording funkcií.";
+                    return "Playing sequences and basic controls. No recording features.";
                 case UserMode.Developer:
-                    return "Všetky funkcie odomknuté. Debug panely, logy, editor.";
+                    return "All features unlocked. Debug panels, logs, editor.";
                 default:
                     return "";
             }
