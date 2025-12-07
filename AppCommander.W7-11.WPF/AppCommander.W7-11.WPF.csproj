@@ -227,6 +227,14 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\UserModeRibbon.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WelcomeWizard.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="WindowClickOverlay.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -242,8 +250,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Converters\ModeToVisibilityConverter.cs" />
     <Compile Include="Core\ActionSimulator.cs" />
     <Compile Include="Core\AdaptiveElementFinder.cs" />
+    <Compile Include="Core\AppSettings.cs" />
     <Compile Include="Core\AutomaticUIManager.cs" />
     <Compile Include="Core\Command.cs" />
     <Compile Include="Core\CommandExecutionManager.cs" />
@@ -260,11 +270,13 @@
     <Compile Include="Core\Managers\SequenceManager.cs" />
     <Compile Include="Core\Managers\TableOperationsManager.cs" />
     <Compile Include="Core\Managers\ThemeManager.cs" />
+    <Compile Include="Core\Managers\UserModeManager.cs" />
     <Compile Include="Core\SharedClasses.cs" />
     <Compile Include="Core\TableCellDetector.cs" />
     <Compile Include="Core\Tests\UIElementDetectorTests.cs" />
     <Compile Include="Core\UIElementDetector.cs" />
     <Compile Include="Core\UnifiedItem.cs" />
+    <Compile Include="Core\UserMode.cs" />
     <Compile Include="Core\WindowClickSelector.cs" />
     <Compile Include="Core\WindowDetectionTester.cs" />
     <Compile Include="Core\WindowTracker.cs" />
@@ -292,6 +304,12 @@
     </Compile>
     <Compile Include="UserGuideWindow.xaml.cs">
       <DependentUpon>UserGuideWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\UserModeRibbon.xaml.cs">
+      <DependentUpon>UserModeRibbon.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WelcomeWizard.xaml.cs">
+      <DependentUpon>WelcomeWizard.xaml</DependentUpon>
     </Compile>
     <Compile Include="WindowClickOverlay.xaml.cs">
       <DependentUpon>WindowClickOverlay.xaml</DependentUpon>

@@ -3,6 +3,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:av="http://schemas.microsoft.com/expression/blend/2008" 
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:local="clr-namespace:AppCommander.W7_11.WPF"
+    xmlns:controls="clr-namespace:AppCommander.W7_11.WPF.Controls"
+    xmlns:converters="clr-namespace:AppCommander.W7_11.WPF.Converters"
     mc:Ignorable="av" 
     x:Class="AppCommander.W7_11.WPF.MainWindow"
     Title="Senaro" 
@@ -24,71 +27,85 @@
         </Grid.RowDefinitions>
 
         <!-- ====================================================================== -->
-        <!-- Menu Bar -->
+        <!-- Menu Bar - OPRAVENÉ: Grid wrapper pre Menu + UserModeRibbon -->
         <Border Grid.Row="0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <Menu x:Name="AppCommander_MenuBar" AutomationProperties.Name="Main Menu" Background="Transparent" Padding="8" Margin="1,0,-1,0">
-                <MenuItem x:Name="MenuItemFile" Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem x:Name="MenuItemNewSequence" Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemOpenSequence" Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
-                    <Separator Margin="-20,4,10,4"/>
-                    <MenuItem x:Name="MenuItemSaveSequence" Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemSaveSequenceAs" Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{DynamicResource MenuItemStyle}" />
-                    <Separator Margin="-20,4,10,4"/>
-                    <MenuItem x:Name="MenuItemExit" Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
-                </MenuItem>
+                <Menu x:Name="AppCommander_MenuBar" 
+                      Grid.Column="0"
+                      AutomationProperties.Name="Main Menu" 
+                      Background="Transparent" 
+                      Padding="8" 
+                      Margin="1,0,-1,0">
+                    <MenuItem x:Name="MenuItemFile" Header="_File" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                        <MenuItem x:Name="MenuItemNewSequence" Header="_New Sequence" Click="NewSequence_Click" InputGestureText="Ctrl+N" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemOpenSequence" Header="_Open Sequence..." Click="OpenSequence_Click" InputGestureText="Ctrl+O" Style="{DynamicResource MenuItemStyle}" />
+                        <Separator Margin="-20,4,10,4"/>
+                        <MenuItem x:Name="MenuItemSaveSequence" Header="_Save Sequence" Click="SaveSequence_Click" InputGestureText="Ctrl+S" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemSaveSequenceAs" Header="Save Sequence _As..." Click="SaveSequenceAs_Click" InputGestureText="Ctrl+Shift+S" Style="{DynamicResource MenuItemStyle}" />
+                        <Separator Margin="-20,4,10,4"/>
+                        <MenuItem x:Name="MenuItemExit" Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4" Style="{DynamicResource MenuItemStyle}" />
+                    </MenuItem>
 
-                <MenuItem x:Name="MenuItemCommands" Header="_Commands" AutomationProperties.Name="Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem x:Name="MenuItemAddWaitCommand" Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemAddLoopStart" Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemAddLoopEnd" Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <Separator Margin="-20,4,10,4"/>
-                    <MenuItem x:Name="MenuItemEditSelectedCommand" Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemDeleteSelectedCommand" Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
-                </MenuItem>
+                    <MenuItem x:Name="MenuItemCommands" Header="_Commands" AutomationProperties.Name="Commands" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                        <MenuItem x:Name="MenuItemAddWaitCommand" Header="Add _Wait Command..." Click="AddWaitCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemAddLoopStart" Header="Add _Loop Start" Click="AddLoopStart_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemAddLoopEnd" Header="Add Loop _End" Click="AddLoopEnd_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <Separator Margin="-20,4,10,4"/>
+                        <MenuItem x:Name="MenuItemEditSelectedCommand" Header="_Edit Selected Command..." Click="EditCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemDeleteSelectedCommand" Header="_Delete Selected Command" Click="DeleteCommand_Click" Style="{DynamicResource MenuItemStyle}" />
+                    </MenuItem>
 
-                <MenuItem x:Name="MenuItemTools" Header="_Tools" AutomationProperties.Name="Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem x:Name="MenuItemWindowSelector" Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemElementInspector" Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemSettings" Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
-                </MenuItem>
+                    <MenuItem x:Name="MenuItemTools" Header="_Tools" AutomationProperties.Name="Tools" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                        <MenuItem x:Name="MenuItemWindowSelector" Header="_Window Selector" Click="WindowSelector_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemElementInspector" Header="_Element Inspector" Click="ElementInspector_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemSettings" Header="_Settings" Click="Settings_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <Separator Margin="-20,4,10,4"/>
+                        <MenuItem x:Name="MenuItemWelcomeWizard" Header="_Welcome Wizard..." Click="WelcomeWizard_Click" Style="{DynamicResource MenuItemStyle}" />
+                    </MenuItem>
 
-                <MenuItem x:Name="MenuItemThemes" Header="Th_emes" AutomationProperties.Name="Themes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem x:Name="MenuItemThemeSystem" Header="System Default" IsCheckable="True" 
-                              Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
-                    <Separator Margin="-20,4,10,4"/>
-                    <MenuItem  x:Name="MenuItemThemeLight"  Header="Light Theme" AutomationProperties.Name="Light Theme" IsCheckable="True" 
-                    Click="ThemeMenuItem_Click" Tag="Light" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem x:Name="MenuItemThemeDark" Header="Dark Theme" AutomationProperties.Name="Dark Theme" IsCheckable="True" 
-                    Click="ThemeMenuItem_Click" Tag="Dark" Style="{DynamicResource MenuItemStyle}"/>
-                    <MenuItem x:Name="MenuItemThemeHighContrast" Header="High Contrast" AutomationProperties.Name="High Contrast Theme" IsCheckable="True" 
-                    Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{DynamicResource MenuItemStyle}"/>
-                </MenuItem>
+                    <MenuItem x:Name="MenuItemThemes" Header="Th_emes" AutomationProperties.Name="Themes" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                        <MenuItem x:Name="MenuItemThemeSystem" Header="System Default" IsCheckable="True" 
+                                  Click="ThemeMenuItem_Click" Tag="System" Style="{DynamicResource MenuItemStyle}" />
+                        <Separator Margin="-20,4,10,4"/>
+                        <MenuItem  x:Name="MenuItemThemeLight"  Header="Light Theme" AutomationProperties.Name="Light Theme" IsCheckable="True" 
+                        Click="ThemeMenuItem_Click" Tag="Light" Style="{DynamicResource MenuItemStyle}"/>
+                        <MenuItem x:Name="MenuItemThemeDark" Header="Dark Theme" AutomationProperties.Name="Dark Theme" IsCheckable="True" 
+                        Click="ThemeMenuItem_Click" Tag="Dark" Style="{DynamicResource MenuItemStyle}"/>
+                        <MenuItem x:Name="MenuItemThemeHighContrast" Header="High Contrast" AutomationProperties.Name="High Contrast Theme" IsCheckable="True" 
+                        Click="ThemeMenuItem_Click" Tag="HighContrast" Style="{DynamicResource MenuItemStyle}"/>
+                    </MenuItem>
 
-                <MenuItem x:Name="MenuItemHelp" Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
-                    <MenuItem x:Name="MenuItemUserGuide" Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemAbout" Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
-                    <MenuItem x:Name="MenuItemPrivacyPolicy" Header="_Personal Data Protection" Click="PrivacyPolicy_Click" Style="{DynamicResource MenuItemStyle}" />
-                </MenuItem>
-            </Menu>
+                    <MenuItem x:Name="MenuItemHelp" Header="_Help" AutomationProperties.Name="Help" Foreground="{DynamicResource PrimaryTextBrush}" Style="{DynamicResource TopLevelMenuItem}">
+                        <MenuItem x:Name="MenuItemUserGuide" Header="_User Guide" Click="UserGuide_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemAbout" Header="_About" Click="About_Click" Style="{DynamicResource MenuItemStyle}" />
+                        <MenuItem x:Name="MenuItemPrivacyPolicy" Header="_Personal Data Protection" Click="PrivacyPolicy_Click" Style="{DynamicResource MenuItemStyle}" />
+                    </MenuItem>
+                </Menu>
+
+                <!-- UserMode Ribbon - vpravo hore (Controls namespace) -->
+                <controls:UserModeRibbon x:Name="UserModeRibbon" 
+                                      Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,16,0"/>
+            </Grid>
         </Border>
 
         <!-- Toolbar -->
-
         <Border x:Name="TopBar" Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" 
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16">
-            
+
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Target Selection -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,24,0"
                         AutomationProperties.Name="Recording Controls">
-                    <!--AutomationProperties.ControlType="Group"-->
-
                     <TextBlock Text="Main Content Area"
                     Visibility="Collapsed"
                     AutomationProperties.Name="Tool Bar Area"/>
-                    <!--AutomationProperties.ControlType="Header"-->
-
                 </StackPanel>
 
                 <!-- Recording Controls -->
@@ -118,22 +135,20 @@
                         <TextBlock Text="Repeat" VerticalAlignment="Center" Margin="12,0,9,0" AutomationProperties.Name="Repeat" 
                             FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                         <TextBox x:Name="AppCommander_TxtRepeatCount" 
-         Text="1" 
-         AutomationProperties.Name="Repeat count" 
-         AutomationProperties.HelpText="Write the number of repetitions"
-         Style="{DynamicResource TextBoxStyle}"     
-         Width="50"  
-         TextAlignment="Center" 
-         Margin="10,0,15,18"
-         KeyDown="AppCommander_TxtRepeatCount_KeyDown"
-         PreviewMouseWheel="AppCommander_TxtRepeatCount_PreviewMouseWheel"
-         PreviewKeyDown="AppCommander_TxtRepeatCount_PreviewKeyDown"
-         PreviewTextInput="AppCommander_TxtRepeatCount_PreviewTextInput"
-         LostFocus="AppCommander_TxtRepeatCount_LostFocus"
-         MaxLength="4"
-         ToolTip="Use mouse wheel or arrow keys to change value&#x0a;Ctrl + wheel/arrow = ±10&#x0a;Shift + wheel/arrow = ±5"/>
-
-
+                             Text="1" 
+                             AutomationProperties.Name="Repeat count" 
+                             AutomationProperties.HelpText="Write the number of repetitions"
+                             Style="{DynamicResource TextBoxStyle}"     
+                             Width="50"  
+                             TextAlignment="Center" 
+                             Margin="10,0,15,18"
+                             KeyDown="AppCommander_TxtRepeatCount_KeyDown"
+                             PreviewMouseWheel="AppCommander_TxtRepeatCount_PreviewMouseWheel"
+                             PreviewKeyDown="AppCommander_TxtRepeatCount_PreviewKeyDown"
+                             PreviewTextInput="AppCommander_TxtRepeatCount_PreviewTextInput"
+                             LostFocus="AppCommander_TxtRepeatCount_LostFocus"
+                             MaxLength="4"
+                             ToolTip="Use mouse wheel or arrow keys to change value&#x0a;Ctrl + wheel/arrow = ±10&#x0a;Shift + wheel/arrow = ±5"/>
                     </StackPanel>
 
                     <CheckBox x:Name="AppCommander_ChkInfiniteLoop" Content="endless" VerticalAlignment="Center" 
@@ -160,7 +175,6 @@
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
-
         </Border>
 
         <!-- Main Content -->
@@ -169,9 +183,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="10" />
-                <!-- Medzera pred toggle tlačidloť -->
                 <ColumnDefinition Width="Auto"/>
-                <!-- Pre toggle tlačidlo -->
                 <ColumnDefinition x:Name="SidePanelColumn" Width="320"/>
             </Grid.ColumnDefinitions>
 
@@ -193,7 +205,6 @@
                         </Grid>
 
                         <!-- DataGrid -->
-
                         <DataGrid Grid.Row="1" x:Name="AppCommander_MainCommandTable" Style="{DynamicResource DataGridStyle}"
                             AutomationProperties.Name="Main command table"
                             AutomationProperties.HelpText="Main command table"
@@ -277,24 +288,24 @@
                             </Grid.RenderTransform>
 
                             <Border x:Name="RightBorder"
-                Width="30"
-                Height="{Binding ActualHeight, ElementName=RootGrid}"
-                BorderBrush="Transparent"
-                BorderThickness="3,2,0,2"
-                CornerRadius="25,0,0,25"
-                VerticalAlignment="Stretch">
+                                Width="30"
+                                Height="{Binding ActualHeight, ElementName=RootGrid}"
+                                BorderBrush="Transparent"
+                                BorderThickness="3,2,0,2"
+                                CornerRadius="25,0,0,25"
+                                VerticalAlignment="Stretch">
                                 <Border.Background>
                                     <SolidColorBrush Color="#569CD6"/>
                                 </Border.Background>
                             </Border>
 
                             <Viewbox Width="20" Height="20" 
-                     HorizontalAlignment="Center" 
-                     VerticalAlignment="Center">
+                                     HorizontalAlignment="Center" 
+                                     VerticalAlignment="Center">
                                 <Canvas Width="26" Height="24">
                                     <Path x:Name="ToggleIconPath" 
-                          Fill="{DynamicResource PrimaryTextBrush}"
-                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                                          Fill="{DynamicResource PrimaryTextBrush}"
+                                          Data="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
                                 </Canvas>
                             </Viewbox>
                         </Grid>
@@ -305,18 +316,17 @@
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="RootGrid"
-                           Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
-                           To="1.1" Duration="0:0:0.3"/>
+                                               Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleX)"
+                                               To="1.1" Duration="0:0:0.3"/>
                                             <DoubleAnimation Storyboard.TargetName="RootGrid"
-                           Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
-                           To="1.0" Duration="0:0:0.3"/>
+                                               Storyboard.TargetProperty="(RenderTransform).(ScaleTransform.ScaleY)"
+                                               To="1.0" Duration="0:0:0.3"/>
                                             <ColorAnimation Storyboard.TargetName="RightBorder"
-                          Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                          To="#4A86BA" Duration="0:0:0.3"/>
+                                              Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                              To="#4A86BA" Duration="0:0:0.3"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
-
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
@@ -332,19 +342,16 @@
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
-
                             </Trigger>
-
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="RightBorder" Property="Background" Value="#3A73A0"/>
                             </Trigger>
-
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
             </Button>
 
-            <!-- Side Panel  -  ScrollViewer  -->
+            <!-- Side Panel -->
             <ScrollViewer x:Name="AppCommander_SidePanel" 
                     Grid.Column="4" 
                     VerticalScrollBarVisibility="Auto" 
@@ -364,7 +371,6 @@
                             <Border x:Name="AppCommander_SelectionModeIndicator" 
                                     BorderThickness="1" 
                                     CornerRadius="4" Padding="8" Margin="0,0,0,12" Visibility="Collapsed">
-
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🎯" Margin="0,0,6,0"/>
                                     <TextBlock x:Name="AppCommander_TxtSelectionMode" Text="Click Selection Active" 
@@ -397,7 +403,6 @@
 
                             <!-- Quick Actions -->
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-
                                 <Button x:Name="AppCommander_BtnQuickReselect" Content="🔄 Select" 
                                     Click="SelectTargetByClick_Click" 
                                     Style="{DynamicResource SecondaryButton}" 
@@ -411,8 +416,11 @@
                                     AutomationProperties.HelpText="Browse and select a target window manually"
                                     Height="34" Padding="8,4" FontSize="12"/>
 
-                                <CheckBox x:Name="AppCommander_ChkAutoStartRecording" Style="{DynamicResource CheckBox}" />
-
+                                <!-- OPRAVENÉ: Odstránený neexistujúci CheckBox štýl -->
+                                <CheckBox x:Name="AppCommander_ChkAutoStartRecording" 
+                                          Content="Auto" 
+                                          VerticalAlignment="Center"
+                                          Margin="8,0,0,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -510,7 +518,6 @@
                     MinHeight="5" MaxHeight="15" />
         </Border>
 
-        <!-- ================================================================================================================ -->
         <!-- Status Bar -->
         <Border Grid.Row="4" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" 
                 Padding="16,8" AutomationProperties.Name="Status bar at the bottom">
@@ -545,6 +552,5 @@
                    HorizontalAlignment="Center" 
                    VerticalAlignment="Center"/>
         </Border>
-
     </Grid>
 </Window>

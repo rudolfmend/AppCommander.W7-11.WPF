@@ -1,5 +1,5 @@
 ﻿using AppCommander.W7_11.WPF.Core;
-using Microsoft.VisualBasic;
+using AppCommander.W7_11.WPF.Core.Managers;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
@@ -9,9 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,8 +18,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using AppCommander.W7_11.WPF.Core.Managers;
-
 public class SequenceSetItem : INotifyPropertyChanged
 {
     private int _stepNumber;
@@ -152,6 +148,7 @@ namespace AppCommander.W7_11.WPF
         private ObservableCollection<Command> _commands;
 
         // State
+        private readonly UserModeManager _userModeManager;
         private IntPtr _targetWindowHandle = IntPtr.Zero;
         private bool _isAutoTrackingEnabled = true;
 
@@ -179,8 +176,19 @@ namespace AppCommander.W7_11.WPF
             InitializeWindowClickSelector();
             InitializeSidePanel();
 
-            // PRIDAJ: Nastavenie UI controls pre PlaybackManager
-            // Toto musí byť až PO InitializeComponent()
+            // UserMode inicializácia
+            _userModeManager = UserModeManager.Instance;
+
+            // Zobraz Welcome Wizard ak treba
+            if (_userModeManager.ShouldShowWelcomeWizard())
+            {
+                Loaded += MainWindow_ShowWelcomeWizard;
+            }
+
+            // Subscribe na zmenu módu
+            _userModeManager.ModeChanged += OnUserModeChanged;
+
+            // Nastavenie UI controls pre PlaybackManager
             if (_playbackManager != null)
             {
                 _playbackManager.SetUIControls(
@@ -294,6 +302,48 @@ namespace AppCommander.W7_11.WPF
             {
                 ShowErrorMessage("Error initializing application", ex);
             }
+        }
+
+        #endregion
+
+        #region Welcom Wizard
+
+        private void MainWindow_ShowWelcomeWizard(object sender, RoutedEventArgs e)
+        {
+            Loaded -= MainWindow_ShowWelcomeWizard;
+
+            // Malé oneskorenie aby sa okno stihlo zobraziť
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                WelcomeWizard.ShowWizard(this);
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void OnUserModeChanged(object sender, UserMode newMode)
+        {
+            // Aktualizuj UI podľa nového režimu
+            System.Diagnostics.Debug.WriteLine($"Mode changed to: {newMode}");
+
+            // Prípadne manuálne aktualizuj elementy ktoré nemajú binding
+            UpdateUIForMode(newMode);
+        }
+
+        private void UpdateUIForMode(UserMode mode)
+        {
+            // Pre elementy bez bindingu
+            // Napr. zmena titulku okna
+            Title = $"Senaro - {mode.GetDisplayName()}";
+
+            // Manuálna aktualizácia visibility ak by sa nepoužívali bindingy:
+            // AppCommander_BtnRecording.Visibility = _userModeManager.ShowRecording;
+            // atď...
+        }
+
+        private void WelcomeWizard_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset wizard stavu a zobraz ho
+            _userModeManager.ResetWelcomeWizard();
+            WelcomeWizard.ShowWizard(this);
         }
 
         #endregion
@@ -2092,6 +2142,12 @@ namespace AppCommander.W7_11.WPF
                         return;
                     }
                 }
+
+                // Cleanup UserModeManager event handler
+                _userModeManager.ModeChanged -= OnUserModeChanged;
+
+                // Cleanup UserModeRibbon
+                UserModeRibbon?.Cleanup();
 
                 // Cleanup
                 if (_recordingManager != null) _recordingManager.Dispose();

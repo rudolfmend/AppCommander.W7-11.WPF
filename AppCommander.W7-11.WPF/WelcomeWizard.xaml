@@ -1,0 +1,350 @@
+﻿<Window x:Class="AppCommander.W7_11.WPF.WelcomeWizard"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vitajte v Senaro" 
+        Height="500" Width="650"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <!-- Štýl pre veľké mode tlačidlá -->
+        <Style x:Key="BigModeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="130"/>
+            <Setter Property="Height" Value="120"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Štýl pre navigačné tlačidlá -->
+        <Style x:Key="NavButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource WindowBackgroundBrush}" 
+            BorderBrush="{DynamicResource BorderBrush}" 
+            BorderThickness="1" 
+            CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{DynamicResource AccentBrush}" Padding="20">
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="✨ Vitajte v Senaro" 
+                                   FontSize="24" FontWeight="Bold" 
+                                   Foreground="White"/>
+                        <TextBlock x:Name="TxtSubtitle" 
+                                   Text="Krok 1 z 3 - Vyberte váš profil" 
+                                   FontSize="14" 
+                                   Foreground="#CCFFFFFF"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- Close button -->
+                    <Button Content="✕" 
+                            HorizontalAlignment="Right" 
+                            VerticalAlignment="Top"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontSize="16"
+                            Padding="8"
+                            Cursor="Hand"
+                            Click="BtnClose_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- Content Area -->
+            <Grid Grid.Row="1" Margin="20">
+
+                <!-- Step 1: Mode Selection -->
+                <Grid x:Name="Step1_ModeSelection">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Ako budete používať Senaro?" 
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"/>
+
+                        <WrapPanel HorizontalAlignment="Center">
+                            <!-- Accountant -->
+                            <Button x:Name="BtnSelectAccountant" 
+                                    Style="{StaticResource BigModeButtonStyle}"
+                                    Click="BtnSelectAccountant_Click">
+                                <StackPanel>
+                                    <TextBlock Text="🧾" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Ekonóm" FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                    <TextBlock Text="Dokumenty" FontSize="11"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Tester -->
+                            <Button x:Name="BtnSelectTester" 
+                                    Style="{StaticResource BigModeButtonStyle}"
+                                    Click="BtnSelectTester_Click">
+                                <StackPanel>
+                                    <TextBlock Text="🧪" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Tester" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                    <TextBlock Text="UI testovanie" FontSize="11"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Worker -->
+                            <Button x:Name="BtnSelectWorker" 
+                                    Style="{StaticResource BigModeButtonStyle}"
+                                    Click="BtnSelectWorker_Click">
+                                <StackPanel>
+                                    <TextBlock Text="👨‍💼" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Administratíva" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                    <TextBlock Text="Prehrávanie" FontSize="11"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Developer -->
+                            <Button x:Name="BtnSelectDeveloper" 
+                                    Style="{StaticResource BigModeButtonStyle}"
+                                    Click="BtnSelectDeveloper_Click">
+                                <StackPanel>
+                                    <TextBlock Text="🛠️" FontSize="36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Developer" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"
+                                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                    <TextBlock Text="Všetko" FontSize="11"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+
+                        <TextBlock x:Name="TxtModeDescription" 
+                                   Text="Vyberte profil ktorý najlepšie popisuje vašu prácu"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="400"
+                                   Margin="0,20,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 2: Mode-specific Settings -->
+                <Grid x:Name="Step2_Settings" Visibility="Collapsed">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400">
+                        <TextBlock x:Name="TxtStep2Title" 
+                                   Text="Nastavenia pre váš profil" 
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"/>
+
+                        <!-- Accountant Settings -->
+                        <StackPanel x:Name="AccountantSettings" Visibility="Collapsed">
+                            <CheckBox x:Name="ChkAutoProcess" 
+                                      Content="Automaticky spracovať nové súbory"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      Margin="0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8">
+                                <TextBlock Text="Výstupný formát:" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                <ComboBox x:Name="CmbOutputFormat" Width="120">
+                                    <ComboBoxItem Content="Excel" IsSelected="True"/>
+                                    <ComboBoxItem Content="CSV"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Tester Settings -->
+                        <StackPanel x:Name="TesterSettings" Visibility="Collapsed">
+                            <CheckBox x:Name="ChkEnableInspector" 
+                                      Content="Povoliť UI Inspector"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      IsChecked="True"
+                                      Margin="0,8"/>
+                            <CheckBox x:Name="ChkDebugOverlay" 
+                                      Content="Povoliť Debug Overlay"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      Margin="0,8"/>
+                            <CheckBox x:Name="ChkRealtimeHighlight" 
+                                      Content="Realtime highlight elementov"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      IsChecked="True"
+                                      Margin="0,8"/>
+                        </StackPanel>
+
+                        <!-- Worker Settings -->
+                        <StackPanel x:Name="WorkerSettings" Visibility="Collapsed">
+                            <CheckBox x:Name="ChkShowRecommended" 
+                                      Content="Zobraziť odporúčané sekvencie"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      IsChecked="True"
+                                      Margin="0,8"/>
+                        </StackPanel>
+
+                        <!-- Developer Settings -->
+                        <StackPanel x:Name="DeveloperSettings" Visibility="Collapsed">
+                            <CheckBox x:Name="ChkVerboseLogging" 
+                                      Content="Verbose logging"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      Margin="0,8"/>
+                            <CheckBox x:Name="ChkDebugModules" 
+                                      Content="Povoliť debug moduly"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      IsChecked="True"
+                                      Margin="0,8"/>
+                            <CheckBox x:Name="ChkAutoDebugConsole" 
+                                      Content="Automaticky otvoriť debug konzolu"
+                                      Foreground="{DynamicResource PrimaryTextBrush}"
+                                      Margin="0,8"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Step 3: Finish -->
+                <Grid x:Name="Step3_Finish" Visibility="Collapsed">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="✅" FontSize="48" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Všetko je pripravené!" 
+                                   FontSize="24" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,16,0,8"/>
+
+                        <TextBlock x:Name="TxtFinishSummary"
+                                   Text="Profil: Developer"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,4"/>
+
+                        <TextBlock x:Name="TxtFinishFeatures"
+                                   Text="Aktívne funkcie: Recording, Playback, Debug"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="350"/>
+
+                        <TextBlock Text="Režim môžete kedykoľvek zmeniť v pravom hornom rohu."
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,20,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Footer Navigation -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource PanelBackgroundBrush}" 
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnBack" 
+                            Grid.Column="0"
+                            Content="← Späť" 
+                            Style="{StaticResource NavButtonStyle}"
+                            Background="{DynamicResource SecondaryButtonBrush}"
+                            Click="BtnBack_Click"
+                            Visibility="Collapsed"/>
+
+                    <!-- Step indicators -->
+                    <StackPanel Grid.Column="1" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <Ellipse x:Name="Step1Indicator" Width="10" Height="10" Fill="{DynamicResource AccentBrush}" Margin="4"/>
+                        <Ellipse x:Name="Step2Indicator" Width="10" Height="10" Fill="{DynamicResource BorderBrush}" Margin="4"/>
+                        <Ellipse x:Name="Step3Indicator" Width="10" Height="10" Fill="{DynamicResource BorderBrush}" Margin="4"/>
+                    </StackPanel>
+
+                    <Button x:Name="BtnNext" 
+                            Grid.Column="2"
+                            Content="Ďalej →" 
+                            Style="{StaticResource NavButtonStyle}"
+                            Click="BtnNext_Click"
+                            IsEnabled="False"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

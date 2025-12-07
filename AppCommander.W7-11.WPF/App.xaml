@@ -1,14 +1,19 @@
 ﻿<Application x:Class="AppCommander.W7_11.WPF.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:AppCommander.W7_11.WPF.Converters"
              StartupUri="MainWindow.xaml">
+
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- načítanie témy podľa nastavenia systému
-                ak bude systém  užívateľa tmavý, načíta sa dark, ináč light -->
                 <ResourceDictionary Source="Themes/DarkTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Convertery pre UserMode visibility (musia byť PO MergedDictionaries) -->
+            <converters:ModeToVisibilityConverter x:Key="ModeToVisibilityConverter"/>
+            <converters:ModeToVisibilityInverseConverter x:Key="ModeToVisibilityInverseConverter"/>
+            <converters:ModeToEnabledConverter x:Key="ModeToEnabledConverter"/>
 
             <!-- Geometria pre checkmark -->
             <Geometry x:Key="Checkmark">F1M10,1.2L4.7,9.1 4.5,9.1 1,5.2 2.3,3.8 4.3,6.1 8.3,0 10,1.2z</Geometry>
@@ -51,7 +56,7 @@
                               Color="#FF000000"/>
 
             <!-- TextBox s fokus animáciou -->
-            <Style  x:Key="TextBoxStyle" TargetType="TextBox">
+            <Style x:Key="TextBoxStyle" TargetType="TextBox">
                 <Setter Property="Background" Value="{DynamicResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource NeutralGray500}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -101,17 +106,17 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="border"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        Padding="{TemplateBinding Padding}">
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" 
                                     VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" 
-                                Value="{DynamicResource HoverBackgroundBrush}"/>
+                                        Value="{DynamicResource HoverBackgroundBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="border" Property="Background" 
@@ -122,6 +127,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
