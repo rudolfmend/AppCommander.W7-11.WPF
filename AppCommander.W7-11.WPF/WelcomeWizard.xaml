@@ -139,11 +139,12 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectAccountant_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🧾" FontSize="40" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🧾" FontSize="60" HorizontalAlignment="Center"/>
                                     <TextBlock Text="Accountant" FontWeight="SemiBold" 
+                                               FontSize="24"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Documents" FontSize="14"
+                                    <TextBlock Text="Documents" FontSize="16"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -154,11 +155,12 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectTester_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🧪" FontSize="40" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Tester" FontWeight="SemiBold"
+                                    <TextBlock Text="🧪" FontSize="60" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Tester" FontWeight="SemiBold" 
+                                               FontSize="24"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="UI Testing" FontSize="14"
+                                    <TextBlock Text="UI Testing" FontSize="16"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -170,11 +172,12 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectWorker_Click">
                                 <StackPanel>
-                                    <TextBlock Text="📝" FontSize="40" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="📝" FontSize="60" HorizontalAlignment="Center"/>
                                     <TextBlock Text="Office Worker" FontWeight="SemiBold"
+                                               FontSize="24"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="Playback" FontSize="14"
+                                    <TextBlock Text="Playback" FontSize="16"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -185,11 +188,12 @@
                                     Style="{StaticResource BigModeButtonStyle}"
                                     Click="BtnSelectDeveloper_Click">
                                 <StackPanel>
-                                    <TextBlock Text="🛠️" FontSize="40" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🛠️" FontSize="50" HorizontalAlignment="Center"/>
                                     <TextBlock Text="Developer" FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                               FontSize="24"
                                                HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                    <TextBlock Text="All Features" FontSize="14"
+                                    <TextBlock Text="All Features" FontSize="16"
                                                Foreground="{DynamicResource SecondaryTextBrush}"
                                                HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -203,7 +207,6 @@
                                    HorizontalAlignment="Center"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
-                                   MaxWidth="400"
                                    Margin="0,20,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -216,7 +219,7 @@
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    HorizontalAlignment="Center"
-                                   Margin="0,0,0,20"/>
+                                   Margin="0,160,0,20"/>
 
                         <!-- Accountant Settings -->
                         <StackPanel x:Name="AccountantSettings" Visibility="Collapsed">
@@ -283,12 +286,12 @@
                 <!-- Step 3: Finish -->
                 <Grid x:Name="Step3_Finish" Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="✅" FontSize="48" HorizontalAlignment="Center"/>
+                        <TextBlock Text="✅" FontSize="48" Margin="0,250,0,0" HorizontalAlignment="Center"/>
                         <TextBlock Text="All set!" 
                                    FontSize="24" FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    HorizontalAlignment="Center"
-                                   Margin="0,16,0,8"/>
+                                   Margin="0,10,0,8"/>
 
                         <TextBlock x:Name="TxtFinishSummary"
                                    Text="Profile: Developer"
