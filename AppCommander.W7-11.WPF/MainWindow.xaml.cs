@@ -18,6 +18,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using WindowState = System.Windows.WindowState; 
+
 public class SequenceSetItem : INotifyPropertyChanged
 {
     private int _stepNumber;
@@ -151,6 +153,12 @@ namespace AppCommander.W7_11.WPF
         private readonly UserModeManager _userModeManager;
         private IntPtr _targetWindowHandle = IntPtr.Zero;
         private bool _isAutoTrackingEnabled = true;
+
+        // Compact mode button state
+        private bool isCompactMode = false;
+        private double normalWidth;
+        private double normalHeight;
+        private WindowState normalWindowState;
 
         private ObservableCollection<SequenceSetItem> _sequenceSetItems;
         private SequenceSet _currentSequenceSet;
@@ -3353,6 +3361,90 @@ namespace AppCommander.W7_11.WPF
 
         [DllImport("user32.dll")]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
+
+        #endregion
+
+        #region Compact View Toggle
+
+        private void BtnCompactMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (!isCompactMode)
+            {
+                // Uložiť normálnu veľkosť
+                normalWidth = this.ActualWidth;
+                normalHeight = this.ActualHeight;
+                normalWindowState = this.WindowState;
+
+                // Prepnúť na kompaktný režim
+                this.WindowState = System.Windows.WindowState.Normal;
+                this.Width = 300;
+                this.Height = 400;
+                this.ResizeMode = ResizeMode.CanResize;
+                this.Topmost = true;
+
+                // Skryť/zobraziť panely
+                if (CompactPanel != null) CompactPanel.Visibility = Visibility.Visible;
+                if (MainContent != null) MainContent.Visibility = Visibility.Collapsed;
+
+                isCompactMode = true;
+                if (BtnCompactMode != null)
+                {
+                    BtnCompactMode.Content = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children =
+                {
+                    new TextBlock { Text = "📏", FontSize = 16, Margin = new Thickness(0, 0, 5, 0) },
+                    new TextBlock { Text = "Normal Mode" }
+                }
+                    };
+                }
+            }
+            else
+            {
+                // Vrátiť normálnu veľkosť
+                this.Topmost = false;
+                this.Width = normalWidth;
+                this.Height = normalHeight;
+                this.WindowState = normalWindowState;
+
+                // Skryť/zobraziť panely
+                if (CompactPanel != null) CompactPanel.Visibility = Visibility.Collapsed;
+                if (MainContent != null) MainContent.Visibility = Visibility.Visible;
+
+                isCompactMode = false;
+                if (BtnCompactMode != null)
+                {
+                    BtnCompactMode.Content = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children =
+                {
+                    new TextBlock { Text = "📐", FontSize = 16, Margin = new Thickness(0, 0, 5, 0) },
+                    new TextBlock { Text = "Compact Mode" }
+                }
+                    };
+                }
+            }
+
+            UpdateStatus(isCompactMode ? "Compact mode enabled" : "Normal mode restored");
+        }
+
+        // Handlery pre kompaktný panel
+        private void BtnPlay_Click(object sender, RoutedEventArgs e)
+        {
+            PlaySequence_Click(sender, e);
+        }
+
+        private void BtnStop_Click(object sender, RoutedEventArgs e)
+        {
+            StopPlayback_Click(sender, e);
+        }
+
+        private void BtnOpen_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSequence_Click(sender, e);
+        }
 
         #endregion
 
