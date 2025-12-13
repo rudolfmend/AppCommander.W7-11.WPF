@@ -48,7 +48,7 @@ namespace AppCommander.W7_11.WPF.Core
         // Settings for window management - automatic detection and switching
         public bool AutoDetectNewWindows { get; set; } = true;
         public bool AutoSwitchToNewWindows { get; set; } = true;
-        public bool LogWindowChanges { get; set;  } = true;
+        public bool LogWindowChanges { get; set; } = true;
 
         // WinUI3 debugging properties
         public bool EnableWinUI3Analysis { get; set; } = true;
@@ -64,7 +64,7 @@ namespace AppCommander.W7_11.WPF.Core
         #region AppCommander UI Blacklist
 
         /// <summary>
-        /// Blacklist všetkých UI elementov AppCommander
+        /// Blacklist všetkých UI elementov Senaro/AppCommander
         /// </summary>
         private static readonly HashSet<string> AppCommanderUIElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -121,7 +121,36 @@ namespace AppCommander.W7_11.WPF.Core
             // === OKNÁ A DIALÓGY ===
             "WindowSelectorDialog",      // Window selector dialog
             "EditCommandWindow",         // Edit command window
-            "AppCommander",              // Main window title/class
+            "AppCommander",              // Main window title/class (legacy)
+            "Senaro",                    // Main window title/class (new name)
+            "CompactPanel",              // Compact mode panel
+
+            // === COMPACT MODE UI ELEMENTY ===
+            "Compact_RecordingButton",                // Compact: Recording button
+            "Compact_PlayButton",                     // Compact: Play button
+            "Compact_StopButton",                     // Compact: Stop button
+            "Compact_OpenFileButton",                 // Compact: Open file button
+            "Compact_NormalMode",                     // Compact: Normal mode button
+            "Compact_Border",                         // Compact: Border/Card
+            "Compact_MainCommandTable",               // Compact: Command DataGrid
+            "Compact_StackPanel",                     // Compact: StackPanel
+            "Compact_TxtCompactMode",                 // Compact: Compact mode text
+            // Compact: Action Buttons
+            "Compact_EditButton",                     // Compact: Edit button
+            "Compact_MoveUpButton",                   // Compact: Move up button
+            "Compact_MoveDownButton",                 // Compact: Move down button
+            "Compact_AddSequenceButton",              // Compact: Add sequence button
+            "Compact_AddCmdButton",                   // Compact: Add command button
+            "Compact_SaveAsSetButton",                // Compact: Save as set button
+            // Compact: Context Menu Items
+            "Compact_MenuItemOpenEditor",             // Compact: Open editor menu item
+            "Compact_MenuItemDelete",                 // Compact: Delete menu item
+            "Compact_MenuItemEditRepeate",            // Compact: Edit repeat menu item
+            "Compact_MenuItemCopyDetails",            // Compact: Copy details menu item
+            "Compact_MenuItemDuplicate",              // Compact: Duplicate menu item
+            "Compact_MenuItemMoveUp",                 // Compact: Move up menu item
+            "Compact_MenuItemMoveDown",               // Compact: Move down menu item
+            "Compact_MenuItemRefreshTable",           // Compact: Refresh table menu item
     
             // === DODATOČNÉ BEZPEČNOSTNÉ POLOŽKY ===
             // Ak má element text content ktorý obsahuje tieto frázy
@@ -135,7 +164,9 @@ namespace AppCommander.W7_11.WPF.Core
             "Refresh Stats",
             "Element Inspector",
             "Settings",
-            "Debug Info"
+            "Debug Info",
+            "Normal Mode",
+            "Compact Mode"
         };
 
         #endregion
@@ -545,7 +576,7 @@ namespace AppCommander.W7_11.WPF.Core
             }
         }
 
-      
+
 
         /// <summary>
         /// Spustí nahrávanie s ochranou proti nekonečnej slučke
@@ -581,12 +612,12 @@ namespace AppCommander.W7_11.WPF.Core
                     currentSequence.TargetWindowClass = GetWindowClassFromHandle(targetWindow);
 
                     // **NOVÁ KONTROLA: Zabráň nahrávaniu na samého seba**
-                    if (targetProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                    if (IsSenaroProcess(targetProcessName))
                     {
-                        System.Diagnostics.Debug.WriteLine("🚫 Cannot record on AppCommander itself!");
+                        System.Diagnostics.Debug.WriteLine("🚫 Cannot record on Senaro/AppCommander itself!");
 
                         // Upozornenie používateľa (použite vhodný spôsob v kontexte)
-                        System.Diagnostics.Debug.WriteLine("⚠️ User tried to record on AppCommander - operation cancelled");
+                        System.Diagnostics.Debug.WriteLine("⚠️ User tried to record on Senaro - operation cancelled");
                         return;
                     }
 
@@ -1203,19 +1234,18 @@ namespace AppCommander.W7_11.WPF.Core
                 System.Diagnostics.Debug.WriteLine($"   Window Handle: 0x{e.WindowHandle:X}");
                 // ════════════════════════════════════════
 
-                // FILTER 1: Kontrola ProcessName
-                if (e.ProcessName != null &&
-                    e.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase))
+                // FILTER 1: Kontrola ProcessName (Senaro aj AppCommander pre spätnú kompatibilitu)
+                if (e.ProcessName != null && IsSenaroProcess(e.ProcessName))
                 {
-                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 1 BLOCKED: ProcessName is AppCommander");
+                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 1 BLOCKED: ProcessName is Senaro/AppCommander ({e.ProcessName})");
                     System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                     return;
                 }
 
                 // FILTER 2: Kontrola Window Handle
-                if (IsAppCommanderWindow(e.WindowHandle))
+                if (IsSenaroWindow(e.WindowHandle))
                 {
-                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 2 BLOCKED: Window belongs to AppCommander");
+                    System.Diagnostics.Debug.WriteLine($"🚫 FILTER 2 BLOCKED: Window belongs to Senaro/AppCommander");
                     System.Diagnostics.Debug.WriteLine("════════════════════════════════════════");
                     return;
                 }
@@ -1289,9 +1319,20 @@ namespace AppCommander.W7_11.WPF.Core
         }
 
         /// <summary>
-        /// Pomocná metóda - skontroluje, či window handle patrí AppCommander
+        /// Pomocná metóda - skontroluje či je ProcessName Senaro alebo AppCommander
         /// </summary>
-        private bool IsAppCommanderWindow(IntPtr windowHandle)
+        private bool IsSenaroProcess(string processName)
+        {
+            if (string.IsNullOrEmpty(processName)) return false;
+
+            return processName.Equals("Senaro", StringComparison.OrdinalIgnoreCase) ||
+                   processName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Pomocná metóda - skontroluje, či window handle patrí Senaro/AppCommander
+        /// </summary>
+        private bool IsSenaroWindow(IntPtr windowHandle)
         {
             try
             {
@@ -1300,7 +1341,7 @@ namespace AppCommander.W7_11.WPF.Core
 
                 using (var process = Process.GetProcessById((int)processId))
                 {
-                    return process.ProcessName.Equals("AppCommander", StringComparison.OrdinalIgnoreCase);
+                    return IsSenaroProcess(process.ProcessName);
                 }
             }
             catch
@@ -1308,6 +1349,12 @@ namespace AppCommander.W7_11.WPF.Core
                 return false;
             }
         }
+
+        /// <summary>
+        /// Zachovaná pre spätnú kompatibilitu - volá IsSenaroWindow
+        /// </summary>
+        [Obsolete("Use IsSenaroWindow instead")]
+        private bool IsAppCommanderWindow(IntPtr windowHandle) => IsSenaroWindow(windowHandle);
 
 
         #endregion
@@ -1469,7 +1516,7 @@ namespace AppCommander.W7_11.WPF.Core
                         {
                             WindowHandle = e.WindowHandle,
                             PreviousElements = previousElements,
-                            NewElements = newElements, 
+                            NewElements = newElements,
                             Context = context
                         });
                     }
@@ -2559,7 +2606,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetParent(IntPtr hWnd);
-        
+
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
@@ -2614,7 +2661,7 @@ namespace AppCommander.W7_11.WPF.Core
 
         #region Logic for check - whether the application is recording itself
         /// <summary>
-        /// Skontroluje, či UI element patrí AppCommander blacklistu
+        /// Skontroluje, či UI element patrí Senaro/AppCommander blacklistu
         /// </summary>
         private bool IsAppCommanderUIElement(UIElementInfo elementInfo)
         {
@@ -2653,9 +2700,9 @@ namespace AppCommander.W7_11.WPF.Core
                     }
                 }
 
-                // Kontrola 4: ClassName obsahuje "AppCommander"
+                // Kontrola 4: ClassName obsahuje "AppCommander" alebo "Senaro"
                 if (!string.IsNullOrEmpty(elementInfo.ClassName) &&
-                    elementInfo.ClassName.Contains("AppCommander"))
+                    (elementInfo.ClassName.Contains("AppCommander") || elementInfo.ClassName.Contains("Senaro")))
                 {
                     System.Diagnostics.Debug.WriteLine($"🚫 Blacklist match: ClassName = {elementInfo.ClassName}");
                     return true;

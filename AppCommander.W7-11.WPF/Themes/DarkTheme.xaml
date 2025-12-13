@@ -342,13 +342,13 @@
         </Setter>
     </Style>
 
-    <!-- ▶️ PLAY BUTTON - Modrý gradient ladí s logom -->
+    <!-- ▶️ PLAY BUTTON - Modrý gradient -->
     <Style x:Key="PlayButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="24,12"/>
+        <Setter Property="Padding" Value="24,120"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Cursor" Value="Hand"/>

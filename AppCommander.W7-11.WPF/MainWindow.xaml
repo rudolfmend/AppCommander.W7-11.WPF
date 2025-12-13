@@ -21,36 +21,41 @@
         <!-- Kompaktný panel -->
         <Grid x:Name="CompactPanel" Visibility="Collapsed" Background="{DynamicResource BackgroundBrush}">
             <StackPanel Margin="10">
-                <Button x:Name="CompactRecordingButton"
-                    Content="• Recording" 
+                <Button x:Name="Compact_RecordingButton"
+                    Content="Rec" 
                     Click="StartStopToggleRecording_Click" 
                     Margin="0,5" 
                     Padding="10,20" 
                     Style="{DynamicResource RecordButton}"/>
 
-                <Button Content="▶️ Play" 
+                <Button x:Name="Compact_PlayButton"
+                    Content="▶️" 
                     Click="PlaySequence_Click" 
                     Margin="0,5" 
                     Padding="10,20" 
                     Style="{DynamicResource PlayButton}"/>
 
-                <Button Content="⏹️ Stop" 
+                <Button x:Name="Compact_StopButton"
+                    Content="⏹️" 
                     Click="StopPlayback_Click" 
                     Margin="0,5" 
                     Style="{DynamicResource PrimaryButton}"/>
 
-                <Button Content="📂 Open" 
+                <Button x:Name="Compact_OpenFileButton"
+                    Content="📂" 
                     Click="OpenSequence_Click" 
                     Margin="0,5" 
                     Style="{DynamicResource SecondaryButton}"/>
 
-                <Button Content="📏 Normal Mode" 
+                <Button x:Name="Compact_NormalMode"
+                    Content="📏 Normal Mode" 
                     Click="BtnCompactMode_Click" 
                     Margin="0,20,0,5" 
                     Style="{DynamicResource SecondaryButton}"/>
-                
-                
-                <Border Style="{DynamicResource CardStyle}" >
+
+                <ScrollViewer x:Name="Compact_ScrollBar" Visibility="Visible" Style="{DynamicResource ScrollViewerStyle}">
+
+                    <Border x:Name="Compact_Border" Style="{DynamicResource CardStyle}">
                     <Grid Margin="16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -60,46 +65,45 @@
 
                         <!-- Header -->
                         <Grid Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" AutomationProperties.Name="Recorded Commands"
-                            Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Compact_CommandsHeader" Text="Recorded Commands" FontSize="18" FontWeight="SemiBold" AutomationProperties.Name="Recorded Commands"
+                    Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
                         </Grid>
 
                         <!-- DataGrid -->
-                        <DataGrid Grid.Row="1" x:Name="AppCommander_CompactMainCommandTable" Style="{DynamicResource DataGridStyle}"
-                            AutomationProperties.Name="Main command table"
-                            AutomationProperties.HelpText="Main command table"
-                            AutomationProperties.LabeledBy="{Binding ElementName=AppCommander_TxtCommandCount}"
-                            AutomationProperties.ItemStatus="Command list loaded"
-                            AutomationProperties.LiveSetting="Polite"
-                            AutomationProperties.AutomationId="AppCommander_MainCommandTable"
-                            AlternationCount="2"
-                            AutoGenerateColumns="False"
-                            ColumnWidth="*"
-                            CanUserResizeColumns="True"
-                            MouseDoubleClick="AppCommander_MainCommandTable_MouseDoubleClick"
-                            SelectionMode="Single"
-                            CanUserAddRows="False"
-                            CanUserDeleteRows="True" 
-                            IsSynchronizedWithCurrentItem="False"
-                            GridLinesVisibility="Vertical"
-                            HeadersVisibility="All"
-                            Margin="12,0,-12,10">
+                        <DataGrid Grid.Row="1" x:Name="Compact_MainCommandTable" Style="{DynamicResource DataGridStyle}"
+                    AutomationProperties.Name="Compact command table"
+                    AutomationProperties.HelpText="Compact command table"
+                    AutomationProperties.ItemStatus="Command list loaded"
+                    AutomationProperties.LiveSetting="Polite"
+                    AutomationProperties.AutomationId="Compact_MainCommandTable"
+                    AlternationCount="2"
+                    AutoGenerateColumns="False"
+                    ColumnWidth="*"
+                    CanUserResizeColumns="True"
+                    MouseDoubleClick="AppCommander_MainCommandTable_MouseDoubleClick"
+                    SelectionMode="Single"
+                    CanUserAddRows="False"
+                    CanUserDeleteRows="True" 
+                    IsSynchronizedWithCurrentItem="False"
+                    GridLinesVisibility="Vertical"
+                    HeadersVisibility="All"
+                    Margin="12,0,-12,10">
 
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="📋 Open Sequence Editor" Click="OpenSequenceEditor_Click" FontWeight="Bold"/>
+                                    <MenuItem x:Name="Compact_MenuItemOpenEditor" Header="📋 Open Sequence Editor" Click="OpenSequenceEditor_Click" FontWeight="Bold"/>
                                     <Separator/>
-                                    <MenuItem Header="🗑️ Delete Commands" Click="ContextMenu_Delete_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemDelete" Header="🗑️ Delete Commands" Click="ContextMenu_Delete_Click"/>
                                     <Separator/>
-                                    <MenuItem Header="&#10227; Edit repeat number"  Click="QuickEditItem_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemEditRepeat" Header="&#10227; Edit repeat number" Click="QuickEditItem_Click"/>
                                     <Separator/>
-                                    <MenuItem Header="📋 Copy Details" Click="ContextMenu_Copy_Click"/>
-                                    <MenuItem Header="📄 Duplicate Command" Click="ContextMenu_Duplicate_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemCopyDetails" Header="📋 Copy Details" Click="ContextMenu_Copy_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemDuplicate" Header="📄 Duplicate Command" Click="ContextMenu_Duplicate_Click"/>
                                     <Separator/>
-                                    <MenuItem Header="⬆️ Move Up" Click="MoveUp_Click"/>
-                                    <MenuItem Header="⬇️ Move Down" Click="MoveDown_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemMoveUp" Header="⬆️ Move Up" Click="MoveUp_Click"/>
+                                    <MenuItem x:Name="Compact_MenuItemMoveDown" Header="⬇️ Move Down" Click="MoveDown_Click"/>
                                     <Separator/>
-                                    <MenuItem Header="↻ Refresh table" Click="RefreshWarnings_Click" />
+                                    <MenuItem x:Name="Compact_MenuItemRefreshTable" Header="↻ Refresh table" Click="RefreshWarnings_Click" />
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
 
@@ -116,18 +120,20 @@
 
                         <!-- Action Buttons -->
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
-                            <Button Content=" ✏ Edit   " Click="EditItem_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
-                            <Button Content="⬆ Move Up   " Click="MoveUp_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
-                            <Button Content="⬇ Move Down " Click="MoveDown_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
-                            <Button Content="➕ Add  Sequence" Click="AddSequence_Click" Margin="0,0,8,0" Style="{DynamicResource PrimaryButton}"/>
-                            <Button Content="📁Add Cmd" Click="AddFromCommands_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
-                            <Button Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,0,0,0" Style="{DynamicResource SecondaryButton}"/>
+                            <Button x:Name="Compact_EditButton" Content=" ✏ Edit   " Click="EditItem_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
+                            <Button x:Name="Compact_MoveUpButton" Content="⬆ Move Up   " Click="MoveUp_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
+                            <Button x:Name="Compact_MoveDownButton" Content="⬇ Move Down " Click="MoveDown_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
+                            <Button x:Name="Compact_AddSequenceButton" Content="➕ Add  Sequence" Click="AddSequence_Click" Margin="0,0,8,0" Style="{DynamicResource PrimaryButton}"/>
+                            <Button x:Name="Compact_AddCmdButton" Content="📁Add Cmd" Click="AddFromCommands_Click" Margin="0,0,8,0" Style="{DynamicResource SecondaryButton}"/>
+                            <Button x:Name="Compact_SaveAsSetButton" Content="💾 Save as Set" Click="SaveAsSet_Click" Margin="0,0,0,0" Style="{DynamicResource SecondaryButton}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
-
+            </ScrollViewer>
             </StackPanel>
         </Grid>
+
+        
         <!-- Hlavný obsah aplikácie -->
         <Grid x:Name="MainContent"  Margin="0,0,-16,0">
         <Grid.RowDefinitions>
@@ -208,9 +214,9 @@
                             VerticalAlignment="Center"
                             Margin="0,0,16,0"
                             Padding="5">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel x:Name="Compact_StackPanel"  Orientation="Horizontal">
                             <TextBlock Text="📐" FontSize="16" FontWeight="UltraLight" Margin="0,0,5,0"/>
-                            <TextBlock Text="Compact Mode"/>
+                            <TextBlock Text="Compact Mode" x:Name="Compact_TxtCompactMode"/>
                         </StackPanel>
                     </Button>
 
